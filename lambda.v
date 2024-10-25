@@ -28,7 +28,10 @@ Arguments add_lk /.
 (* for now / for simplicity let us consider rhs which does not contain abstraction
   e.g. f (\x.x) is not allowed as right-hand side
 *)
-
+(* solved theta x ts z rs means that
+   x applied to the terms ts with free variables substituted according to theta
+   reduces to z applied to rs
+*)
 Inductive solved : list (term * lookup) -> nat -> list term -> nat -> list term -> Prop :=
   | solved_var (x y : nat) (m : nat) (ts us : list term) (theta theta' : list (term * lookup))
     (z : nat) (rs : list term) :
