@@ -36,6 +36,7 @@ Fixpoint subterm (t : term) (p : positions) : option term :=
    above the returned term
 
    QUESTION: maybe we should use only this definition?
+   SEPARATE
  *)
 Fixpoint subterm_bound (t : term) (p : positions) (bound:nat) : option (term*nat) :=
   match t, p with
@@ -67,9 +68,20 @@ Arguments get_tdepth {A}.
 
 
 
+
+(* Arenas of our game are lists of terms [t, t1, ..., tk] s.t. 
+    t t1...tk reduces to rhs of the target equation.
+    TODO: get rid of plurals
+ *)
+Definition arenas  := list term.
+
+(* Arena position picks a term t from an arena and then it is 
+   a position in t. *)
+Definition apositions  := (nat * positions)%type.
+
 (* 
-   Intervals are used to designate a segment of roseta tree
-   π[i, j] is the sequence of positions πi, ..., πj.
+   Intervals are used to designate a segment of rose tree
+   π[i, j] is the sequence of positions πi,..., πj.
 
  *)
 Inductive intervals : Type :=
@@ -77,16 +89,9 @@ Inductive intervals : Type :=
 
 Notation "'pi[' a ',' b ']'" := (intvl a b) (at level 2).
 
+(* [3; 4] is a continuation of [1; 2] *)
 Check (pi[[1; 2], [3; 4]]).
 
-
-(* Arenas of our game are lists of terms [t, t1, ..., tk] s.t. 
-    t t1...tk reduces to rhs of the target equation. *)
-Definition arenas  := list term.
-
-(* Arena position picks a term t from an arena and then it is 
-   a position in t. *)
-Definition apositions  := (nat * positions)%type.
 
 
 Definition prefix (ap:apositions) (ap':apositions) :=
@@ -129,7 +134,10 @@ Fixpoint get_game_subtree (gtr : game_trees) (p: positions) :=
   end.
 
 (* Returns the list of nodes in the game tree tr through which the
-   interval intv passes.   *)
+   interval intv passes.
+
+   TODO: inductive type
+ *)
 Fixpoint passthrough_nodes (tr:game_trees) (intv:intervals) (fuel:nat) :=
   match fuel with
   | 0 => None
@@ -194,7 +202,7 @@ Fixpoint get_subarena_bound ap : option (term*nat) :=
   end.
 
 
-(* The list with [n] elements [v]. *)
+(* The list with [n] elements [v]. TODO: repeat *)
 Fixpoint const_list (n:nat) (v:nat) :=
   match n with
   | 0 => []
@@ -230,7 +238,9 @@ Level of a position ap in the interpolation tree TS (aka arena) is 0
 is for constants. A variable node is level 1 if it is bound by the
 root of any term of the arena TS or by a node with constant in any of
 the terms. A variable node is level j + 1 if it is bound by a
-successor node of a level j node. 
+successor node of a level j node.
+
+TODO: inductive
 
  *)
 Definition level (TS:arenas) (ap:apositions) :=
@@ -282,12 +292,12 @@ to the variable. The latter is checked by embedded_seen.
 
 *)
                
-Inductive embedded (TS : arenas) (ap:apositions) :=
+Inductive embedded  :
+  apositions -> Prop :=
   | embedded_unpack i p t:
-    ap = (i, p) ->
     nth_error TS i = Some t ->
     embedded_seen 0 [] t p ->
-    embedded TS ap.
+    embedded (i, p).
 
 (* Given a variable [x] bound in the context of the current term
    we check if
@@ -441,7 +451,7 @@ Inductive parent_var_binder (pi1 : positions) (pi2 : positions) :
 
 Inductive chain_condition (gtr: game_trees) : (positions * positions) * nat -> Prop :=
 | chain_case_odd pi pi' n:
-  Nat.Odd n ->
+ Nat.Odd n ->
   parent_var_binder pi pi' gtr ->
   chain_condition gtr ((pi, pi'), n)
 | chain_case_even pi pi' n:
