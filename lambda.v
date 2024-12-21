@@ -14,14 +14,14 @@ Inductive term : Type :=
   | tm : nat -> nat -> list term -> term.
 
 (* Positions in a tree or term are lists of natural numbers. *)
-Definition positions := list nat.
+Definition position := list nat.
 
 Fixpoint get_depth (t : term) :=
   let 'tm n m args := t
   in 1 + fold_left (fun acc el => max acc (get_depth el)) args 0.
 
 (* compute the subterm of [t] at position [p] *)
-Fixpoint subterm (t : term) (p : positions) : option term :=
+Fixpoint subterm (t : term) (p : position) : option term :=
   match t, p with
   | tm n x ts, [] => Some (tm n x ts)
   | tm n x ts, i :: p =>
@@ -38,9 +38,9 @@ Fixpoint subterm (t : term) (p : positions) : option term :=
    QUESTION: maybe we should use only this definition?
    SEPARATE
  *)
-Fixpoint subterm_bound (t : term) (p : positions) (bound:nat) : option (term*nat) :=
+Fixpoint subterm_bound (t : term) (p : position) (bound:nat) : option nat :=
   match t, p with
-  | tm n x ts, [] => Some (tm n x ts, bound)
+  | tm n x ts, [] => Some bound
   | tm n x ts, i :: p =>
     match nth_error ts i with
     | Some ti => subterm_bound ti p (bound+n)
@@ -73,19 +73,19 @@ Arguments get_tdepth {A}.
     t t1...tk reduces to rhs of the target equation.
     TODO: get rid of plurals
  *)
-Definition arenas  := list term.
+Definition arena  := list term.
 
 (* Arena position picks a term t from an arena and then it is 
    a position in t. *)
-Definition apositions  := (nat * positions)%type.
+Definition aposition  := (nat * position)%type.
 
 (* 
    Intervals are used to designate a segment of rose tree
    π[i, j] is the sequence of positions πi,..., πj.
 
  *)
-Inductive intervals : Type :=
-    | intvl : positions -> positions -> intervals.
+Inductive interval : Type :=
+    | intvl : position -> position -> interval.
 
 Notation "'pi[' a ',' b ']'" := (intvl a b) (at level 2).
 
@@ -94,7 +94,7 @@ Check (pi[[1; 2], [3; 4]]).
 
 
 
-Definition prefix (ap:apositions) (ap':apositions) :=
+Definition prefix (ap:aposition) (ap':aposition) :=
   let '(i, p) := ap in
   let '(i', p') := ap' in
   i = i' /\ p = firstn (length p) p'.
@@ -108,12 +108,12 @@ Definition prefix (ap:apositions) (ap':apositions) :=
      the variable,
    - theta' is the interpretation of the free variables in t
 *)
-Inductive lookups : Type :=
-  | lk : list (apositions * lookups) -> lookups.
+Inductive lookup : Type :=
+  | lk : list (aposition * lookup) -> lookup.
 
-Definition lookup_contents := list (apositions * lookups).
+Definition lookup_contents := list (aposition * lookup).
 
-Definition add_lk (ap:apositions) (theta : lookup_contents) (j : nat) :=
+Definition add_lk (ap:aposition) (theta : lookup_contents) (j : nat) :=
   let '(i, p) := ap in
     ((i, p ++ [j]), lk theta).
 
@@ -121,9 +121,9 @@ Arguments add_lk /.
 
 
 
-Definition game_trees := rose_tree (apositions * lookup_contents).
+Definition game_tree := rose_tree (aposition * lookup_contents).
 
-Fixpoint get_game_subtree (gtr : game_trees) (p: positions) :=
+Fixpoint get_game_subtree (gtr : game_tree) (p: position) :=
   match p with
   | [] => Some gtr
   | hd :: tl => let 'node v children := gtr
@@ -138,29 +138,20 @@ Fixpoint get_game_subtree (gtr : game_trees) (p: positions) :=
 
    TODO: inductive type
  *)
-Fixpoint passthrough_nodes (tr:game_trees) (intv:intervals) (fuel:nat) :=
-  match fuel with
-  | 0 => None
-  | S fuel' =>
-      match tr with
-      | node (pos, theta) children  =>
-          match intv with
-          | pi[[], []] => Some [pos]
-          | pi[[], hd :: tl] =>
-              match nth_error children hd with
-              | Some tr' => match (passthrough_nodes tr' pi[[], tl]) fuel' with
-                            | Some rest => Some (pos :: rest)
-                            | None => None
-                            end
-              | None => None
-              end
-          | pi[hd :: tl, rest] => match nth_error children hd with
-                                   | Some tr' => passthrough_nodes tr' pi[tl, rest] fuel'
-                                   | None => None
-                                   end
-          end
-      end
-  end.
+Inductive passthrough_nodes : game_tree -> interval -> list aposition -> Prop :=
+  | passthrouugh_case_nil_nil pos theta children:
+      passthrough_nodes (node (pos, theta) children) pi[[], []] [pos]
+
+  | passthrouugh_case_nil_cons pos theta children hd (tl:position) rest tr':
+      nth_error children hd = Some tr' ->
+      passthrough_nodes tr' pi[[], tl] rest ->
+      passthrough_nodes (node (pos, theta) children) pi[ [], (hd :: tl) ] (pos :: rest)
+
+| passthrouugh_case_cons_cons pos theta children hd (tl:position) rest tr' res:
+      nth_error children hd = Some tr' ->
+      passthrough_nodes tr' pi[tl, rest] res ->
+      passthrough_nodes (node (pos, theta) children) pi[ (hd :: tl), rest ] res.
+
 
 (* 
    Intervals [intv1] and [intv2] correspond when they pass through
@@ -168,16 +159,16 @@ Fixpoint passthrough_nodes (tr:game_trees) (intv:intervals) (fuel:nat) :=
 
    QUESTION: maybe this should be modelled by an inductive predicate?
  *)
-Definition corresponding (tr:game_trees) (intv1:intervals) (intv2:intervals) :=
-  let dpth := (get_tdepth tr)+1 in
-  let nds1 := passthrough_nodes tr intv1 dpth in
-  let nds2 := passthrough_nodes tr intv2 dpth in
-  nds1 = nds2.
+Inductive corresponding (tr:game_tree) (intv1:interval) (intv2:interval) :=
+  | corr_case nds1 nds2:
+  passthrough_nodes tr intv1 nds1 ->
+  passthrough_nodes tr intv2 nds2 ->  
+  nds1 = nds2 -> corresponding tr intv1 intv2.
 
 
 Section Arenas.
 
-Variable TS: arenas.
+Variable TS: arena.
 
 (* Gives the portion of the arena [TS] under the position [ap],
    provided that [ap] is an address in the arena. *)
@@ -189,12 +180,12 @@ Definition get_subarena ap :=
       end.
 
 
-(* as above, but gives also the limit for variables that were bound
+(* as above, but gives the limit for variables that were bound
    above the returned term
 
    QUESTION: maybe we should use only this definition?
  *)
-Fixpoint get_subarena_bound ap : option (term*nat) :=
+Fixpoint get_subarena_bound ap : option nat :=
   let '(i, p) := ap in
   match nth_error TS i with
   | Some t => subterm_bound t p 0
@@ -210,7 +201,7 @@ Fixpoint const_list (n:nat) (v:nat) :=
   end.
 
 
-Fixpoint level_helper (t:term) (ap:positions) (lvls:list nat) (last:nat) :=
+Fixpoint level_helper (t:term) (ap:position) (lvls:list nat) (last:nat) :=
   match t with
   | tm n x args =>
       let nlvls := lvls ++ (const_list n (last+1)) in
@@ -243,7 +234,7 @@ successor node of a level j node.
 TODO: inductive
 
  *)
-Definition level (TS:arenas) (ap:apositions) :=
+Definition level (TS:arena) (ap:aposition) :=
   let (i, pos) := ap in
   match nth_error TS i with
   | Some t => level_helper t pos [] 0
@@ -252,7 +243,7 @@ Definition level (TS:arenas) (ap:apositions) :=
 
 
 (* Extend the arena position ap at its end with extension. *)
-Definition extend_ap (ap:apositions) (extension:positions) :=
+Definition extend_ap (ap:aposition) (extension:position) :=
   let '(i, p) := ap in
    (i, p ++ extension).
 
@@ -263,7 +254,7 @@ Definition extend_ap (ap:apositions) (extension:positions) :=
    tell if the given term on the given position has an
    embedded occurrence *)
 Inductive embedded_seen  (bound:nat) (seen: list nat) :
-  term ->  positions -> Prop :=
+  term ->  position -> Prop :=
 | embseen_null n x args:
   In x seen ->
   embedded_seen bound seen (tm n x args) []
@@ -293,7 +284,7 @@ to the variable. The latter is checked by embedded_seen.
 *)
                
 Inductive embedded  :
-  apositions -> Prop :=
+  aposition -> Prop :=
   | embedded_unpack i p t:
     nth_error TS i = Some t ->
     embedded_seen 0 [] t p ->
@@ -305,7 +296,7 @@ Inductive embedded  :
    - at the given position in it there is a variable
    - that is a descendant under binding of [x] *)
 Inductive descendant_of (x : nat) :
-  term -> positions -> Prop :=
+  term -> position -> Prop :=
 | descendant_term_use_binding n t p m y args m' z:
   nth_error args n = Some t ->
   z < m' -> (* z is bound in the binder of (tm m' y' args') *)
@@ -351,7 +342,7 @@ variables.
 
 *)
 Inductive descendant_under_binding :
-  apositions -> apositions -> Prop :=
+  aposition -> aposition -> Prop :=
   | descendant_unpack i p p' t n x args:
     nth_error TS i = Some t ->
     subterm t p = Some (tm n x args) -> (* we take variable at p *)
@@ -379,8 +370,8 @@ Inductive descendant_under_binding :
   is solved
 *)
 
-Inductive solved (ap : apositions) (theta : lookup_contents) :
-  rose_tree (apositions * lookup_contents) ->
+Inductive solved (ap : aposition) (theta : lookup_contents) :
+  rose_tree (aposition * lookup_contents) ->
   rose_tree nat -> Prop :=
   
     | solved_var n x args nap theta' gt r:
@@ -415,13 +406,13 @@ Inductive solved (ap : apositions) (theta : lookup_contents) :
 
  *)
 
-Inductive parent_binder_var (pi1 : positions) (pi2 : positions) :
-  (rose_tree (apositions * lookup_contents)) -> Prop  :=
-| parent_at_binder gtr ap ap' theta theta' further further' t bound: 
+Inductive parent_binder_var (pi1 : position) (pi2 : position) :
+  (rose_tree (aposition * lookup_contents)) -> Prop  :=
+| parent_at_binder gtr ap ap' theta theta' further further' bound: 
   descendant_under_binding ap ap' ->
   get_game_subtree gtr pi1 = Some (node (ap, theta) further) ->
   get_game_subtree gtr pi2 = Some (node (ap', theta') further') ->
-  get_subarena_bound ap = Some (t, bound) ->
+  get_subarena_bound ap = Some bound ->
   theta = skipn ((length theta') - bound) theta' ->
   parent_binder_var pi1 pi2 gtr.
 
@@ -435,11 +426,12 @@ f : i = j − 1;
 z: i is such that πi+1 is the parent of πj−1 (according to Definition 21).
 
  *)
-Inductive parent_var_binder (pi1 : positions) (pi2 : positions) :
-  (rose_tree (apositions * lookup_contents)) -> Prop  :=
+Inductive parent_var_binder (pi1 : position) (pi2 : position) :
+  (rose_tree (aposition * lookup_contents)) -> Prop  :=
 | parent_at_var gtr ap ap1 ap1' theta theta1 theta1' further further1 further1' n x args bound pi1': 
   get_game_subtree gtr pi1 = Some (node (ap, theta) further) ->
-  get_subarena_bound ap = Some (tm n x args, bound) -> (* take var x at ap *)
+  get_subarena ap = Some (tm n x args) -> (* take var x at ap *)
+  get_subarena_bound ap = Some bound -> (* take var x at ap *)
   x < bound + n -> (* check that x at ap is not a constant *)
   nth_error further 0 = Some (node (ap1, theta1) further1) -> (* var nodes have only one successor *)
   parent_binder_var (pi1 ++ [0]) pi1' gtr -> (* find relevant child at pi1' *)
@@ -449,7 +441,7 @@ Inductive parent_var_binder (pi1 : positions) (pi2 : positions) :
 
 
 
-Inductive chain_condition (gtr: game_trees) : (positions * positions) * nat -> Prop :=
+Inductive chain_condition (gtr: game_tree) : (position * position) * nat -> Prop :=
 | chain_case_odd pi pi' n:
  Nat.Odd n ->
   parent_var_binder pi pi' gtr ->
