@@ -8,17 +8,21 @@ Require Import Nat.
 
 Inductive term : Type :=
   (* tm n x [tk; ...; t1] is the term
-     \x1...\xn. x t1 ... tk
+     \x0...\x(n-1). x t1 ... tk
      where x is the de Bruijn index of a bound variable.
      If the variable is out of bounds, then it is a constant *)
   | tm : nat -> nat -> list term -> term.
+  (* Note that when n is 0 then the term is of base type. *)
 
 (* Positions in a tree or term are lists of natural numbers. *)
 Definition position := list nat.
 
 Fixpoint get_depth (t : term) :=
-  let 'tm n m args := t
-  in 1 + fold_left (fun acc el => max acc (get_depth el)) args 0.
+  match t with
+  | tm n m [] => 0
+  | tm n m (hd::tl) => 
+    1 + fold_left (fun acc el => max acc (get_depth el)) (hd::tl) 0
+  end.
 
 (* compute the subterm of [t] at position [p] *)
 Fixpoint subterm (t : term) (p : position) : option term :=
@@ -49,6 +53,100 @@ Fixpoint subterm_bound (t : term) (p : position) (bound:nat) : option nat :=
   end.
 
 
+
+(*
+  example 1
+  (\x.x) a = a
+*)
+
+(* \x.x *)
+Definition ex1_0 := tm 1 0 [].
+(* a *)
+Definition ex1_1 := tm 0 0 [].
+(* \x.a *)
+Definition ex1_2 := tm 1 1 [].
+
+
+
+(* example Stirling
+  constants:
+  b := 2
+  g := 1
+  a := 0
+*)
+
+Definition main_solution :=
+  tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 3 []; tm 0 3 []]; tm 0 8 []]; tm 0 1 []]].
+
+Definition arg1 :=
+  tm 2 0 [tm 0 1 []; tm 0 1 []].
+
+Definition arg2 :=
+  tm 1 0 [tm 2 4 [tm 0 0 []]; tm 0 0 [tm 2 1 []; tm 0 1 []]].
+
+Lemma test_get_depth1: (get_depth ex1_0) = 0.
+Proof.
+  now compute.
+Qed.
+
+
+Lemma test_get_depth2: (get_depth arg2) = 2.
+Proof.
+  now hnf.
+Qed.
+
+
+Lemma test_get_depth3: (get_depth arg1) = 1.
+Proof.
+  now compute.
+Qed.
+
+Lemma test_subterm1: subterm ex1_0 [] = Some ex1_0.
+Proof.
+  now compute.
+Qed.
+
+Lemma test_subterm2: subterm ex1_0 [0] = None.
+Proof.
+  now compute.
+Qed.
+
+Lemma test_subterm3: subterm arg1 [0] = Some (tm 0 1 []).
+Proof.
+  now compute.
+Qed.
+
+Lemma test_subterm4: subterm arg2 [0;0] = Some (tm 0 0 []).
+Proof.
+  now compute.
+Qed.
+
+Lemma test_subterm5: subterm arg2 [1;1] = Some (tm 0 1 []).
+Proof.
+  now compute.
+Qed.
+
+Lemma test_subterm_bound1: subterm_bound ex1_0 [] 0 = Some 0.
+Proof.
+  now compute.
+Qed.
+
+Lemma test_subterm_bound2: subterm_bound ex1_0 [0] 0 = None.
+Proof.
+  now compute.
+Qed.
+
+Lemma test_subterm_bound3: subterm_bound arg2 [0] 0 = Some 1.
+Proof.
+  now compute.
+Qed.
+
+Lemma test_subterm_bound4: subterm_bound arg2 [0;0] 0 = Some 3.
+Proof.
+  now compute.
+Qed.
+
+
 Inductive rose_tree (A : Type) : Type :=
 | node : A -> list (rose_tree A) -> rose_tree A.
 
@@ -71,7 +169,7 @@ Arguments get_tdepth {A}.
 
 (* Arenas of our game are lists of terms [t, t1, ..., tk] s.t. 
     t t1...tk reduces to rhs of the target equation.
-    TODO: get rid of plurals
+    
  *)
 Definition arena  := list term.
 
@@ -120,7 +218,6 @@ Definition add_lk (ap:aposition) (theta : lookup_contents) (j : nat) :=
 Arguments add_lk /.
 
 
-
 Definition game_tree := rose_tree (aposition * lookup_contents).
 
 Fixpoint get_game_subtree (gtr : game_tree) (p: position) :=
@@ -136,7 +233,6 @@ Fixpoint get_game_subtree (gtr : game_tree) (p: position) :=
 (* Returns the list of nodes in the game tree tr through which the
    interval intv passes.
 
-   TODO: inductive type
  *)
 Inductive passthrough_nodes : game_tree -> interval -> list aposition -> Prop :=
   | passthrouugh_case_nil_nil pos theta children:
@@ -185,7 +281,7 @@ Definition get_subarena ap :=
 
    QUESTION: maybe we should use only this definition?
  *)
-Fixpoint get_subarena_bound ap : option nat :=
+Definition get_subarena_bound ap : option nat :=
   let '(i, p) := ap in
   match nth_error TS i with
   | Some t => subterm_bound t p 0
@@ -193,26 +289,39 @@ Fixpoint get_subarena_bound ap : option nat :=
   end.
 
 
-(* The list with [n] elements [v]. TODO: repeat *)
-Fixpoint const_list (n:nat) (v:nat) :=
-  match n with
-  | 0 => []
-  | S n' => v :: const_list n' v
-  end.
+(*
+
+The predicate
+
+level_term t p lvl y
+
+holds when the variable at the position p in t has level lvl
+provided that y is an ancestor variable of the variable at
+p.
 
 
-Fixpoint level_helper (t:term) (ap:position) (lvls:list nat) (last:nat) :=
-  match t with
-  | tm n x args =>
-      let nlvls := lvls ++ (const_list n (last+1)) in
-      match ap with
-      | [] => Some (nth x nlvls 0) (* level of constants is 0 *)
-      | hd :: tl => match nth_error args hd with
-                    | Some arg => level_helper t tl nlvls (nth x lvls 0) (* in this rendition level of constant is 0 *)
-                    | None => None
-                    end
-      end
-  end.
+*)
+Inductive level_term : term -> position -> nat -> nat -> Prop :=
+(* We reached the position of the variable. *)
+| level_term_nil n x ts:
+   level_term (tm n x ts) [] 0 x
+(* We skip unrelated binder. *)
+| level_term_cons_skip n x ts hd tl m y t:
+   nth_error ts hd = Some t ->
+   level_term t tl m (y+n) -> 
+   level_term (tm n x ts) (hd::tl) m y
+(* We take into account related binder and position is shallow. *)
+| level_term_cons_shallow_parent n x ts n' ts' hd y:
+   nth_error ts hd = Some (tm n' y ts') ->
+   y < n' -> (* y is bound by the binder in hd's argument of x *)
+   level_term (tm n (x+n) ts) [hd] 1 x (* x is the head variable of the current term *)
+(* We take into account related binder and position is deep. *)
+| level_term_cons_anc n x ts n' x' ts' hd hd' tl m y t':
+   nth_error ts hd = Some (tm n' x' ts') ->
+   y < n' -> (* y is bound by the binder in hd's argument of x *)
+   nth_error ts' hd' = Some t' ->
+   level_term t' tl m y -> 
+   level_term (tm n (x+n) ts) (hd::hd'::tl) (S m) x. (* x is the head variable of the current term *)
 
 (*
 
@@ -231,15 +340,20 @@ root of any term of the arena TS or by a node with constant in any of
 the terms. A variable node is level j + 1 if it is bound by a
 successor node of a level j node.
 
-TODO: inductive
-
  *)
-Definition level (TS:arena) (ap:aposition) :=
-  let (i, pos) := ap in
-  match nth_error TS i with
-  | Some t => level_helper t pos [] 0
-  | None => None
-  end.
+Inductive level : arena -> aposition -> nat -> Prop :=
+| level_const TS i t pos:
+   nth_error TS i = Some t -> 
+   level_term t pos 0 0 ->
+   level TS (i, pos) 0
+| level_var TS i n x ts pos lvl m :
+   nth_error TS i = Some (tm n x ts) -> 
+   m < n ->
+   level_term (tm n x ts) pos lvl m ->
+   level TS (i, pos) lvl.
+
+
+
 
 
 (* Extend the arena position ap at its end with extension. *)
@@ -542,22 +656,14 @@ subterm whose root is the successor node of m2p then transformation T2 is t[t0 /
 
  *)
 
-(*
-  example 1
-  (\x.x) a = a
-*)
+Notation "'pi[' a ',' b ']_' TS " := (intvl TS a b) (at level 20).
 
-
-
-Notation "'[-' a ',' b '-]_' TS " := (intvl TS a b) (at level 20).
-
-
-(* \x.x *)
-Definition ex1_0 := tm 1 0 [].
-(* a *)
-Definition ex1_1 := tm 0 0 [].
 (* a as applicative term *)
 Definition ex1_rhs := node 0 [].
+
+(* g a *)
+Definition result :=
+  node 1 [node 0 []].
 
 
 Lemma solved_ex1 : exists g, solved_start g ex1_0 [ex1_1] ex1_rhs.
@@ -574,25 +680,7 @@ Proof.
     + cbn. done.
 Qed.
 
-(* example Stirling
-  constants:
-  b := 2
-  g := 1
-  a := 0
-*)
 
-Definition main_solution :=
-  tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 3 []; tm 0 3 []]; tm 0 8 []]; tm 0 1 []]].
-
-Definition arg1 :=
-  tm 2 0 [tm 0 1 []; tm 0 1 []].
-
-Definition arg2 :=
-  tm 1 0 [tm 2 4 [tm 0 0 []]; tm 0 0 [tm 2 1 []; tm 0 1 []]].
-
-(* g a *)
-Definition result :=
-  node 1 [node 0 []].
 
 Lemma solved_Stirling : exists g, solved_start g main_solution [arg1; arg2] result.
 Proof.
