@@ -36,11 +36,10 @@ Fixpoint subterm (t : term) (p : position) : option term :=
   end.
 
 
-(* as above, but gives also the limit for variables that were bound
-   above the returned term
+(* as above, but gives the limit for variables that were bound
+   above the (lambdas) of the term at the position, the value is
+   accumulated over the parameter bound
 
-   QUESTION: maybe we should use only this definition?
-   SEPARATE
  *)
 Fixpoint subterm_bound (t : term) (p : position) (bound:nat) : option nat :=
   match t, p with
@@ -264,7 +263,7 @@ Inductive corresponding (tr:game_tree) (intv1:interval) (intv2:interval) :=
 
 Section Arenas.
 
-Variable TS: arena.
+Variable TS : arena.
 
 (* Gives the portion of the arena [TS] under the position [ap],
    provided that [ap] is an address in the arena. *)
@@ -279,7 +278,6 @@ Definition get_subarena ap :=
 (* as above, but gives the limit for variables that were bound
    above the returned term
 
-   QUESTION: maybe we should use only this definition?
  *)
 Definition get_subarena_bound ap : option nat :=
   let '(i, p) := ap in
@@ -504,7 +502,16 @@ Inductive solved (ap : aposition) (theta : lookup_contents) :
         solved (extend_ap ap [j]) theta g r) ->
       solved ap theta (node (ap, theta) gs) (node x rs).
 
+Inductive is_final : position -> game_tree -> Prop :=
+| position_nil_rose_nil v:
+  is_final [] (node v [])
+| position_some_rose_do hd tl v l t':
+  nth_error l hd = Some t' ->
+  is_final tl t' ->
+  is_final (hd::tl) (node v l).
 
+    
+  
 (* parent_binder_var: in the game tree TS the game position pi1 is the parent of pi2
    when
 
@@ -557,7 +564,7 @@ Inductive parent_var_binder (pi1 : position) (pi2 : position) :
 
 Inductive chain_condition (gtr: game_tree) : (position * position) * nat -> Prop :=
 | chain_case_odd pi pi' n:
- Nat.Odd n ->
+  Nat.Odd n ->
   parent_var_binder pi pi' gtr ->
   chain_condition gtr ((pi, pi'), n)
 | chain_case_even pi pi' n:
@@ -573,12 +580,12 @@ Inductive chain_condition (gtr: game_tree) : (position * position) * nat -> Prop
   Stirling:
   Assume π ∈ G(t, E) and πj is a lambda node. The sequence πj1 , . . . , πj2p
   is a chain (of parent child positions) for πj if
-  1. πj = πj2p ,
+  1. π_j = πj2p ,
   2. for 1 ≤ m ≤ p, πj2m−1 is the parent of πj2m ,
   3. for 1 ≤ m < p, πj2m is the position preceding πj2m+1 .
 
  *)
-Definition chain gtr l  :=
+Definition chain (gtr : game_tree) (l : list position)  :=
   Forall (chain_condition gtr) (combine (combine l (skipn 1 l)) (seq 0 (length l))).
 
 
@@ -593,14 +600,98 @@ Definition solved_start g t (ts : list term) (r : rose_tree nat) :=
     solved (t :: ts) (0, []) (map (fun j => ((S j, []), lk [])) (rev (seq 0 (length ts)))) g r
   end.
 
+(* complementary intervals 
+
+Stirling:
+
+Assume π ∈ G(t, E), π_i is the parent of π_j and π_m , j < m, n_j , n_m are
+both labelled with the same variable and n_j <> n_m. There is a k such that 
+π[j + 1, j + k] and π[m + 1, m + k] correspond and
+1. (a) π_j is the parent of π_j+k+1 and π_m is the parent of π_m+k+1, and 
+   (b) n_j+k+1 is the p-th successor of n_j iff n_m+k+1 is the p-th successor of n_m , or
+2. n_j+k is labelled with a constant and 
+   (a) π_m+k is the final position of π or 
+   (b) n_j+k+1 <> n_m+k+1 .
 
 
+Assume π ∈ G(t, E) and n_j, n_m are both labelled with the same variable
+for j < m. We say that π[j + 1, j + k] and π[m + 1, m + k] are complementary intervals
+if 1 or 2 of Proposition 24 holds.
 
 
+Here:
 
-(* complementary intervals TODO
-   
- *)
+We need pi_j and pi_{j+k+1} anyway so it is better to consider complementary intervals
+to be π[j, j + k + 1] and π[j, j + k + 1] in the notation above.
+
+*)
+Inductive complementary (ar : arena) (gtr : game_tree) : interval -> interval -> Prop :=
+| compl_var j jpkp1 jpke jpkp1r m mpkp1 mpke mpkp1r t1 p1 tht1 chldrn1 t2 p2 tht2 chldrn2 n1
+    x1 ts1 b1 n2 x2 ts2 b2 ap1' tht1' chldrn1' ap2' tht2' chldrn2' el:
+  get_game_subtree gtr j = Some (node ((t1, p1), tht1) chldrn1) ->
+  get_game_subtree gtr m = Some (node ((t2, p2), tht2) chldrn2) ->
+  get_subarena ar (t1, p1) = Some (tm n1 x1 ts1)  ->
+  get_subarena_bound ar (t1, p2) = Some b1 ->
+  get_subarena ar (t2, p2) = Some (tm n2 x2 ts2)  ->
+  get_subarena_bound ar (t2, p2) = Some b2 ->
+  b1 > n1 -> b2 > n2 -> (* n1 and n2 are both variables *)
+  b1 - n1 = b2 - n2 -> (* n1 and n2 are the same variables *)
+  jpkp1 = jpke :: jpkp1r ->
+  mpkp1 = mpke :: mpkp1r ->
+  corresponding gtr pi[j ++ [jpke], removelast jpkp1r] pi[m ++ [mpke], removelast mpkp1r] -> (* intervals correspond *)
+  parent_var_binder ar j (j++jpkp1) gtr -> (* π_j is the parent of π_j+k+1 *)
+  parent_var_binder ar m (m++mpkp1) gtr -> (* π_m is the parent of π_m+k+1 *)
+  get_game_subtree gtr (j++jpkp1) = Some (node (ap1', tht1') chldrn1') ->
+  get_game_subtree gtr (m++mpkp1) = Some (node (ap2', tht2') chldrn2') ->
+  ap1' = (t1, p1 ++ [el]) -> (* n_j+k+1 is the p-th successor of n_j iff *)
+  ap2' = (t2, p2 ++ [el]) -> (* n_m+k+1 is the p-th successor of n_m  *)
+  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
+| compl_const_final j jpkp1 m mpkp1 ap1 tht1 chldrn1 n1 x1 ts1 b1:
+  get_game_subtree gtr (j++(removelast jpkp1)) = Some (node (ap1, tht1) chldrn1) ->
+  get_subarena ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_subarena_bound ar ap1 = Some b1 ->
+  b1 <= n1 -> (* n_j+k is labelled with a constant and *)
+  is_final (m++(removelast mpkp1)) gtr ->
+  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
+| compl_const_different_vars j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
+  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
+  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
+  get_subarena ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_subarena_bound ar ap1 = Some b1 ->
+  get_subarena ar ap2 = Some (tm n2 x2 ts2)  ->
+  get_subarena_bound ar ap2 = Some b2 ->
+  b1 > n1 -> b2 > n2 -> (* n1 and n2 are both variables *)
+  b1 - n1 <> b2 - n2 -> (* n1 and n2 are different variables *)
+  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
+| compl_const_different_const j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
+  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
+  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
+  get_subarena ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_subarena_bound ar ap1 = Some b1 ->
+  get_subarena ar ap2 = Some (tm n2 x2 ts2)  ->
+  get_subarena_bound ar ap2 = Some b2 ->
+  b1 <= n1 -> b2 <= n2 -> (* n1 and n2 are both constants *)
+  n1-b1 <> n2-b2 -> (* n1 and n2 are different constants *)
+  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
+| compl_const_different_const_var  j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
+  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
+  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
+  get_subarena ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_subarena_bound ar ap1 = Some b1 ->
+  get_subarena ar ap2 = Some (tm n2 x2 ts2)  ->
+  get_subarena_bound ar ap2 = Some b2 ->
+  b1 <= n1 -> b2 > n2 -> (* n1 is a const n2 is a variable *)
+  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
+| compl_const_different_var_const  j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
+  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
+  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
+  get_subarena ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_subarena_bound ar ap1 = Some b1 ->
+  get_subarena ar ap2 = Some (tm n2 x2 ts2)  ->
+  get_subarena_bound ar ap2 = Some b2 ->
+  b1 > n1 -> b2 <= n2 -> (* n1 is a variable n2 is a constant *)
+  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1].
+
 
 (* recurrence property
 
@@ -613,8 +704,8 @@ and j2i = m + k + 1.
 
 (* transformation T1
 
-Assume the game G(t, E) and n is a variable node or a constant node la-
-belled with some f : A 6= 0 of t. If for every π ∈ G(t, E) and i, ni 6= n then transformation
+Assume the game G(t, E) and n is a variable node or a constant node labelled with some
+f : A 6= 0 of t. If for every π ∈ G(t, E) and i, ni 6= n then transformation
 T1 is t[b/n].
 
  *)
@@ -631,8 +722,7 @@ or below m2p in t.
 
 (* path that contributes TODO
 
-Assume π ∈ G(t, E) and nj is a lambda node. The interval π[i, j] con-
-tributes if [ri ] 6= [rj ].
+Assume π ∈ G(t, E) and nj is a lambda node. The interval π[i, j] contributes if [ri ] 6= [rj ].
 
 *)
 
