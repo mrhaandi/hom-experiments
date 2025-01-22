@@ -4,7 +4,7 @@ Require Import PeanoNat.
 Require Import Nat.
 
 
-
+(* equivalent to rose_tree (nat * nat) *)
 
 Inductive term : Type :=
   (* tm n x [tk; ...; t1] is the term
@@ -299,6 +299,53 @@ p.
 
 
 *)
+
+(*
+by "variable at position p" we mean "the head variable of the term at position p"
+*)
+
+(* actual level is  level_term (tm n y ts) p x (repeat 1 n) *)
+
+(* 
+level_term t p l l' ls means
+- t is the term
+- p is the position in the term
+- l is the level of the head variable of the subterm at p
+- l' is the level of the predecessor od the t
+- ls is the list of levels of free variables in the term
+
+usage for closed terms: level_term t p l 0 []
+*)
+Inductive level_term : term -> position -> nat -> nat -> list nat -> Prop :=
+| level_term_nil n x ts l' ls :
+    level_term (tm n x ts) [] (nth x ((repeat (S l') n) ++ ls) 0) l' ls
+| level_term_cons n x ts i ps t l l' ls:
+    nth_error ts i = Some t ->
+    level_term t ps l (nth x ((repeat (S l') n) ++ ls) 0) ((repeat (S l') n) ++ ls) ->
+    level_term (tm n x ts) (i::ps) l l' ls.
+
+(* level of x in \x.x is 1 *)
+Lemma test_level_term_ex1_0: level_term ex1_0 [] 1 0 [].
+Proof.
+  apply (level_term_nil 1 0 [] 0 []).
+Qed.
+
+(* \x.x (\y.x (\z.y)) *)
+Definition ex2_0 := tm 1 0 [tm 1 1 [tm 1 1 []]].
+
+(* 
+level of y in \x.x (\y.x (\z.y)) is 2 because it is bound as successor of x
+*)
+Lemma test_level_term_ex2_0: level_term ex2_0 [0; 0] 2 0 [].
+Proof.
+  econstructor; [reflexivity|].
+  cbn.
+  econstructor; [reflexivity|].
+  cbn.
+  apply (level_term_nil 1 1 [] 1 [2; 1]).
+Qed.
+
+(*
 Inductive level_term : term -> position -> nat -> nat -> Prop :=
 (* We reached the position of the variable. *)
 | level_term_nil n x ts:
@@ -320,7 +367,7 @@ Inductive level_term : term -> position -> nat -> nat -> Prop :=
    nth_error ts' hd' = Some t' ->
    level_term t' tl m y -> 
    level_term (tm n (x+n) ts) (hd::hd'::tl) (S m) x. (* x is the head variable of the current term *)
-
+*)
 (*
 
 Stirling:
@@ -340,16 +387,17 @@ successor node of a level j node.
 
  *)
 Inductive level : arena -> aposition -> nat -> Prop :=
-| level_const TS i t pos:
+| level_const TS i t pos l:
    nth_error TS i = Some t -> 
-   level_term t pos 0 0 ->
-   level TS (i, pos) 0
+   level_term t pos l 0 [] ->
+   level TS (i, pos) l.
+  (*
 | level_var TS i n x ts pos lvl m :
    nth_error TS i = Some (tm n x ts) -> 
    m < n ->
    level_term (tm n x ts) pos lvl m ->
    level TS (i, pos) lvl.
-
+*)
 
 
 
