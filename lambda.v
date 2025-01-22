@@ -8,7 +8,7 @@ Require Import Nat.
 
 Inductive term : Type :=
   (* tm n x [tk; ...; t1] is the term
-     \x0...\x(n-1). x t1 ... tk
+     \x(n-1)...\x0. x t1 ... tk
      where x is the de Bruijn index of a bound variable.
      If the variable is out of bounds, then it is a constant *)
   | tm : nat -> nat -> list term -> term.
@@ -75,7 +75,25 @@ Definition ex1_2 := tm 1 1 [].
 *)
 
 Definition main_solution :=
+  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x1+2) (\.x1+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
   tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 3 []; tm 0 3 []]; tm 0 8 []]; tm 0 1 []]].
+
+(* This is the solution from Stirling's paper? *)
+Definition main_solution' :=
+  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x1+2) (\.x0+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
+  tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 3 []; tm 0 2 []]; tm 0 8 []]; tm 0 1 []]].
+
+(* This is also some solution. *)
+Definition main_solution'' :=
+  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x0+2) (\.x1+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
+  tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 2 []; tm 0 3 []]; tm 0 8 []]; tm 0 1 []]].
+
+(* This is also some solution. *)
+Definition main_solution''' :=
+  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x0+2) (\.x1+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
+  tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 2 []; tm 0 2 []]; tm 0 8 []]; tm 0 1 []]].
+
+
 
 Definition arg1 :=
   tm 2 0 [tm 0 1 []; tm 0 1 []].
@@ -267,7 +285,7 @@ Variable TS : arena.
 
 (* Gives the portion of the arena [TS] under the position [ap],
    provided that [ap] is an address in the arena. *)
-Definition get_subarena ap :=
+Definition get_arena_subterm ap :=
       let '(i, p) := ap in
       match nth_error TS i with
       | Some t => subterm t p 
@@ -279,7 +297,7 @@ Definition get_subarena ap :=
    above the returned term
 
  *)
-Definition get_subarena_bound ap : option nat :=
+Definition get_arena_subterm_bound ap : option nat :=
   let '(i, p) := ap in
   match nth_error TS i with
   | Some t => subterm_bound t p 0
@@ -409,27 +427,24 @@ Inductive embedded  :
    - that is a descendant under binding of [x] *)
 Inductive descendant_of (x : nat) :
   term -> position -> Prop :=
-| descendant_term_use_binding n t p m y args m' z:
+| descendant_term_use_binding n t p m args m' z:
   nth_error args n = Some t ->
   z < m' -> (* z is bound in the binder of (tm m' y' args') *)
-  y = x + m -> (* y is an occurrence of x *)
   descendant_of z t p  ->
-  descendant_of x (tm m y args) (n::p)
+  descendant_of x (tm m (x+m) args) (n::p)
                 
 | descendant_term_skip_binding n p m y args t':
   nth_error args n = Some t' ->
   descendant_of (x+m) t' p -> 
   descendant_of x (tm m y args) (n::p)
                 
-| descendant_term_nil m y args:
-  y = x + m -> (* y is an occurrence of x *)
-  descendant_of x (tm m y args) [] 
+| descendant_term_nil m args:
+  descendant_of x (tm m (x+m) args) [] 
                 
-| descendant_term_take_nil n m y args m' y' args':
+| descendant_term_take_nil n m args m' y' args':
   nth_error args n = Some (tm m' y' args') -> (* y' is bound in one of arguments of x *)
   y' < m' -> (* y' occurs directly under its binder *)
-  y = x + m -> (* y is an occurrence of x *)
-  descendant_of x (tm m y args) [n].
+  descendant_of x (tm m (x+m) args) [n].
 
   
 (* Stirling:
@@ -487,7 +502,7 @@ Inductive solved (ap : aposition) (theta : lookup_contents) :
   rose_tree nat -> Prop :=
   
     | solved_var n x args nap theta' gt r:
-      get_subarena ap = Some (tm n x args) -> (* get subarena at position ap *)
+      get_arena_subterm ap = Some (tm n x args) -> (* get subarena at position ap *)
       nth_error theta x = Some (nap, lk theta') -> (* get interpretation of x *)
       solved nap ((map (add_lk ap theta) (seq 0 (length args))) ++ theta') gt r ->
       (* (map (add_lk ap theta) (seq 0 (length args))) - uses arguments of x
@@ -495,7 +510,7 @@ Inductive solved (ap : aposition) (theta : lookup_contents) :
       solved ap theta (node (ap, theta) [gt]) r
 
     | solved_const gs n x ts rs:
-      get_subarena ap = Some (tm n (x + length theta) ts) ->
+      get_arena_subterm ap = Some (tm n (x + length theta) ts) ->
       length ts = length rs ->
       Forall2 (fun _ t => match t with tm nt _ _ => nt = 0 end) gs ts ->
       (forall g j r, In (g, (j, r)) (combine gs (combine (seq 0 (length rs)) rs)) ->
@@ -533,7 +548,7 @@ Inductive parent_binder_var (pi1 : position) (pi2 : position) :
   descendant_under_binding ap ap' ->
   get_game_subtree gtr pi1 = Some (node (ap, theta) further) ->
   get_game_subtree gtr pi2 = Some (node (ap', theta') further') ->
-  get_subarena_bound ap = Some bound ->
+  get_arena_subterm_bound ap = Some bound ->
   theta = skipn ((length theta') - bound) theta' ->
   parent_binder_var pi1 pi2 gtr.
 
@@ -551,8 +566,8 @@ Inductive parent_var_binder (pi1 : position) (pi2 : position) :
   (rose_tree (aposition * lookup_contents)) -> Prop  :=
 | parent_at_var gtr ap ap1 ap1' theta theta1 theta1' further further1 further1' n x args bound pi1': 
   get_game_subtree gtr pi1 = Some (node (ap, theta) further) ->
-  get_subarena ap = Some (tm n x args) -> (* take var x at ap *)
-  get_subarena_bound ap = Some bound -> (* take var x at ap *)
+  get_arena_subterm ap = Some (tm n x args) -> (* take var x at ap *)
+  get_arena_subterm_bound ap = Some bound -> (* take var x at ap *)
   x < bound + n -> (* check that x at ap is not a constant *)
   nth_error further 0 = Some (node (ap1, theta1) further1) -> (* var nodes have only one successor *)
   parent_binder_var (pi1 ++ [0]) pi1' gtr -> (* find relevant child at pi1' *)
@@ -610,7 +625,7 @@ both labelled with the same variable and n_j <> n_m. There is a k such that
 1. (a) π_j is the parent of π_j+k+1 and π_m is the parent of π_m+k+1, and 
    (b) n_j+k+1 is the p-th successor of n_j iff n_m+k+1 is the p-th successor of n_m , or
 2. n_j+k is labelled with a constant and 
-   (a) π_m+k is the final position of π or 
+   (a) π_m+k is the final position of π or  (implication?)
    (b) n_j+k+1 <> n_m+k+1 .
 
 
@@ -626,69 +641,66 @@ to be π[j, j + k + 1] and π[j, j + k + 1] in the notation above.
 
 *)
 Inductive complementary (ar : arena) (gtr : game_tree) : interval -> interval -> Prop :=
-| compl_var j jpkp1 jpke jpkp1r m mpkp1 mpke mpkp1r t1 p1 tht1 chldrn1 t2 p2 tht2 chldrn2 n1
+| compl_var j jpke jpkp1r m mpke mpkp1r t1 p1 tht1 chldrn1 t2 p2 tht2 chldrn2 n1
     x1 ts1 b1 n2 x2 ts2 b2 ap1' tht1' chldrn1' ap2' tht2' chldrn2' el:
   get_game_subtree gtr j = Some (node ((t1, p1), tht1) chldrn1) ->
   get_game_subtree gtr m = Some (node ((t2, p2), tht2) chldrn2) ->
-  get_subarena ar (t1, p1) = Some (tm n1 x1 ts1)  ->
-  get_subarena_bound ar (t1, p2) = Some b1 ->
-  get_subarena ar (t2, p2) = Some (tm n2 x2 ts2)  ->
-  get_subarena_bound ar (t2, p2) = Some b2 ->
-  b1 > n1 -> b2 > n2 -> (* n1 and n2 are both variables *)
-  b1 - n1 = b2 - n2 -> (* n1 and n2 are the same variables *)
-  jpkp1 = jpke :: jpkp1r ->
-  mpkp1 = mpke :: mpkp1r ->
+  get_arena_subterm ar (t1, p1) = Some (tm n1 x1 ts1)  ->
+  get_arena_subterm_bound ar (t1, p2) = Some b1 ->
+  get_arena_subterm ar (t2, p2) = Some (tm n2 x2 ts2)  ->
+  get_arena_subterm_bound ar (t2, p2) = Some b2 ->
+  b1 + n2 = b2 + n1 -> (* n1 and n2 are the same variables *)
   corresponding gtr pi[j ++ [jpke], removelast jpkp1r] pi[m ++ [mpke], removelast mpkp1r] -> (* intervals correspond *)
-  parent_var_binder ar j (j++jpkp1) gtr -> (* π_j is the parent of π_j+k+1 *)
-  parent_var_binder ar m (m++mpkp1) gtr -> (* π_m is the parent of π_m+k+1 *)
-  get_game_subtree gtr (j++jpkp1) = Some (node (ap1', tht1') chldrn1') ->
-  get_game_subtree gtr (m++mpkp1) = Some (node (ap2', tht2') chldrn2') ->
+  parent_var_binder ar j (j++(jpke :: jpkp1r)) gtr -> (* π_j is the parent of π_j+k+1 *)
+  parent_var_binder ar m (m++(mpke :: mpkp1r)) gtr -> (* π_m is the parent of π_m+k+1 *)
+  get_game_subtree gtr (j++(jpke :: jpkp1r)) = Some (node (ap1', tht1') chldrn1') ->
+  get_game_subtree gtr (m++(mpke :: mpkp1r)) = Some (node (ap2', tht2') chldrn2') ->
   ap1' = (t1, p1 ++ [el]) -> (* n_j+k+1 is the p-th successor of n_j iff *)
   ap2' = (t2, p2 ++ [el]) -> (* n_m+k+1 is the p-th successor of n_m  *)
-  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
+  complementary ar gtr  pi[j, (jpke :: jpkp1r)] pi[m, mpke :: mpkp1r]
 | compl_const_final j jpkp1 m mpkp1 ap1 tht1 chldrn1 n1 x1 ts1 b1:
   get_game_subtree gtr (j++(removelast jpkp1)) = Some (node (ap1, tht1) chldrn1) ->
-  get_subarena ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_subarena_bound ar ap1 = Some b1 ->
+  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_arena_subterm_bound ar ap1 = Some b1 ->
   b1 <= n1 -> (* n_j+k is labelled with a constant and *)
   is_final (m++(removelast mpkp1)) gtr ->
   complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
 | compl_const_different_vars j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
   get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
   get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_subarena ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_subarena_bound ar ap1 = Some b1 ->
-  get_subarena ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_subarena_bound ar ap2 = Some b2 ->
+  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_arena_subterm_bound ar ap1 = Some b1 ->
+  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
+  get_arena_subterm_bound ar ap2 = Some b2 ->
   b1 > n1 -> b2 > n2 -> (* n1 and n2 are both variables *)
   b1 - n1 <> b2 - n2 -> (* n1 and n2 are different variables *)
   complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
 | compl_const_different_const j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
   get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
   get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_subarena ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_subarena_bound ar ap1 = Some b1 ->
-  get_subarena ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_subarena_bound ar ap2 = Some b2 ->
+  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_arena_subterm_bound ar ap1 = Some b1 ->
+  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
+  get_arena_subterm_bound ar ap2 = Some b2 ->
   b1 <= n1 -> b2 <= n2 -> (* n1 and n2 are both constants *)
   n1-b1 <> n2-b2 -> (* n1 and n2 are different constants *)
   complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
 | compl_const_different_const_var  j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
   get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
   get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_subarena ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_subarena_bound ar ap1 = Some b1 ->
-  get_subarena ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_subarena_bound ar ap2 = Some b2 ->
+  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_arena_subterm_bound ar ap1 = Some b1 ->
+  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
+  get_arena_subterm_bound ar ap2 = Some b2 ->
   b1 <= n1 -> b2 > n2 -> (* n1 is a const n2 is a variable *)
   complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
 | compl_const_different_var_const  j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
   get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
   get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_subarena ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_subarena_bound ar ap1 = Some b1 ->
-  get_subarena ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_subarena_bound ar ap2 = Some b2 ->
+  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_arena_subterm_bound ar ap1 = Some b1 ->
+  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
+  get_arena_subterm_bound ar ap2 = Some b2 ->
   b1 > n1 -> b2 <= n2 -> (* n1 is a variable n2 is a constant *)
   complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1].
 
@@ -773,6 +785,119 @@ Qed.
 
 
 Lemma solved_Stirling : exists g, solved_start g main_solution [arg1; arg2] result.
+Proof.
+  unfold result.
+  eexists.
+  cbn. split; [reflexivity|].
+  apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+
+  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  move=> > [|]; last done.
+  move=> [*]. subst.
+  apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+
+
+  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  done.
+Qed.
+
+
+
+Lemma solved_Stirling' : exists g, solved_start g main_solution' [arg1; arg2] result.
+Proof.
+  unfold result.
+  eexists.
+  cbn. split; [reflexivity|].
+  apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+
+  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  move=> > [|]; last done.
+  move=> [*]. subst.
+  apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+
+
+  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  done.
+Qed.
+
+
+Lemma solved_Stirling'' : exists g, solved_start g main_solution'' [arg1; arg2] result.
+Proof.
+  unfold result.
+  eexists.
+  cbn. split; [reflexivity|].
+  apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+
+  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  move=> > [|]; last done.
+  move=> [*]. subst.
+  apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+
+
+  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  done.
+Qed.
+
+
+
+Lemma solved_Stirling''' : exists g, solved_start g main_solution''' [arg1; arg2] result.
 Proof.
   unfold result.
   eexists.
