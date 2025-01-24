@@ -6,3 +6,4 @@
 *.vok
 *.vos
 /.Makefile.coq.d
+.emacs.desktop
