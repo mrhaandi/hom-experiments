@@ -858,6 +858,47 @@ f : A ≠ 0 of t. If for every π ∈ G(t, E) and i, n_i ≠ n then transformati
 T1 is t[b/n].
  *)
 
+Fixpoint trans_T1 (t:term) (p:position) (b:nat) :=
+  match p with
+  | [] => match t with
+          | tm n _ _ => Some (tm n (n+b) [])
+          end
+  | hd :: tl => match t with
+                | tm n x args => 
+                    match nth_error args hd with
+                    | Some el =>
+                        let start := firstn hd args in
+                        let rest := skipn (hd+1) args in
+                        match trans_T1 el tl (b+n) with
+                        | Some transres =>
+                            Some (tm n x (start ++ (transres :: rest)))
+                        | None => None
+                        end
+                    | None => None
+                    end
+                end
+  end.
+
+
+Lemma test_trans_T1_ex1_0: trans_T1 ex1_0 [] 0 = Some ex1_2.
+Proof.
+  now simpl.
+Qed.
+
+Lemma test_trans_T1_main_solution_1: trans_T1 main_solution [] 0 = Some (tm 2 2 []).
+Proof.
+  now simpl.
+Qed.
+
+Lemma test_trans_T1_main_solution_2: trans_T1 main_solution [0] 0 = Some (tm 2 0 [tm 2 4 []]).
+Proof.
+  now simpl.
+Qed.
+
+Lemma test_trans_T1_main_solution_3: trans_T1 main_solution [0;0] 70 = Some (tm 2 0 [tm 2 3 [tm 2 76 []; tm 0 1 []]]).
+Proof.
+ now simpl.
+Qed.
 
 
 
