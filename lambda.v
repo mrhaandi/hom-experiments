@@ -337,12 +337,20 @@ Inductive passthrough_nodes : game_tree -> interval -> list aposition -> Prop :=
 
    QUESTION: maybe this should be modelled by an inductive predicate?
  *)
-Inductive corresponding (tr:game_tree) (intv1:interval) (intv2:interval) :=
+Inductive corresponding (gtr:game_tree) (intv1:interval) (intv2:interval) :=
   | corr_case nds1 nds2:
-  passthrough_nodes tr intv1 nds1 ->
-  passthrough_nodes tr intv2 nds2 ->  
-  nds1 = nds2 -> corresponding tr intv1 intv2.
+  passthrough_nodes gtr intv1 nds1 ->
+  passthrough_nodes gtr intv2 nds2 ->  
+  nds1 = nds2 -> corresponding gtr intv1 intv2.
 
+
+Inductive is_variable_node (ar:arena) (gtr:game_tree) (p:position) :=
+| is_var_case ap cont rest n x args b:
+  get_game_subtree gtr p = Some (node (ap, cont) rest) ->
+  get_arena_subterm ar ap = Some (tm n x args) ->
+  get_arena_subterm_bound ar ap = Some b ->
+  x < b ->
+  is_variable_node ar gtr p.
 
 Section Arenas.
 
@@ -595,7 +603,7 @@ Inductive solved (ap : aposition) (theta : lookup_contents) :
   rose_tree nat -> Prop :=
   
     | solved_var n x args nap theta' gt r:
-      get_arena_subterm ap = Some (tm n x args) -> (* get subarena at position ap *)
+      get_arena_subterm TS ap = Some (tm n x args) -> (* get subarena at position ap *)
       nth_error theta x = Some (nap, lk theta') -> (* get interpretation of x *)
       solved nap ((map (add_lk ap theta) (seq 0 (length args))) ++ theta') gt r ->
       (* (map (add_lk ap theta) (seq 0 (length args))) - uses arguments of x
@@ -603,7 +611,7 @@ Inductive solved (ap : aposition) (theta : lookup_contents) :
       solved ap theta (node (ap, theta) [gt]) r
 
     | solved_const gs n x ts rs:
-      get_arena_subterm ap = Some (tm n (x + length theta) ts) ->
+      get_arena_subterm TS ap = Some (tm n (x + length theta) ts) ->
       length ts = length rs ->
       Forall2 (fun _ t => match t with tm nt _ _ => nt = 0 end) gs ts ->
       (forall g j r, In (g, (j, r)) (combine gs (combine (seq 0 (length rs)) rs)) ->
@@ -641,7 +649,7 @@ Inductive parent_binder_var (pi1 : position) (pi2 : position) :
   descendant_under_binding ap ap' ->
   get_game_subtree gtr pi1 = Some (node (ap, theta) further) ->
   get_game_subtree gtr pi2 = Some (node (ap', theta') further') ->
-  get_arena_subterm_bound ap = Some bound ->
+  get_arena_subterm_bound TS ap = Some bound ->
   theta = skipn ((length theta') - bound) theta' ->
   parent_binder_var pi1 pi2 gtr.
 
@@ -659,8 +667,8 @@ Inductive parent_var_binder (pi1 : position) (pi2 : position) :
   (rose_tree (aposition * lookup_contents)) -> Prop  :=
 | parent_at_var gtr ap ap1 ap1' theta theta1 theta1' further further1 further1' n x args bound pi1': 
   get_game_subtree gtr pi1 = Some (node (ap, theta) further) ->
-  get_arena_subterm ap = Some (tm n x args) -> (* take var x at ap *)
-  get_arena_subterm_bound ap = Some bound -> (* take var x at ap *)
+  get_arena_subterm TS ap = Some (tm n x args) -> (* take var x at ap *)
+  get_arena_subterm_bound TS ap = Some bound -> (* take var x at ap *)
   x < bound + n -> (* check that x at ap is not a constant *)
   nth_error further 0 = Some (node (ap1, theta1) further1) -> (* var nodes have only one successor *)
   parent_binder_var (pi1 ++ [0]) pi1' gtr -> (* find relevant child at pi1' *)
@@ -819,24 +827,39 @@ Inductive complementary (ar : arena) (gtr : game_tree) : interval -> interval ->
   complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1].
 *)
 
-            
 
+(* if n_{j_2i−1} is a variable node then there is a
+   j < j_2i−1 and a k such that π[j + 1, j + k] and π[m + 1, m + k] are complementary where m = j_2i−1
+   and j_2i = m + k + 1. *)
+Inductive recurrence_for_pos ar gtr pos : Prop :=
+| rec_pos_case:
+  is_variable_node ar gtr pos ->
+  (exists pos' lend, pos' <> pos /\ firstn (length pos') pos = pos' /\ complementary ar gtr pi[pos', lend] pi[pos, lend]) ->
+  recurrence_for_pos ar gtr pos.
+    
 (* recurrence property
 
-Assume π ∈ G(t, E). The chain πj1 , . . . , πj2p for πj has the recurrence
-property if for each i : 1 ≤ i ≤ p, if nj2i−1 is a variable node then there is a j < j2i−1 and
-a k such that π[j + 1, j + k] and π[m + 1, m + k] are complementary where m = j2i−1
-and j2i = m + k + 1.
+Assume π ∈ G(t, E). The chain π_j1,..., π_j2p for πj has the recurrence
+property if for each i : 1 ≤ i ≤ p, if n_{j_2i−1} is a variable node then there is a j < j_2i−1 and
+a k such that π[j + 1, j + k] and π[m + 1, m + k] are complementary where m = j_2i−1
+and j_2i = m + k + 1.
 
  *)
+Inductive recurrence_property ar gtr lpos :=
+| rec_case:
+  chain ar gtr lpos ->
+  Forall  (recurrence_for_pos ar gtr) lpos ->
+  recurrence_property ar gtr lpos.
 
 (* transformation T1
 
 Assume the game G(t, E) and n is a variable node or a constant node labelled with some
-f : A 6= 0 of t. If for every π ∈ G(t, E) and i, ni 6= n then transformation
+f : A ≠ 0 of t. If for every π ∈ G(t, E) and i, n_i ≠ n then transformation
 T1 is t[b/n].
-
  *)
+
+
+
 
 (* end arena position TODO
 
