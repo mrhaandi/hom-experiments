@@ -856,9 +856,11 @@ Inductive recurrence_property ar gtr lpos :=
 Assume the game G(t, E) and n is a variable node or a constant node labelled with some
 f : A ≠ 0 of t. If for every π ∈ G(t, E) and i, n_i ≠ n then transformation
 T1 is t[b/n].
+
+TODO: restate as an application of substitution
  *)
 
-Fixpoint trans_T1 (t:term) (p:position) (b:nat) :=
+Fixpoint trans_T1 (t:term) (p:position) (b:nat) : option term :=
   match p with
   | [] => match t with
           | tm n _ _ => Some (tm n (n+b) [])
@@ -879,6 +881,12 @@ Fixpoint trans_T1 (t:term) (p:position) (b:nat) :=
                 end
   end.
 
+(* TODO: lemma s.t. we replace with any term
+
+If we have a game tree for an arena s.t. position n does not occur in
+g.tr. then if we replace n with any term, the resulting 
+
+ *)
 
 Lemma test_trans_T1_ex1_0: trans_T1 ex1_0 [] 0 = Some ex1_2.
 Proof.
