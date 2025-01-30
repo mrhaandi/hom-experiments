@@ -1,6 +1,6 @@
 Require Import List ssreflect.
 Import ListNotations.
-Require Import PeanoNat.
+Require Import PeanoNat Lia.
 Require Import Nat.
 
 
@@ -577,7 +577,22 @@ Inductive descendant_under_binding :
     descendant_of x (tm n x args) (p ++ p') ->
     descendant_under_binding (i, p) (i, p ++ p').
 
-
+(* TS[0] is solution TS[1..] are arguments *)
+Fixpoint construct_game_tree (depth : nat) (ap : aposition) (theta : lookup_contents) : game_tree :=
+  match depth with
+  | 0 => node (ap, theta) []
+  | S depth =>
+    match get_arena_subterm TS ap with
+    | Some (tm n x args) =>
+      match nth_error theta x with
+      (* bound variable case, see solved_var *)
+      | Some (nap, lk theta') => node (ap, theta) [construct_game_tree depth nap ((map (add_lk ap theta) (seq 0 (length args))) ++ theta')]
+      (* constant case, see solved_const *)
+      | None => node (ap, theta) (map (fun j => construct_game_tree depth (extend_ap ap [j]) theta) (seq 0 (length args)))
+      end
+    | None => node (ap, theta) []
+    end
+  end.
 
 (* for now / for simplicity let us consider rhs which does not contain abstraction
   e.g. f (\x.x) is not allowed as right-hand side
@@ -716,9 +731,11 @@ Definition solved_start g t (ts : list term) (r : rose_tree nat) :=
     solved (t :: ts) (0, []) (map (fun j => ((S j, []), lk [])) (rev (seq 0 (length ts)))) g r
   end.
 
-
-
-
+Definition construct_game_tree_start (depth : nat) t (ts : list term) :=
+  match t with
+  | tm n x us =>
+    construct_game_tree (t :: ts) depth (0, []) (map (fun j => ((S j, []), lk [])) (rev (seq 0 (length ts))))
+  end.
 
 Inductive same_variable_at_start (ar : arena) (gtr : game_tree) : interval -> interval -> Prop :=
 | svar_case j jend m mend ap1 tht1 chldrn1 n1 x1 ts1 b1 ap2 tht2 chldrn2 n2 x2 ts2 b2:
@@ -947,6 +964,8 @@ Definition ex1_rhs := node 0 [].
 Definition result :=
   node 1 [node 0 []].
 
+(* a a *)
+
 
 Lemma solved_ex1 : exists g, solved_start g ex1_0 [ex1_1] ex1_rhs.
 Proof.
@@ -962,7 +981,55 @@ Proof.
     + cbn. done.
 Qed.
 
+Lemma solved_ex1_constructed : solved_start (construct_game_tree_start 1 ex1_0 [ex1_1]) ex1_0 [ex1_1] ex1_rhs.
+Proof.
+  cbn. split; [reflexivity|].
+  apply: solved_var.
+  - cbn. reflexivity.
+  - cbn. reflexivity.
+  - cbn. apply: solved_const.
+    + cbn. reflexivity.
+    + cbn. reflexivity.
+    + cbn. constructor.
+    + cbn. done.
+Qed.
 
+(* if the game is solved, its game tree is unique and is constructed by construct_game_tree_start *)
+Lemma construct_game_tree_start_spec g t ts r : solved_start g t ts r -> exists depth0, forall depth, depth0 <= depth -> g = construct_game_tree_start depth t ts.
+Proof.
+  rewrite /solved_start /construct_game_tree_start.
+  move: t => [] ? x args [<-].
+  move: (map _ _) => theta.
+  move: (_ :: _) => TS.
+  move: (0, []) => ap.
+  elim.
+  - move=> > Hap Hx _ [depth0] H.
+    exists (S depth0).
+    move=> [|depth] ?; first by lia.
+    by rewrite /= Hap Hx (H depth); [lia|].
+  - move=> {}ap {}theta {}gs n {}x {}args rs Hap Hlen /Forall2_length Hgs _ H'gs.
+    suff: exists depth0, forall depth, depth0 <= depth -> gs = (map (fun j : nat => construct_game_tree TS depth (extend_ap ap [j]) theta) (seq 0 (length args))).
+    { move=> [depth0] H. exists (S depth0).
+      move=> [|depth] ?; first by lia.
+      rewrite /= Hap (H depth); first by lia.
+      by have /nth_error_None ->: length theta <= x + length theta by lia. }
+    have : length gs = length rs by lia.
+    rewrite Hlen.
+    move: H'gs.
+    have : length (seq 0 (length rs)) = length rs by rewrite length_seq.
+    move: (seq 0 _) => t's.
+    elim: gs rs t's {Hgs Hlen}.
+    + move=> [|??] [|??] *; by exists 0.
+    + move=> g' ? IH [|r' ?] [|j' ?]; [done..|].
+      move=> [/IH] {}IH /= H [/IH].
+      have [depth0_hd H_hd] := H g' j' r' (or_introl eq_refl).
+      case.
+      { move=> g'' j'' r'' ?. apply: (H g'' j'' r''). by right. }
+      move=> depth0_tl H_tl. exists (depth0_hd + depth0_tl).
+      move=> depth ?. congr cons.
+      * apply: H_hd. lia.
+      * apply: H_tl. lia.
+Qed.
 
 Lemma solved_Stirling : exists g, solved_start g main_solution [arg1; arg2] result.
 Proof.
@@ -996,11 +1063,43 @@ Proof.
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
 
-  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  rewrite [length _]/=. cbv. apply: solved_const; [repeat constructor..|].
   done.
 Qed.
 
+Lemma solved_Stirling_constructed : solved_start (construct_game_tree_start 23 main_solution [arg1; arg2]) main_solution [arg1; arg2] result.
+Proof.
+  unfold result.
+  split; [reflexivity|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
 
+  apply: solved_const; [repeat constructor..|].
+  move=> > [|]; last done.
+  move=> [*]. subst.
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  apply: solved_var; [reflexivity..|cbn].
+  eapply solved_var; [reflexivity..|cbn].
+
+  apply: solved_const; [repeat constructor..|cbn].
+  done.
+Qed.
 
 Lemma solved_Stirling' : exists g, solved_start g main_solution' [arg1; arg2] result.
 Proof.
