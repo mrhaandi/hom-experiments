@@ -4,6 +4,9 @@ Require Import PeanoNat.
 Require Import Nat.
 
 
+Require Import HOM.RoseTree.
+Import HOM.RoseTree.
+
 (* equivalent to rose_tree (nat * nat) *)
 
 Inductive term : Type :=
@@ -14,8 +17,6 @@ Inductive term : Type :=
   | tm : nat -> nat -> list term -> term.
   (* Note that when n is 0 then the term is of base type. *)
 
-(* Positions in a tree or term are lists of natural numbers. *)
-Definition position := list nat.
 
 Fixpoint get_depth (t : term) :=
   match t with
@@ -164,24 +165,6 @@ Proof.
 Qed.
 
 
-Inductive rose_tree (A : Type) : Type :=
-| node : A -> list (rose_tree A) -> rose_tree A.
-
-Arguments node {A}.
-
-Fixpoint get_tdepth (A : Type) (tr: rose_tree A) :=
-  match tr with
-  | node v children => fold_left (fun acc el => let nacc := (get_tdepth A el) in
-                                                match (acc ?= nacc)  with
-                                                | Eq => acc
-                                                | Lt => nacc
-                                                | Gt => acc
-                                                end) children 0%nat
-  end.
-
-Arguments get_tdepth {A}.
-
-
 
 
 (* Arenas of our game are lists of terms [t, t1, ..., tk] s.t. 
@@ -303,14 +286,7 @@ Arguments add_lk /.
 Definition game_tree := rose_tree (aposition * lookup_contents).
 
 Fixpoint get_game_subtree (gtr : game_tree) (p: position) :=
-  match p with
-  | [] => Some gtr
-  | hd :: tl => let 'node v children := gtr
-                in match nth_error children hd with
-                   | Some gtr' => get_game_subtree gtr' tl
-                   | None => None
-                   end
-  end.
+  get_subtree gtr p.
 
 (* Returns the list of nodes in the game tree tr through which the
    interval intv passes.
