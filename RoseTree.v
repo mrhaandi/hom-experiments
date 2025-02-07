@@ -158,6 +158,40 @@ Proof.
   by case: tr.
 Qed.
 
+Lemma map_tree_node {A B : Type} (f : A -> B) v children :
+  map_tree f (node v children) = node (f v) (map (map_tree f) children).
+Proof.
+  reflexivity.
+Qed.
+
+Lemma map_tree_dependent_node {A B : Type} (f : list A -> A -> B) v children :
+  map_tree_dependent f (node v children) = node (f [] v) (map (map_tree_dependent (fun l => f (v :: l))) children).
+Proof.
+  reflexivity.
+Qed.
+
+Lemma map_tree_map_tree_dependent {A B C : Type} (f : list A -> A -> B) (g : B -> C) (tr : rose_tree A) :
+  map_tree g (map_tree_dependent f tr) = map_tree_dependent (fun l a => g (f l a)) tr.
+Proof.
+  elim /(@rose_tree_ind' A): tr f.
+  move=> v children IH f /=.
+  rewrite !map_tree_dependent_node map_tree_node. congr node.
+  rewrite map_map. apply: map_ext_Forall.
+  apply: Forall_impl IH.
+  by move=> rt ->.
+Qed.
+
+Lemma get_subtree_map_tree {A B : Type} (f : A -> B) (tr : rose_tree A) (p : position) :
+  get_subtree (map_tree f tr) p = map_tree f (get_subtree tr p).
+Proof.
+  elim: p tr.
+  - by case.
+  - move=> hd p IH [v children] /=.
+    rewrite nth_error_map.
+    case E: (nth_error children hd) => [? /=|//].
+    by rewrite IH.
+Qed.
+
 (* example of a difficult lemma for fold_tree_dependent *)
 Lemma get_branch_cons {A : Type} (tr : rose_tree A) hd (tl : position) :
   get_branch tr (hd :: tl) =
@@ -170,17 +204,10 @@ Proof.
   move: tr => [v children] /=.
   rewrite nth_error_map.
   case: (nth_error children hd)=> [tr' /=|//].
-  rewrite /map_tree_dependent.
-  pose f x := v :: x.
-  change (v :: ?x) with (f x).
-  elim /(@rose_tree_ind' A): tr' f tl.
-  move=> v' {}children IH f [|{}hd tl] /=; first done.
-  rewrite !nth_error_map.
-  case E: (nth_error children hd) => [? /=|//].
-  move: E => /(@nth_error_In (rose_tree A)).
-  move: IH => /Forall_forall /[apply].
-  move=> /[dup] /(_ (fun x => f (v' :: x)) tl) ->.
-  by move=> /(_ (fun x => v' :: x) tl) ->.
+  change (fold_tree_dependent (fun l _ ts => node (v :: l) ts) tr') with
+    (map_tree_dependent (fun l _ => (v :: l)) tr').
+  rewrite -map_tree_map_tree_dependent get_subtree_map_tree.
+  by case: (get_subtree _ _).
 Qed.
 
 Lemma get_branch_app {A : Type} (p p' : position) (tr : rose_tree A) :
