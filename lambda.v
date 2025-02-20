@@ -51,7 +51,26 @@ Fixpoint subterm_bound (t : term) (p : position) (bound:nat) : option nat :=
     end
   end.
 
+(* map only the nth element of a list *)
+Fixpoint map_nth_term {A : Type} (f : A -> A) (n : nat) (l : list A) : list A :=
+  match l with
+  | [] => []
+  | hd :: tl =>
+    match n with
+    | 0 => f hd :: tl
+    | S n' => hd :: map_nth_term f n' tl
+    end
+  end.
 
+
+(* Replace the subterm of t at position p with t'. *)
+Fixpoint replace_subterm (t' : term) (p : position) (t : term) :=
+  match p with
+  | [] => t'
+  | hd :: tl =>
+    let 'tm n x ts := t in
+    tm n x (map_nth_term (replace_subterm t' tl) hd ts)
+  end.
 
 (*
   example 1
@@ -182,7 +201,13 @@ Fixpoint get_tdepth (A : Type) (tr: rose_tree A) :=
 Arguments get_tdepth {A}.
 
 
+Fixpoint fold_tree_dependent {A B : Type} (f : list A -> A -> list B -> B) (tr : rose_tree A) : B :=
+  match tr with
+  | node v children => f [] v (map (fold_tree_dependent (fun l => f (v :: l))) children)
+  end.
 
+Definition fold_tree {A B : Type} (f : A -> list B -> B) (tr : rose_tree A) : B :=
+  fold_tree_dependent (fun _ => f) tr.
 
 (* Arenas of our game are lists of terms [t, t1, ..., tk] s.t. 
     t t1...tk reduces to rhs of the target equation.
@@ -786,48 +811,6 @@ Inductive complementary (ar : arena) (gtr : game_tree) : interval -> interval ->
   complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1].
 
 
-(*
-| compl_const_different_vars j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
-  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
-  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_arena_subterm_bound ar ap1 = Some b1 ->
-  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_arena_subterm_bound ar ap2 = Some b2 ->
-  b1 > n1 -> b2 > n2 -> (* n1 and n2 are both variables *)
-  b1 - n1 <> b2 - n2 -> (* n1 and n2 are different variables *)
-  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
-| compl_const_different_const j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
-  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
-  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_arena_subterm_bound ar ap1 = Some b1 ->
-  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_arena_subterm_bound ar ap2 = Some b2 ->
-  b1 <= n1 -> b2 <= n2 -> (* n1 and n2 are both constants *)
-  n1-b1 <> n2-b2 -> (* n1 and n2 are different constants *)
-  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
-| compl_const_different_const_var  j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
-  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
-  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_arena_subterm_bound ar ap1 = Some b1 ->
-  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_arena_subterm_bound ar ap2 = Some b2 ->
-  b1 <= n1 -> b2 > n2 -> (* n1 is a const n2 is a variable *)
-  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
-| compl_const_different_var_const  j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
-  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
-  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_arena_subterm_bound ar ap1 = Some b1 ->
-  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_arena_subterm_bound ar ap2 = Some b2 ->
-  b1 > n1 -> b2 <= n2 -> (* n1 is a variable n2 is a constant *)
-  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1].
-*)
-
-
 (* if n_{j_2i−1} is a variable node then there is a
    j < j_2i−1 and a k such that π[j + 1, j + k] and π[m + 1, m + k] are complementary where m = j_2i−1
    and j_2i = m + k + 1. *)
@@ -860,33 +843,46 @@ T1 is t[b/n].
 TODO: restate as an application of substitution
  *)
 
-Fixpoint trans_T1 (t:term) (p:position) (b:nat) : option term :=
-  match p with
-  | [] => match t with
-          | tm n _ _ => Some (tm n (n+b) [])
-          end
-  | hd :: tl => match t with
-                | tm n x args => 
-                    match nth_error args hd with
-                    | Some el =>
-                        let start := firstn hd args in
-                        let rest := skipn (hd+1) args in
-                        match trans_T1 el tl (b+n) with
-                        | Some transres =>
-                            Some (tm n x (start ++ (transres :: rest)))
-                        | None => None
-                        end
-                    | None => None
-                    end
-                end
-  end.
+Fixpoint trans_T1 (t:term) (p:position) (t':term) : term :=
+  replace_subterm t' p t.
+
+
+Scheme Equality for list.
+
+Definition check_occurrence (p:position) :=
+  fun (nd:aposition*lookup_contents) (acc:list bool) => let '((no, p'),_) := nd in 
+                                         if (no =? 1) && (list_beq nat eqb p p')
+                                         then true
+                                         else fold_left (fun bacc el => bacc || el)%bool  acc false.
 
 (* TODO: lemma s.t. we replace with any term
 
-If we have a game tree for an arena s.t. position n does not occur in
-g.tr. then if we replace n with any term, the resulting 
+If we have a game tree for an arena s.t. position p does not occur in
+g.tr. then if we replace the subterm at p with any term, the resulting
+term is a solution.
 
  *)
+Lemma trans_T1_correct:
+  forall t args ap theta gtr res t'' p t',
+  solved (t :: args) ap theta gtr res ->
+  fold_tree (check_occurrence p) gtr = false -> (* p does not occur in gtr *)
+  t'' = trans_T1 t p t' ->
+  solved (t'' :: args) ap theta gtr res.
+Proof.
+  intros t args ap theta gtr res t'' p t'.
+  intro.
+  inversion H.
+  * (* solved_var *)
+    intros.
+    eapply solved_var.
+    ** (* solved_var in assumption *)
+      admit.
+    ** (* solved_const in assumption *)
+      admit.
+  * (* solved_const *)
+    intros.
+    admit.
+Admitted.                  
 
 Lemma test_trans_T1_ex1_0: trans_T1 ex1_0 [] 0 = Some ex1_2.
 Proof.
