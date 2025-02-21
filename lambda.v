@@ -867,6 +867,9 @@ Lemma trans_T1_correct:
   solved (t :: args) ap theta gtr res ->
   fold_tree (check_occurrence p) gtr = false -> (* p does not occur in gtr *)
   t'' = trans_T1 t p t' ->
+(*  Forall (the number of binders and vars and the length of arguments
+          are the same in t and t'') [the list of positions in gtr] ->
+  TTT t t'' -> *)
   solved (t'' :: args) ap theta gtr res.
 Proof.
   intros t args ap theta gtr res t'' p t'.
