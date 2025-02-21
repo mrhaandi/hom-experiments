@@ -238,18 +238,7 @@ Qed.
 
 (* experiments, just to see if it works *)
 
-Notation term := (rose_tree (nat * nat)).
 
-(* increment all free variables by k *)
-Definition shift_term (k : nat) (t : term) : term :=
-  map_tree_dependent (fun l '(n, x) => let bound := list_sum (map fst l) in (n, if bound <=? x then k + x else x)) t.
-
-(* place term t' at position p in t *)
-Definition replace_term (t' : term) (p : position) (t : term) : term :=
-  let bound := list_sum (map fst (get_branch t p)) in
-  replace_subtree (shift_term bound t') p t.
-
-(*
 
 (* The subtree of tr at position p. *)
 

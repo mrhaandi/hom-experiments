@@ -7,34 +7,27 @@ Require Import Nat.
 Require Import HOM.RoseTree.
 Import HOM.RoseTree.
 
-(* equivalent to rose_tree (nat * nat) *)
 
-Inductive term : Type :=
-  (* tm n x [tk; ...; t1] is the term
-     \x(n-1)...\x0. x t1 ... tk
-     where x is the de Bruijn index of a bound variable.
-     If the variable is out of bounds, then it is a constant *)
-  | tm : nat -> nat -> list term -> term.
-  (* Note that when n is 0 then the term is of base type. *)
+Notation term := (rose_tree (nat * nat)).
+
+(* increment all free variables by k *)
+Definition shift_term (k : nat) (t : term) : term :=
+  map_tree_dependent (fun l '(n, x) => let bound := list_sum (map fst l) in (n, if bound <=? x then k + x else x)) t.
+
+(* place term t' at position p in t *)
+Definition replace_term (t' : term) (p : position) (t : term) : term :=
+  let bound := list_sum (map fst (get_branch t p)) in
+  replace_subtree (shift_term bound t') p t.
 
 
-Fixpoint get_depth (t : term) :=
-  match t with
-  | tm n m [] => 0
-  | tm n m (hd::tl) => 
-    1 + fold_left (fun acc el => max acc (get_depth el)) (hd::tl) 0
-  end.
+
+
+Definition get_depth (t : term) := get_tree_depth t.
+
 
 (* compute the subterm of [t] at position [p] *)
-Fixpoint subterm (t : term) (p : position) : option term :=
-  match t, p with
-  | tm n x ts, [] => Some (tm n x ts)
-  | tm n x ts, i :: p =>
-    match nth_error ts i with
-    | Some ti => subterm ti p
-    | None => None
-    end
-  end.
+Definition get_subterm (t : term) (p : position) : term :=
+  get_subtree t p.
 
 
 (* as above, but gives the limit for variables that were bound
@@ -42,16 +35,10 @@ Fixpoint subterm (t : term) (p : position) : option term :=
    accumulated over the parameter bound
 
  *)
-Fixpoint subterm_bound (t : term) (p : position) (bound:nat) : option nat :=
-  match t, p with
-  | tm n x ts, [] => Some bound
-  | tm n x ts, i :: p =>
-    match nth_error ts i with
-    | Some ti => subterm_bound ti p (bound+n)
-    | None => None
-    end
-  end.
+Definition get_subterm_bound (t : term) (p : position) (bound:nat) : nat :=
+  fold_left (fun acc el => acc + el) (fst (split (get_branch t p))) bound.
 
+Notation "'tm' n x ts" := (node (n, x) ts) (at level 10, n at next level, x at next level).
 
 
 (*
@@ -119,47 +106,47 @@ Proof.
   now compute.
 Qed.
 
-Lemma test_subterm1: subterm ex1_0 [] = Some ex1_0.
+Lemma test_subterm1: get_subterm ex1_0 [] = ex1_0.
 Proof.
   now compute.
 Qed.
 
-Lemma test_subterm2: subterm ex1_0 [0] = None.
+Lemma test_subterm2: get_subterm ex1_0 [0] = ex1_0.
+Proof.
+   now compute.
+Qed.
+
+Lemma test_subterm3: get_subterm arg1 [0] = tm 0 1 [].
 Proof.
   now compute.
 Qed.
 
-Lemma test_subterm3: subterm arg1 [0] = Some (tm 0 1 []).
+Lemma test_subterm4: get_subterm arg2 [0;0] = tm 0 0 [].
 Proof.
   now compute.
 Qed.
 
-Lemma test_subterm4: subterm arg2 [0;0] = Some (tm 0 0 []).
+Lemma test_subterm5: get_subterm arg2 [1;1] = tm 0 1 [].
 Proof.
   now compute.
 Qed.
 
-Lemma test_subterm5: subterm arg2 [1;1] = Some (tm 0 1 []).
+Lemma test_subterm_bound1: get_subterm_bound ex1_0 [] 0 = 0.
 Proof.
   now compute.
 Qed.
 
-Lemma test_subterm_bound1: subterm_bound ex1_0 [] 0 = Some 0.
+Lemma test_subterm_bound2: get_subterm_bound ex1_0 [0] 0 = 0.
 Proof.
   now compute.
 Qed.
 
-Lemma test_subterm_bound2: subterm_bound ex1_0 [0] 0 = None.
+Lemma test_subterm_bound3: get_subterm_bound arg2 [0] 0 = 1.
 Proof.
   now compute.
 Qed.
 
-Lemma test_subterm_bound3: subterm_bound arg2 [0] 0 = Some 1.
-Proof.
-  now compute.
-Qed.
-
-Lemma test_subterm_bound4: subterm_bound arg2 [0;0] 0 = Some 3.
+Lemma test_subterm_bound4: get_subterm_bound arg2 [0;0] 0 = 3.
 Proof.
   now compute.
 Qed.
@@ -188,7 +175,7 @@ Definition ex_arena1 :=  [main_solution; arg1; arg2].
 Definition get_arena_subterm TS ap :=
       let '(i, p) := ap in
       match nth_error TS i with
-      | Some t => subterm t p 
+      | Some t => Some (get_subterm t p)
       | None => None
       end.
 
@@ -201,7 +188,7 @@ Definition get_arena_subterm TS ap :=
 Definition get_arena_subterm_bound TS ap : option nat :=
   let '(i, p) := ap in
   match nth_error TS i with
-  | Some t => subterm_bound t p 0
+  | Some t => Some (get_subterm_bound t p 0)
   | None => None
   end.
 
@@ -285,7 +272,7 @@ Arguments add_lk /.
 
 Definition game_tree := rose_tree (aposition * lookup_contents).
 
-Fixpoint get_game_subtree (gtr : game_tree) (p: position) :=
+Definition get_game_subtree (gtr : game_tree) (p: position) :=
   get_subtree gtr p.
 
 (* Returns the list of nodes in the game tree tr through which the
@@ -322,7 +309,8 @@ Inductive corresponding (gtr:game_tree) (intv1:interval) (intv2:interval) :=
 
 Inductive is_variable_node (ar:arena) (gtr:game_tree) (p:position) :=
 | is_var_case ap cont rest n x args b:
-  get_game_subtree gtr p = Some (node (ap, cont) rest) ->
+  has_position gtr p = true ->
+  get_game_subtree gtr p = node (ap, cont) rest ->
   get_arena_subterm ar ap = Some (tm n x args) ->
   get_arena_subterm_bound ar ap = Some b ->
   x < b ->
@@ -549,7 +537,8 @@ Inductive descendant_under_binding :
   aposition -> aposition -> Prop :=
   | descendant_unpack i p p' t n x args:
     nth_error TS i = Some t ->
-    subterm t p = Some (tm n x args) -> (* we take variable at p *)
+    has_position t p = true ->
+    get_subterm t p = tm n x args -> (* we take variable at p *)
     descendant_of x (tm n x args) (p ++ p') ->
     descendant_under_binding (i, p) (i, p ++ p').
 
@@ -623,8 +612,10 @@ Inductive parent_binder_var (pi1 : position) (pi2 : position) :
   (rose_tree (aposition * lookup_contents)) -> Prop  :=
 | parent_at_binder gtr ap ap' theta theta' further further' bound: 
   descendant_under_binding ap ap' ->
-  get_game_subtree gtr pi1 = Some (node (ap, theta) further) ->
-  get_game_subtree gtr pi2 = Some (node (ap', theta') further') ->
+  has_position gtr pi1 = true ->
+  has_position gtr pi2 = true ->
+  get_game_subtree gtr pi1 = node (ap, theta) further ->
+  get_game_subtree gtr pi2 = node (ap', theta') further' ->
   get_arena_subterm_bound TS ap = Some bound ->
   theta = skipn ((length theta') - bound) theta' ->
   parent_binder_var pi1 pi2 gtr.
@@ -641,14 +632,16 @@ z: i is such that πi+1 is the parent of πj−1 (according to Definition 21).
  *)
 Inductive parent_var_binder (pi1 : position) (pi2 : position) :
   (rose_tree (aposition * lookup_contents)) -> Prop  :=
-| parent_at_var gtr ap ap1 ap1' theta theta1 theta1' further further1 further1' n x args bound pi1': 
-  get_game_subtree gtr pi1 = Some (node (ap, theta) further) ->
+| parent_at_var gtr ap ap1 ap1' theta theta1 theta1' further further1 further1' n x args bound pi1':
+  has_position gtr pi1 = true ->
+  get_game_subtree gtr pi1 = node (ap, theta) further ->
   get_arena_subterm TS ap = Some (tm n x args) -> (* take var x at ap *)
   get_arena_subterm_bound TS ap = Some bound -> (* take var x at ap *)
   x < bound + n -> (* check that x at ap is not a constant *)
   nth_error further 0 = Some (node (ap1, theta1) further1) -> (* var nodes have only one successor *)
   parent_binder_var (pi1 ++ [0]) pi1' gtr -> (* find relevant child at pi1' *)
-  get_game_subtree gtr pi1' = Some (node (ap1', theta1') further1') ->
+  has_position gtr pi1' = true ->
+  get_game_subtree gtr pi1' = node (ap1', theta1') further1' ->
   pi2 = pi1' ++ [0] -> (* var nodes have only one successor *)
   parent_var_binder pi1 pi2 gtr.
 
@@ -698,8 +691,10 @@ Definition solved_start g t (ts : list term) (r : rose_tree nat) :=
 
 Inductive same_variable_at_start (ar : arena) (gtr : game_tree) : interval -> interval -> Prop :=
 | svar_case j jend m mend ap1 tht1 chldrn1 n1 x1 ts1 b1 ap2 tht2 chldrn2 n2 x2 ts2 b2:
-  get_game_subtree gtr j = Some (node (ap1, tht1) chldrn1) ->
-  get_game_subtree gtr m = Some (node (ap2, tht2) chldrn2) ->
+  has_position gtr j = true ->
+  has_position gtr m = true ->
+  get_game_subtree gtr j = node (ap1, tht1) chldrn1 ->
+  get_game_subtree gtr m = node (ap2, tht2) chldrn2 ->
   get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
   get_arena_subterm_bound ar ap1 = Some b1 ->
   get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
@@ -707,11 +702,7 @@ Inductive same_variable_at_start (ar : arena) (gtr : game_tree) : interval -> in
   b1 + n2 = b2 + n1 -> (* n1 and n2 are the same variables *)
   same_variable_at_start ar gtr  pi[j, jend] pi[m, mend].
 
-Fixpoint last_step gtr pos :=
-  match get_game_subtree gtr pos with
-  | Some (node ((t1,lst), _) _) => Some (last lst)
-  | None => None
-  end.
+Definition last_step gtr pos := get_game_subtree gtr pos.
             
 (* complementary intervals 
 
@@ -747,13 +738,16 @@ Inductive complementary (ar : arena) (gtr : game_tree) : interval -> interval ->
   (* π_j is the parent of π_j+k+1 *)
   parent_var_binder ar m (m++(mpke :: mpkp1r)) gtr ->
   (* π_m is the parent of π_m+k+1 *)
-  last_step gtr (j++(jpke :: jpkp1r)) <> None ->
+  has_position gtr (j++(jpke :: jpkp1r)) = true ->
+  has_position gtr (m++(mpke :: mpkp1r)) = true ->
   last_step gtr (j++(jpke :: jpkp1r)) = last_step gtr (m++(mpke :: mpkp1r)) ->
   (* last step is the same successor *)
   complementary ar gtr  pi[j, (jpke :: jpkp1r)] pi[m, mpke :: mpkp1r]
 | compl_const_final j jpkp1 m mpkp1 ap1 tht1 chldrn1 ap2 tht2 chldrn2 n1 b1 x1 ts1 n2 b2 x2 ts2:
-  get_game_subtree gtr (j++(removelast jpkp1)) = Some (node (ap1, tht1) chldrn1) ->
-  get_game_subtree gtr (m++(removelast mpkp1)) = Some (node (ap2, tht2) chldrn2) ->
+  has_position gtr (j++(removelast jpkp1)) = true ->
+  has_position gtr (m++(removelast mpkp1)) = true ->
+  get_game_subtree gtr (j++(removelast jpkp1)) = node (ap1, tht1) chldrn1 ->
+  get_game_subtree gtr (m++(removelast mpkp1)) = node (ap2, tht2) chldrn2 ->
   get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
   get_arena_subterm_bound ar ap1 = Some b1 ->
   get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
@@ -762,46 +756,7 @@ Inductive complementary (ar : arena) (gtr : game_tree) : interval -> interval ->
   complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1].
 
 
-(*
-| compl_const_different_vars j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
-  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
-  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_arena_subterm_bound ar ap1 = Some b1 ->
-  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_arena_subterm_bound ar ap2 = Some b2 ->
-  b1 > n1 -> b2 > n2 -> (* n1 and n2 are both variables *)
-  b1 - n1 <> b2 - n2 -> (* n1 and n2 are different variables *)
-  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
-| compl_const_different_const j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
-  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
-  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_arena_subterm_bound ar ap1 = Some b1 ->
-  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_arena_subterm_bound ar ap2 = Some b2 ->
-  b1 <= n1 -> b2 <= n2 -> (* n1 and n2 are both constants *)
-  n1-b1 <> n2-b2 -> (* n1 and n2 are different constants *)
-  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
-| compl_const_different_const_var  j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
-  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
-  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_arena_subterm_bound ar ap1 = Some b1 ->
-  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_arena_subterm_bound ar ap2 = Some b2 ->
-  b1 <= n1 -> b2 > n2 -> (* n1 is a const n2 is a variable *)
-  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1]
-| compl_const_different_var_const  j jpkp1 ap1 tht1 chldrn1 m mpkp1 ap2 tht2 chldrn2 n1 x1 ts1 b1 n2 x2 ts2 b2:
-  get_game_subtree gtr (j++jpkp1) = Some (node (ap1, tht1) chldrn1) ->
-  get_game_subtree gtr (m++mpkp1) = Some (node (ap2, tht2) chldrn2) ->
-  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
-  get_arena_subterm_bound ar ap1 = Some b1 ->
-  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
-  get_arena_subterm_bound ar ap2 = Some b2 ->
-  b1 > n1 -> b2 <= n2 -> (* n1 is a variable n2 is a constant *)
-  complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1].
-*)
+
 
 
 (* if n_{j_2i−1} is a variable node then there is a
