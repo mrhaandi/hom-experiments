@@ -2,6 +2,7 @@ Require Import List ssreflect.
 Import ListNotations.
 Require Import PeanoNat.
 Require Import Nat.
+Require Import Lia.
 
 
 Require Import HOM.RoseTree.
@@ -840,16 +841,257 @@ Proof.
 Qed.
 
 
+(* Assuming that variables in the range [b1, b2] were bound above the term at hand,
+   check that none of the variables in the term are from the range.
+*)
+Inductive vars_outside_range (b1:nat) (b2:nat) : term -> Prop :=
+| vars_outside_range_local (n:nat) (x:nat) (ts : list term):
+    x < b2 + n  ->
+    Forall (fun st => vars_outside_range (b1+n) (b2+n) st) ts ->
+    vars_outside_range b1 b2 (tm n x ts)
+| vars_outside_range_external (n:nat) (x:nat) (ts : list term):
+    x >= b1 + n  ->
+    Forall (fun st => vars_outside_range (b1+n) (b2+n) st) ts ->
+    vars_outside_range b1 b2 (tm n x ts).
+
+
+
+Lemma test_vars_outside_range:
+  vars_outside_range (8+(8-6)) 8 (get_subterm main_solution' [0; 0; 0]).
+Proof.
+  compute.
+  constructor; try lia.
+  apply  Forall_cons; [constructor|apply Forall_cons]; try lia; try apply Forall_nil.
+  constructor; [lia| apply Forall_nil].
+Qed.
+
+
+Inductive var_outside x : term -> Prop :=
+| var_outside_before n y ts:
+  y < x + n ->
+  Forall (fun nt => var_outside (x+n) nt) ts ->
+  var_outside x (tm n y ts)
+| var_outside_after n y ts:
+  y > x + n ->
+  Forall (fun nt => var_outside (x+n) nt) ts ->
+  var_outside x (tm n y ts).
+
+Lemma test_var_outside:
+  var_outside 5 (get_subterm main_solution' [0; 0; 0]).
+Proof.
+  compute.
+  constructor; try lia.
+  apply Forall_cons;[constructor;[lia|apply Forall_nil]|].
+  apply Forall_cons;[constructor;[lia|apply Forall_nil]|].
+  now apply Forall_nil.    
+Qed.
+
+
+
+Definition vars_outside_range' (b1:nat) (b2:nat) (t:term) : Prop :=
+  Forall (fun var => var_outside var t) (seq b2 (b1-b2)).
+
+Lemma test_vars_outside_range':
+  vars_outside_range' (8+(8-6)) 8 (get_subterm main_solution' [0; 0; 0]).
+Proof.
+  compute.
+  apply Forall_cons;[|apply Forall_cons];[idtac|idtac|apply Forall_nil].
+  constructor; try lia.
+  apply Forall_cons;[|apply Forall_cons];[idtac|idtac|apply Forall_nil].
+  constructor; try lia; try apply Forall_nil.
+  constructor; try lia; try apply Forall_nil.
+  constructor; try lia.
+  apply Forall_cons;[|apply Forall_cons];[idtac|idtac|apply Forall_nil].
+  constructor; try lia; try apply Forall_nil.
+  constructor; try lia; try apply Forall_nil.
+Qed.
+
+
+Lemma vars_outside_range_and_prime:
+  forall t b1 b2,
+    b1 > b2 ->
+    vars_outside_range b1 b2 t <-> vars_outside_range' b1 b2 t.
+Proof.
+  induction t using rose_tree_ind'.
+  intros.
+  assert (forall r, In r l -> forall b1 b2 : nat, b1 > b2 -> vars_outside_range b1 b2 r <-> vars_outside_range' b1 b2 r).
+  {
+    intros.
+    eapply  (Forall_forall (fun r : term => forall b1 b2 : nat, b1 > b2 -> vars_outside_range b1 b2 r <-> vars_outside_range' b1 b2 r) l) in H;eauto 1.
+  } 
+  split.
+  * intro. 
+    inversion H2;subst ts.
+    **  
+       assert (forall r, In r l -> vars_outside_range (b1 + n) (b2 + n) r).
+         { intros.
+           eapply (Forall_forall (fun st : term => vars_outside_range (b1 + n) (b2 + n) st) l) in H6;eauto 1.
+         }
+         unfold vars_outside_range'.
+         apply Forall_forall.
+         intros.
+         apply in_seq in H7.
+         constructor; try lia.
+         apply Forall_forall.
+         intros.
+         generalize H8;intro.
+         eapply H1 in H8.
+         eapply H4 in H9.
+         apply H8 in H9.
+         unfold vars_outside_range' in H9.
+         eapply Forall_forall in H9.
+         apply H9.
+         apply in_seq.
+         lia.
+         lia.
+    **
+      assert (forall r, In r l -> vars_outside_range (b1 + n) (b2 + n) r).
+      { intros.
+        eapply (Forall_forall (fun st : term => vars_outside_range (b1 + n) (b2 + n) st) l) in H6;eauto 1.
+      }
+      unfold vars_outside_range'.
+      apply Forall_forall.
+      intros.
+      apply in_seq in H7.
+      constructor 2; try lia.
+      apply Forall_forall.
+      intros.
+      generalize H8;intro.
+      eapply H1 in H8.
+      eapply H4 in H9.
+      apply H8 in H9;try lia.
+      unfold vars_outside_range' in H9.
+      eapply Forall_forall in H9.
+      apply H9.
+      apply in_seq.
+      lia.
+      lia.
+  * intro.
+    destruct v as [n x].
+    generalize H2; intro vor'.
+    unfold vars_outside_range' in H2.
+    assert (forall y, In y (seq b2 (b1 - b2)) -> var_outside y (tm n x l)). {
+      intros.
+      eapply Forall_forall in H2;eauto.
+    }.
+    destruct (Compare_dec.le_lt_dec (b2+n) x).
+    ** destruct (Compare_dec.le_lt_dec (b1+n) x).
+       *** constructor 2;try lia.
+           apply Forall_forall.
+           intros.
+           apply H1;auto; try lia.
+           unfold vars_outside_range'.
+           apply Forall_forall.
+           intros.
+           assert (In (x1-n) (seq b2 (b1 - b2))). {
+             apply in_seq.
+             apply in_seq in H5.
+             lia.
+           }
+           apply H3 in H6.
+           inversion H6; subst n0 y ts.
+           ****
+             replace (x1 - n + n) with x1 in H11 by lia.
+             eapply Forall_forall in H11;eauto 1.
+           **** replace (x1 - n + n) with x1 in H11.
+                eapply Forall_forall in H11;eauto 1.
+                apply in_seq in H5.
+                lia.
+       ***  
+         assert (b2 <= x - n < b2 + (b1 - b2) ) by lia.
+         apply in_seq in H4.
+         apply H3 in H4.
+         inversion H4;  subst n0 y ts;try lia.
+    ** constructor 1; try lia.
+       apply Forall_forall.
+       intros.
+       apply H1;auto; try lia.
+       unfold vars_outside_range'.
+       apply Forall_forall.
+       intros.
+       assert (In (x1-n) (seq b2 (b1 - b2))). {
+         apply in_seq.
+         apply in_seq in H5.
+         lia.
+       }
+       apply H3 in H6.
+       apply in_seq in H5.
+       inversion H6; subst n0 y ts.
+       **** replace (x1 - n + n) with x1 in H11; try lia.
+            eapply Forall_forall in H11;eauto 1.
+       **** replace (x1 - n + n) with x1 in H11; try lia.
+Qed.
+
+
+Inductive only_internal_vars_to (x:nat) : term -> position -> Prop :=
+| only_internal_vars_to_nil t:
+  only_internal_vars_to x t []
+| only_internal_vars_to_cons n y ts hd tl t':
+  nth_error ts hd = Some t' ->
+  y < x+n ->
+  only_internal_vars_to (x+n) t' (hd :: tl) ->
+  only_internal_vars_to x (tm n y ts) (hd :: tl).
+
+
+                        
+Inductive only_in_interval (t:term) : interval -> Prop :=
+| only_in_interval_witness from btw to n x ts t':
+  get_subterm t from = tm n x ts ->
+  nth_error ts btw = Some t' ->
+  only_internal_vars_to 0 t' to ->
+  only_in_interval t pi[from, btw :: to].
 
 (* end arena position TODO
 
-The path m1 , . . . , m2p is end in t if
+Stirling:
+
+The path m_1,..., m_2p is end in t if
 1. m1 is a variable node,
 2. for each i : 1 < i ≤ p, m2i−1 is a variable node whose binder occurs in the path,
-3. every variable node below m2p in t is bound by a node that either occurs above m1
+3. every variable node below m_2p in t is bound by a node that either occurs above m1
 or below m2p in t.
 
+Here: in our represenation conditions 1 and 2 are for free since paths always point to a
+subterm of the form \ xs.y[...]
  *)
+Inductive end_path (t:term)  : interval -> Prop :=
+| end_path_witness from btw to bf bt:
+  has_position t (from ++ btw :: to) = true ->
+  bf = get_subterm_bound t (from ++ [btw]) 0%nat ->
+  bt = get_subterm_bound t (from ++ btw :: to) 0%nat ->
+  only_in_interval t pi[from, btw :: to] ->
+  vars_outside_range bf bt (get_subterm t (from++ btw :: to)) ->
+  end_path t (pi[from, btw :: to]).
+
+Lemma test_end_path:
+  end_path main_solution' pi[[0;0], [0]].
+Proof.
+  econstructor;try now compute.
+  * compute.
+    econstructor; try compute;auto.
+    constructor.
+  * compute.
+    constructor; try lia.
+    apply Forall_cons; compute.
+    ** constructor; try lia.
+       apply Forall_nil.
+    ** constructor;try now apply Forall_nil.
+       constructor; try lia.
+       now apply Forall_nil.
+Qed.
+
+Lemma test1_end_path:
+  end_path main_solution' pi[[0;0], [1]].
+Proof.
+  econstructor;try now compute.
+  * compute.
+    econstructor; try compute;auto.
+    constructor.
+  * compute.
+    constructor 2; try lia.
+    now apply Forall_nil.
+Qed.
+
 
 (* path that contributes TODO
 
