@@ -859,10 +859,7 @@ Inductive vars_outside_range (b1:nat) (b2:nat) : term -> Prop :=
 Lemma test_vars_outside_range:
   vars_outside_range (8+(8-6)) 8 (get_subterm main_solution' [0; 0; 0]).
 Proof.
-  compute.
-  constructor; try lia.
-  apply  Forall_cons; [constructor|apply Forall_cons]; try lia; try apply Forall_nil.
-  constructor; [lia| apply Forall_nil].
+  repeat constructor.
 Qed.
 
 
@@ -879,11 +876,7 @@ Inductive var_outside x : term -> Prop :=
 Lemma test_var_outside:
   var_outside 5 (get_subterm main_solution' [0; 0; 0]).
 Proof.
-  compute.
-  constructor; try lia.
-  apply Forall_cons;[constructor;[lia|apply Forall_nil]|].
-  apply Forall_cons;[constructor;[lia|apply Forall_nil]|].
-  now apply Forall_nil.    
+  repeat constructor.
 Qed.
 
 
@@ -894,16 +887,7 @@ Definition vars_outside_range' (b1:nat) (b2:nat) (t:term) : Prop :=
 Lemma test_vars_outside_range':
   vars_outside_range' (8+(8-6)) 8 (get_subterm main_solution' [0; 0; 0]).
 Proof.
-  compute.
-  apply Forall_cons;[|apply Forall_cons];[idtac|idtac|apply Forall_nil].
-  constructor; try lia.
-  apply Forall_cons;[|apply Forall_cons];[idtac|idtac|apply Forall_nil].
-  constructor; try lia; try apply Forall_nil.
-  constructor; try lia; try apply Forall_nil.
-  constructor; try lia.
-  apply Forall_cons;[|apply Forall_cons];[idtac|idtac|apply Forall_nil].
-  constructor; try lia; try apply Forall_nil.
-  constructor; try lia; try apply Forall_nil.
+  repeat constructor.
 Qed.
 
 
@@ -973,7 +957,7 @@ Proof.
     assert (forall y, In y (seq b2 (b1 - b2)) -> var_outside y (tm n x l)). {
       intros.
       eapply Forall_forall in H2;eauto.
-    }.
+    }
     destruct (Compare_dec.le_lt_dec (b2+n) x).
     ** destruct (Compare_dec.le_lt_dec (b1+n) x).
        *** constructor 2;try lia.
@@ -1029,7 +1013,7 @@ Inductive only_internal_vars_to (x:nat) : term -> position -> Prop :=
 | only_internal_vars_to_cons n y ts hd tl t':
   nth_error ts hd = Some t' ->
   y < x+n ->
-  only_internal_vars_to (x+n) t' (hd :: tl) ->
+  only_internal_vars_to (x+n) t' tl ->
   only_internal_vars_to x (tm n y ts) (hd :: tl).
 
 
@@ -1066,30 +1050,13 @@ Inductive end_path (t:term)  : interval -> Prop :=
 Lemma test_end_path:
   end_path main_solution' pi[[0;0], [0]].
 Proof.
-  econstructor;try now compute.
-  * compute.
-    econstructor; try compute;auto.
-    constructor.
-  * compute.
-    constructor; try lia.
-    apply Forall_cons; compute.
-    ** constructor; try lia.
-       apply Forall_nil.
-    ** constructor;try now apply Forall_nil.
-       constructor; try lia.
-       now apply Forall_nil.
+  repeat econstructor.
 Qed.
 
 Lemma test1_end_path:
   end_path main_solution' pi[[0;0], [1]].
 Proof.
-  econstructor;try now compute.
-  * compute.
-    econstructor; try compute;auto.
-    constructor.
-  * compute.
-    constructor 2; try lia.
-    now apply Forall_nil.
+  repeat econstructor;lia.
 Qed.
 
 
