@@ -1,7 +1,7 @@
 Require Import List ssreflect.
 Import ListNotations.
 Require Import PeanoNat.
-Require Import Nat.
+Require Import Nat Lia.
 
 
 Require Import HOM.RoseTree.
@@ -40,6 +40,15 @@ Definition get_subterm_bound (t : term) (p : position) (bound:nat) : nat :=
 
 Notation "'tm' n x ts" := (node (n, x) ts) (at level 10, n at next level, x at next level).
 
+
+(* Replace the subterm of t at position p with t'. *)
+Fixpoint replace_subterm (t' : term) (p : position) (t : term) :=
+  match p with
+  | [] => t'
+  | hd :: tl =>
+    let 'tm n x ts := t in
+    tm n x (map_nth (replace_subterm t' tl) hd ts)
+  end.
 
 (*
   example 1
@@ -152,7 +161,13 @@ Proof.
 Qed.
 
 
+Fixpoint fold_tree_dependent {A B : Type} (f : list A -> A -> list B -> B) (tr : rose_tree A) : B :=
+  match tr with
+  | node v children => f [] v (map (fold_tree_dependent (fun l => f (v :: l))) children)
+  end.
 
+Definition fold_tree {A B : Type} (f : A -> list B -> B) (tr : rose_tree A) : B :=
+  fold_tree_dependent (fun _ => f) tr.
 
 (* Arenas of our game are lists of terms [t, t1, ..., tk] s.t. 
     t t1...tk reduces to rhs of the target equation.
@@ -578,7 +593,8 @@ Inductive solved (ap : aposition) (theta : lookup_contents) :
     | solved_const gs n x ts rs:
       get_arena_subterm TS ap = Some (tm n (x + length theta) ts) ->
       length ts = length rs ->
-      Forall2 (fun _ t => match t with tm nt _ _ => nt = 0 end) gs ts ->
+      length gs = length ts ->
+      Forall (fun t => match t with tm nt _ _ => nt = 0 end) ts ->
       (forall g j r, In (g, (j, r)) (combine gs (combine (seq 0 (length rs)) rs)) ->
         solved (extend_ap ap [j]) theta g r) ->
       solved ap theta (node (ap, theta) gs) (node x rs).
@@ -756,9 +772,6 @@ Inductive complementary (ar : arena) (gtr : game_tree) : interval -> interval ->
   complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1].
 
 
-
-
-
 (* if n_{j_2i−1} is a variable node then there is a
    j < j_2i−1 and a k such that π[j + 1, j + k] and π[m + 1, m + k] are complementary where m = j_2i−1
    and j_2i = m + k + 1. *)
@@ -791,50 +804,179 @@ T1 is t[b/n].
 TODO: restate as an application of substitution
  *)
 
-Fixpoint trans_T1 (t:term) (p:position) (b:nat) : option term :=
-  match p with
-  | [] => match t with
-          | tm n _ _ => Some (tm n (n+b) [])
-          end
-  | hd :: tl => match t with
-                | tm n x args => 
-                    match nth_error args hd with
-                    | Some el =>
-                        let start := firstn hd args in
-                        let rest := skipn (hd+1) args in
-                        match trans_T1 el tl (b+n) with
-                        | Some transres =>
-                            Some (tm n x (start ++ (transres :: rest)))
-                        | None => None
-                        end
-                    | None => None
-                    end
-                end
-  end.
+Definition trans_T1 (t:term) (p:position) (t':term) : term :=
+  replace_subterm t' p t.
+
+
+Scheme Equality for list.
+
+Definition check_occurrence (p:position) :=
+  fun (nd:aposition*lookup_contents) (acc:list bool) => let '((no, p'),_) := nd in 
+                                         if (no =? 1) && (list_beq nat eqb p p')
+                                         then true
+                                         else fold_left (fun bacc el => bacc || el)%bool  acc false.
 
 (* TODO: lemma s.t. we replace with any term
 
-If we have a game tree for an arena s.t. position n does not occur in
-g.tr. then if we replace n with any term, the resulting 
+If we have a game tree for an arena s.t. position p does not occur in
+g.tr. then if we replace the subterm at p with any term, the resulting
+term is a solution.
 
  *)
 
-Lemma test_trans_T1_ex1_0: trans_T1 ex1_0 [] 0 = Some ex1_2.
+Fixpoint get_apositions (gtr: game_tree) : list aposition :=
+  match gtr with
+  | node (ap, _) children => ap :: flat_map get_apositions children
+  end.
+
+Inductive locally_equivalent : option term -> option term -> Prop :=
+  | locally_equivalent_Some n x ts ts' : length ts = length ts' -> locally_equivalent (Some (tm n x ts)) (Some (tm n x ts'))
+  | locally_equivalent_None : locally_equivalent None None.
+
+Lemma locally_equivalent_elim ot ot' n x args : 
+  locally_equivalent ot ot' ->
+  ot = Some (tm n x args) ->
+  exists args', length args = length args' /\ ot' = Some (tm n x args').
+Proof.
+  case=> >; last done.
+  move=> ? [*]. subst.
+  eexists. by split; last done.
+Qed.
+
+Arguments in_combine_l {A B l l' x y}.
+Arguments in_split {A x l}.
+
+Lemma get_arena_subterm_extend_ap ts ap n x rs j:
+  get_arena_subterm ts ap = Some (tm n x rs) ->
+  get_arena_subterm ts (extend_ap ap [j]) = nth_error rs j.
+Proof.
+  move: ap => [i p] /=.
+  move: (nth_error ts i)=> [t|]; last done.
+  (* TODO provable subterm property from rose_tree framework *)
+Admitted.
+
+Lemma combine_map {A B A' B' : Type} (f : A -> A') (g : B -> B') (l1 : list A) (l2 : list B) :
+  combine (map f l1) (map g l2) = map (fun ab => (f (fst ab), g (snd ab))) (combine l1 l2).
+Proof.
+  elim: l1 l2; first done.
+  move=> a l1 IH [|b l2]; first done.
+  by rewrite /= IH.
+Qed.
+
+Lemma locally_equivalent_solved ts ts' ap theta gtr res:
+  solved ts ap theta gtr res ->
+  Forall (fun ap' => locally_equivalent (get_arena_subterm ts ap') (get_arena_subterm ts' ap')) (get_apositions gtr) ->
+  solved ts' ap theta gtr res.
+Proof.
+  move=> H. elim: H ts'.
+  - move=> {}ap {}theta n x args nap theta' {}gtr r.
+    move=> /locally_equivalent_elim Hap Hx Hgtr IH ts' /=.
+    move=> /Forall_cons_iff [/Hap [?] [H'args H'ap]] /Forall_app [/IH] + _.
+    rewrite H'args. by apply: solved_var; eassumption.
+  - move=> {}ap {}theta gs n x {}rs' rs.
+    move=> /[dup] H''ap /locally_equivalent_elim Hap Hlen H'len Hrs' IH' IH ts' /=.
+    move=> /Forall_cons_iff [/Hap [rs''] [H'rs'' H'ap]] Hgs.
+    apply: solved_const.
+    + eassumption.
+    + by rewrite -H'rs''.
+    + by rewrite -H'rs''.
+    + (* the game will continue in subtrees, which are also locally equivalent *)
+      have Hrs'': forall g j r,
+        In (g, (j, r)) (combine gs (combine (seq 0 (length rs')) rs)) ->
+        locally_equivalent (nth_error rs' j) (nth_error rs'' j).
+      { move=> g j r. rewrite !Hlen.
+        move: H''ap => /get_arena_subterm_extend_ap <-.
+        move: H'ap => /get_arena_subterm_extend_ap <-.
+        move=> /[dup] Hgjr /IH' {}IH'.
+        move: Hgs => /Forall_forall. apply.
+        move: (extend_ap ap [j]) IH' => ? IH'.
+        move: Hgjr=> /in_combine_l /in_split [?] [?] ?. subst gs.
+        rewrite flat_map_app /=.
+        apply: in_or_app. right. apply: in_or_app. left.
+        by case: IH'=> * /=; left. }
+      move: Hrs' Hlen H'len H'rs'' Hrs''. clear=> Hrs'.
+      elim: Hrs' rs'' gs rs; first by case.
+      admit.
+(*      move=> [???] ? -> _ IH'' [|[???] ?]; first done.
+      move=> [|? gs]; first done.
+      move=> [|? rs]; first done.
+      move=> /= [/IH'' {}IH''] [/IH'' {}IH''] [/IH'' {}IH''] Hequiv. constructor.
+      * move: (Hequiv _ 0 _ (or_introl eq_refl)) => /= H.
+        by inversion H.
+      * apply: IH'' => ? j ? H. apply: (Hequiv _ (S j) _). right.
+        rewrite -seq_shift -(map_id rs) -(map_id gs) !combine_map.
+        apply /in_map_iff. eexists. by split; last by eassumption.
+    + move=> g j r Hgjr. apply: IH; first done.
+      move: Hgjr => /in_combine_l /in_split [?] [?] ?. subst gs.
+      rewrite flat_map_app in Hgs.
+      by move: Hgs => /Forall_app [?] /= /Forall_app [].
+Qed.
+ *)
+Admitted.
+
+Arguments node {A}.
+
+Fixpoint rose_tree_size {A : Type} (tr : rose_tree A) : nat :=
+  match tr with
+  | node _ ts => 1 + list_sum (map rose_tree_size ts)
+  end.
+
+(* induction principle on rose trees *)
+Lemma rose_tree_ind' {A : Type} (P : rose_tree A -> Prop) :
+  (forall (v : A) (l : list (rose_tree A)), Forall P l -> P (node v l)) ->
+  forall tr, P tr.
+Proof.
+  move=> H. elim /(Nat.measure_induction _ (@rose_tree_size A)).
+  move=> [v children] IH. apply: H.
+  elim: children IH.
+  - by constructor.
+  - move=> ?? IH IH'. constructor.
+    + apply: IH'=> /=. lia.
+    + apply: IH => /= *. apply: IH'=> /=. lia.
+Qed.
+
+(* application of locally_equivalent_solved *)
+Lemma trans_T1_correct t args ap theta gtr res t'' p t':
+  solved (t :: args) ap theta gtr res ->
+  fold_tree (check_occurrence p) gtr = false -> (* p does not occur in gtr *)
+  t'' = trans_T1 t p t' ->
+(*  Forall (the number of binders and vars and the length of arguments
+          are the same in t and t'') [the list of positions in gtr] ->
+  TTT t t'' -> *)
+  solved (t'' :: args) ap theta gtr res.
+Proof.
+  move=> /locally_equivalent_solved + Hp ->. apply.
+  have: Forall (fun ap' => ap' <> (0, p)) (get_apositions gtr).
+  { (* should be easy *) admit. }
+  apply: Forall_impl=> - [[|?] p'].
+  - move=> ? /=. have ?: p' <> p by congruence.
+    rewrite /trans_T1.
+    (* this does not hold because one needs that p is not a prefix of p'
+       will require that if a position occurs in a game tree, then all prefixes occur in the game tree
+       is this true for arbitrary theta? *)
+    admit.
+  - move=> /= _. case: (nth_error args _); last by constructor.
+    move=> ?.  case: (get_subterm _ p'); last by admit. (* constructor 1. 
+    move=> [???]. by constructor. *)
+Admitted.
+             
+
+Lemma test_trans_T1_ex1_0: trans_T1 ex1_0 [] (tm 1 1 []) = ex1_2.
+Proof.
+  now compute.
+Qed.
+
+Lemma test_trans_T1_main_solution_1: trans_T1 main_solution []  (tm 2 2 []) = (tm 2 2 []).
 Proof.
   now simpl.
 Qed.
 
-Lemma test_trans_T1_main_solution_1: trans_T1 main_solution [] 0 = Some (tm 2 2 []).
+Lemma test_trans_T1_main_solution_2: trans_T1 main_solution [0] (tm 0 0 []) = (tm 2 0 [tm 0 0 []]).
 Proof.
   now simpl.
 Qed.
 
-Lemma test_trans_T1_main_solution_2: trans_T1 main_solution [0] 0 = Some (tm 2 0 [tm 2 4 []]).
-Proof.
-  now simpl.
-Qed.
-
-Lemma test_trans_T1_main_solution_3: trans_T1 main_solution [0;0] 70 = Some (tm 2 0 [tm 2 3 [tm 2 76 []; tm 0 1 []]]).
+Lemma test_trans_T1_main_solution_3: trans_T1 main_solution [0;0] (tm 0 70 []) = (tm 2 0 [tm 2 3 [tm 0 70 []; tm 0 1 []]]).
 Proof.
  now simpl.
 Qed.
