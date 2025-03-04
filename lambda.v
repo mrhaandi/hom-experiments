@@ -596,6 +596,79 @@ Inductive solved (ap : aposition) (theta : lookup_contents) :
         solved (extend_ap ap [j]) theta g r) ->
       solved ap theta (node (ap, theta) gs) (node x rs).
 
+(*
+Problems with "solved"
+- in solved_var "n" is unused
+- in solved_var is no check that at "nap" there are "length args" many abstractions
+- in solved_var actual "args" are unused
+- game tree doesn't distinguish between solved_var and solved_const
+- game tree contains all rhs information
+  ~> is rhs necessary?
+*)
+
+Definition get_lams (t : term) :=
+  match t with node (n, _) _ => n end.
+
+Definition get_var (t : term) :=
+  match t with node (_, x) _ => x end.
+
+Definition get_args (t : term) :=
+  match t with node _ args => args end.
+
+
+Inductive solved_alternative (ap : aposition) (theta : lookup_contents) :
+  rose_tree (aposition * lookup_contents) -> Prop :=
+  
+    | solved_alternative_var n x args ap' theta' gt:
+      get_arena_subterm TS ap = Some (tm n x args) -> (* get subarena at position ap *)
+      nth_error theta x = Some (ap', lk theta') -> (* get interpretation of x *)
+      match get_arena_subterm TS ap' with Some (tm n' _ _) => n' = length args | _ => False end ->
+      (* check that at ap' there are "length args" many abstractions *)
+      solved_alternative ap' ((map (add_lk ap theta) (seq 0 (length args))) ++ theta') gt ->
+      (* (map (add_lk ap theta) (seq 0 (length args))) - uses arguments of x
+         to interpret variables abstracted in the interpretation of x *)
+      solved_alternative ap theta (node (ap, theta) [gt])
+
+    | solved_alternative_const gs n x ts:
+      get_arena_subterm TS ap = Some (tm n (x + length theta) ts) ->
+      length gs = length ts ->
+      Forall (fun t => match t with tm nt _ _ => nt = 0 end) ts ->
+      (forall g j, In (g, j) (combine gs (seq 0 (length ts))) ->
+        solved_alternative (extend_ap ap [j]) theta g) ->
+      solved_alternative ap theta (node (ap, theta) gs).
+
+Fixpoint sequence {A B} (f : A -> option B) (l : list A) : option (list B) :=
+  match l with
+  | [] => Some []
+  | hd :: tl =>
+    match f hd with
+    | Some b => match sequence f tl with Some bs => Some (b :: bs) | None => None end
+    | None => None
+    end
+  end.
+
+(* compute the unique rhs from a given game tree *)
+Fixpoint get_rhs (gtr : rose_tree (aposition * lookup_contents)) : option (rose_tree nat) :=
+  match gtr with
+  | node (ap, theta) gs =>
+    match get_arena_subterm TS ap with
+    | Some (tm n x ts) =>
+      match (S x) - length theta with
+      | 0 => (* if x is a variable, continue with the subtree - case "solved_var" *)
+        match gs with
+        | [g] => get_rhs g
+        | _ => None
+        end
+      | S j => (* if x is a constant, continue with the subtrees - case "solved_const" *)
+        match sequence get_rhs gs with
+        | Some rs => Some (node j rs)
+        | None => None
+        end
+      end
+    | None => None
+    end
+  end.
+
 Inductive is_final : position -> game_tree -> Prop :=
 | position_nil_rose_nil v:
   is_final [] (node v [])
