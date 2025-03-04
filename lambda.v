@@ -896,8 +896,7 @@ Proof.
         by case: IH'=> * /=; left. }
       move: Hrs' Hlen H'len H'rs'' Hrs''. clear=> Hrs'.
       elim: Hrs' rs'' gs rs; first by case.
-      admit.
-(*      move=> [???] ? -> _ IH'' [|[???] ?]; first done.
+      move=> [[??]?] ? -> _ IH'' [|[[??]?] ?]; first done.
       move=> [|? gs]; first done.
       move=> [|? rs]; first done.
       move=> /= [/IH'' {}IH''] [/IH'' {}IH''] [/IH'' {}IH''] Hequiv. constructor.
@@ -911,8 +910,6 @@ Proof.
       rewrite flat_map_app in Hgs.
       by move: Hgs => /Forall_app [?] /= /Forall_app [].
 Qed.
- *)
-Admitted.
 
 Arguments node {A}.
 
@@ -1036,15 +1033,11 @@ Proof.
   apply: solved_var.
   - cbn. reflexivity.
   - cbn. reflexivity.
-  - cbn. apply: solved_const.
-    all: swap 2 5.
+  - cbn. apply: (solved_const _ _ _ []).
     + cbn. reflexivity.
-    + cbn. intros.
-      rewrite combine_nil in H.
-      simpl in H.
-      contradiction.
-    + now instantiate (1 := []).
-    + constructor.
+    + cbn. reflexivity.
+    + cbn. reflexivity.
+    + constructor. 
     + cbn. done.
 Qed.
 
@@ -1063,7 +1056,7 @@ Proof.
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
-  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  rewrite [length _]/=. apply: (solved_const _ _ _ [_]); [repeat constructor..|].
   move=> > [|]; last done.
   move=> [*]. subst.
   apply: solved_var; [reflexivity..|].
@@ -1082,7 +1075,7 @@ Proof.
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
 
-  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  rewrite [length _]/=. apply: (solved_const _ _ _ []); [repeat constructor..|].
   done.
 Qed.
 
@@ -1101,7 +1094,7 @@ Proof.
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
-  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  rewrite [length _]/=. apply: (solved_const _ _ _ [_]); [repeat constructor..|].
   move=> > [|]; last done.
   move=> [*]. subst.
   apply: solved_var; [reflexivity..|].
@@ -1120,7 +1113,7 @@ Proof.
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
 
-  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  rewrite [length _]/=. apply: (solved_const _ _ _ []); [repeat constructor..|].
   done.
 Qed.
 
@@ -1138,7 +1131,7 @@ Proof.
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
-  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  rewrite [length _]/=. apply: (solved_const _ _ _ [_]); [repeat constructor..|].
   move=> > [|]; last done.
   move=> [*]. subst.
   apply: solved_var; [reflexivity..|].
@@ -1157,7 +1150,7 @@ Proof.
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
 
-  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  rewrite [length _]/=. apply: (solved_const _ _ _ []); [repeat constructor..|].
   done.
 Qed.
 
@@ -1176,7 +1169,7 @@ Proof.
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
-  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  rewrite [length _]/=. apply: (solved_const _ _ _ [_]); [repeat constructor..|].
   move=> > [|]; last done.
   move=> [*]. subst.
   apply: solved_var; [reflexivity..|].
@@ -1195,8 +1188,6 @@ Proof.
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
 
-  rewrite [length _]/=. apply: solved_const; [repeat constructor..|].
+  rewrite [length _]/=. apply: (solved_const _ _ _ []); [repeat constructor..|].
   done.
 Qed.
-
-
