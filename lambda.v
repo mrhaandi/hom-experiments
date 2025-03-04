@@ -1037,9 +1037,14 @@ Proof.
   - cbn. reflexivity.
   - cbn. reflexivity.
   - cbn. apply: solved_const.
+    all: swap 2 5.
     + cbn. reflexivity.
-    + cbn. reflexivity.
-    + cbn. constructor.
+    + cbn. intros.
+      rewrite combine_nil in H.
+      simpl in H.
+      contradiction.
+    + now instantiate (1 := []).
+    + constructor.
     + cbn. done.
 Qed.
 
