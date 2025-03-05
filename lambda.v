@@ -17,7 +17,7 @@ Definition shift_term (k : nat) (t : term) : term :=
 
 (* decrement all free variables by k *)
 Definition slide_term (k : nat) (t : term) : term :=
-  map_tree_dependent (fun l '(n, x) => let bound := list_sum (map fst l) in (n, if bound <=? x then k - x else x)) t.
+  map_tree_dependent (fun l '(n, x) => let bound := list_sum (map fst l) in (n, if bound <=? x then x - k else x)) t.
 
 
 (* place term t' at position p in t *)
@@ -1067,7 +1067,7 @@ Inductive non_contributes : arena -> game_tree -> interval -> Prop :=
   get_subtree gtr from = (node (ap1, theta1) gtrs1) ->
   get_subtree gtr to = (node (ap2, theta2) gtrs2) ->
   solved a ap1 theta1 (node (ap1, theta1) gtrs1) r -> 
-  solved a ap2 theta2 (node (ap2, theta2) gtrs2) r -> 
+  solved a ap2 theta2 (node (ap2, theta2) gtrs2) r ->
   non_contributes a gtr pi[from, to].
 
 (* get all prefixes of the given list *)
@@ -1081,7 +1081,7 @@ Compute (list_prefixes [0;1;2]).
 
 (* Get from the interval pi[startg, endg] position in the game tree gtr
    with the arena position (0, [pos]) *)
-Definition find_position_in_game_tree_int (gtr:game_tree) startg endg pos :=
+Definition find_position_in_game_tree_int (gtr:game_tree) startg endg pos : option position :=
   find (fun pref =>
           let 'node ((tno, p), theta) chlds :=
             get_subtree gtr (startg ++ pref) in
@@ -1123,8 +1123,7 @@ the final position of π).
 Inductive redundant_path (a : arena) (gtr : game_tree) (t:term)  : interval -> Prop :=
 | redundant_path_case from_t to_t:
   end_path t pi[from_t, to_t] ->
-  (forall fp,                       (* TODO: maybe get all final positions, these are leaves *)
-      is_final fp gtr -> 
+  (forall fp, is_final fp gtr -> 
       redundant_path_interval a gtr pi[from_t, to_t] pi[[], fp]) ->
   redundant_path a gtr t pi[from_t, to_t].
                  
