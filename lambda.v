@@ -1,11 +1,11 @@
 Require Import List ssreflect.
 Import ListNotations.
 Require Import PeanoNat.
-Require Import Nat Lia.
+Require Import Nat.
+Require Import Lia.
 
-
-Require Import HOM.RoseTree.
-Import HOM.RoseTree.
+Require Export HOM.RoseTree.
+Export HOM.RoseTree.
 
 
 Notation term := (rose_tree (nat * nat)).
@@ -13,6 +13,11 @@ Notation term := (rose_tree (nat * nat)).
 (* increment all free variables by k *)
 Definition shift_term (k : nat) (t : term) : term :=
   map_tree_dependent (fun l '(n, x) => let bound := list_sum (map fst l) in (n, if bound <=? x then k + x else x)) t.
+
+(* decrement all free variables by k *)
+Definition slide_term (k : nat) (t : term) : term :=
+  map_tree_dependent (fun l '(n, x) => let bound := list_sum (map fst l) in (n, if bound <=? x then x - k else x)) t.
+
 
 (* place term t' at position p in t *)
 Definition replace_term (t' : term) (p : position) (t : term) : term :=
@@ -599,6 +604,8 @@ Inductive solved (ap : aposition) (theta : lookup_contents) :
         solved (extend_ap ap [j]) theta g r) ->
       solved ap theta (node (ap, theta) gs) (node x rs).
 
+
+(* Holds when the position is final in the game tree. *)
 Inductive is_final : position -> game_tree -> Prop :=
 | position_nil_rose_nil v:
   is_final [] (node v [])
@@ -693,8 +700,8 @@ Definition chain (gtr : game_tree) (l : list position)  :=
 
 End Arenas.
 
-(* t ts = r *)
-Definition solved_start g t (ts : list term) (r : rose_tree nat) :=
+(* [t] [ts] = [r] by means of [g] *)
+Definition solved_start (g : game_tree) (t : term) (ts : list term) (r : rose_tree nat) :=
   match t with
   | tm n x us =>
     length ts = n /\
@@ -979,41 +986,314 @@ Proof.
 Qed.
 
 
+(* Assuming that variables in the range [b1, b2] were bound above the term at hand,
+   check that none of the variables in the term are from the range.
+*)
+Inductive vars_outside_range (b1:nat) (b2:nat) : term -> Prop :=
+| vars_outside_range_local (n:nat) (x:nat) (ts : list term):
+    x < b2 + n  ->
+    Forall (fun st => vars_outside_range (b1+n) (b2+n) st) ts ->
+    vars_outside_range b1 b2 (tm n x ts)
+| vars_outside_range_external (n:nat) (x:nat) (ts : list term):
+    x >= b1 + n  ->
+    Forall (fun st => vars_outside_range (b1+n) (b2+n) st) ts ->
+    vars_outside_range b1 b2 (tm n x ts).
+
+
+
+Lemma test_vars_outside_range:
+  vars_outside_range (8+(8-6)) 8 (get_subterm main_solution' [0; 0; 0]).
+Proof.
+  repeat constructor.
+Qed.
+
+(* Checks if the given variable does not occur is absent in the given term. *)
+Inductive var_outside x : term -> Prop :=
+| var_outside_before n y ts:
+  y < x + n ->
+  Forall (fun nt => var_outside (x+n) nt) ts ->
+  var_outside x (tm n y ts)
+| var_outside_after n y ts:
+  y > x + n ->
+  Forall (fun nt => var_outside (x+n) nt) ts ->
+  var_outside x (tm n y ts).
+
+Lemma test_var_outside:
+  var_outside 5 (get_subterm main_solution' [0; 0; 0]).
+Proof.
+  repeat constructor.
+Qed.
+
+
+(* Alternative definition of the predicate which assuming that
+   variables in the range [b1, b2] were bound above the term at hand,
+   checks that none of the variables in the term are from the range.
+   *)
+Definition vars_outside_range' (b1:nat) (b2:nat) (t:term) : Prop :=
+  Forall (fun var => var_outside var t) (seq b2 (b1-b2)).
+
+Lemma test_vars_outside_range':
+  vars_outside_range' (8+(8-6)) 8 (get_subterm main_solution' [0; 0; 0]).
+Proof.
+  repeat constructor.
+Qed.
+
+(* Two versions of vars_outside_range are equivalent. *)
+Lemma vars_outside_range_and_prime:
+  forall t b1 b2,
+    b1 > b2 ->
+    vars_outside_range b1 b2 t <-> vars_outside_range' b1 b2 t.
+Proof.
+  induction t using rose_tree_ind'.
+  intros.
+  assert (forall r, In r l -> forall b1 b2 : nat, b1 > b2 -> vars_outside_range b1 b2 r <-> vars_outside_range' b1 b2 r).
+  {
+    intros.
+    eapply  (Forall_forall (fun r : term => forall b1 b2 : nat, b1 > b2 -> vars_outside_range b1 b2 r <-> vars_outside_range' b1 b2 r) l) in H;eauto 1.
+  } 
+  split.
+  * intro.
+    assert (forall n, Forall (fun st : term => vars_outside_range (b1 + n) (b2 + n) st) l -> forall r, In r l -> vars_outside_range (b1 + n) (b2 + n) r) as Ff.
+    { intros.
+      eapply (Forall_forall (fun st : term => vars_outside_range (b1 + n) (b2 + n) st) l) in H4;eauto 1.
+    }
+    inversion H2;subst ts.
+    **
+         unfold vars_outside_range'.
+         apply Forall_forall.
+         intros.
+         apply in_seq in H4.
+         constructor; try lia.
+         apply Forall_forall.
+         intros.
+         generalize H6;intro.
+         eapply Ff in H8;eauto 1.
+         eapply H1 in H8; try lia; auto.
+         unfold vars_outside_range' in H8.
+         eapply Forall_forall in H8; [eauto 1|apply in_seq; try lia].
+    **
+      unfold vars_outside_range'.
+      apply Forall_forall.
+      intros.
+      apply in_seq in H4.
+      constructor 2; try lia.
+      apply Forall_forall.
+      intros.
+      generalize H6;intro.
+      eapply Ff in H8; eauto 1.
+      eapply H1 in H8; try lia; auto.
+      unfold vars_outside_range' in H8.
+      eapply Forall_forall in H8; [eauto 1|apply in_seq; try lia].
+  * intro.
+    destruct v as [n x].
+    generalize H2; intro vor'.
+    unfold vars_outside_range' in H2.
+    assert (forall y, In y (seq b2 (b1 - b2)) -> var_outside y (tm n x l)). {
+      intros.
+      eapply Forall_forall in H2;eauto.
+    }
+    destruct (Compare_dec.le_lt_dec (b2+n) x).
+    ** destruct (Compare_dec.le_lt_dec (b1+n) x).
+       *** constructor 2;try lia.
+           apply Forall_forall.
+           intros.
+           apply H1;auto; try lia.
+           unfold vars_outside_range'.
+           apply Forall_forall.
+           intros.
+           assert (In (x1-n) (seq b2 (b1 - b2))). {
+             apply in_seq.
+             apply in_seq in H5.
+             lia.
+           }
+           apply H3 in H6.
+           inversion H6; subst n0 y ts.
+           ****
+             replace (x1 - n + n) with x1 in H11 by lia.
+             eapply Forall_forall in H11;eauto 1.
+           **** replace (x1 - n + n) with x1 in H11.
+                eapply Forall_forall in H11;eauto 1.
+                apply in_seq in H5.
+                lia.
+       ***  
+         assert (b2 <= x - n < b2 + (b1 - b2) ) by lia.
+         apply in_seq in H4.
+         apply H3 in H4.
+         inversion H4;  subst n0 y ts;try lia.
+    ** constructor 1; try lia.
+       apply Forall_forall.
+       intros.
+       apply H1;auto; try lia.
+       unfold vars_outside_range'.
+       apply Forall_forall.
+       intros.
+       assert (In (x1-n) (seq b2 (b1 - b2))). {
+         apply in_seq.
+         apply in_seq in H5.
+         lia.
+       }
+       apply H3 in H6.
+       apply in_seq in H5.
+       inversion H6; subst n0 y ts.
+       **** replace (x1 - n + n) with x1 in H11; try lia.
+            eapply Forall_forall in H11;eauto 1.
+       **** replace (x1 - n + n) with x1 in H11; try lia.
+Qed.
+
+(* Checks if variables up to the given position in the term, 
+   are bound below the given bound [x]. *)
+Inductive only_internal_vars_to (x:nat) : term -> position -> Prop :=
+| only_internal_vars_to_nil t:
+  only_internal_vars_to x t []
+| only_internal_vars_to_cons n y ts hd tl t':
+  nth_error ts hd = Some t' ->
+  y < x+n ->
+  only_internal_vars_to (x+n) t' tl ->
+  only_internal_vars_to x (tm n y ts) (hd :: tl).
+
+
+(* Checks if variables in the given interval, except the first one,
+   are bound only within the same interval *)                        
+Inductive only_in_interval (t:term) : interval -> Prop :=
+| only_in_interval_witness from btw to n x ts t':
+  get_subterm t from = tm n x ts -> (* the first variable is bound outside the interval *)
+  nth_error ts btw = Some t' -> (* we reach to the beginning of the segment of interest *)
+  only_internal_vars_to 0 t' to -> (* bindings up to [to] are local *)
+  only_in_interval t pi[from, btw :: to].
 
 (* end arena position TODO
 
-The path m1 , . . . , m2p is end in t if
+Stirling:
+
+The path m_1,..., m_2p is end in t if
 1. m1 is a variable node,
 2. for each i : 1 < i ≤ p, m2i−1 is a variable node whose binder occurs in the path,
-3. every variable node below m2p in t is bound by a node that either occurs above m1
+3. every variable node below m_2p in t is bound by a node that either occurs above m1
 or below m2p in t.
 
+Here: in our represenation conditions 1 and 2 are for free since paths always point to a
+subterm of the form \ xs.y[...]
  *)
+Inductive end_path (t:term)  : interval -> Prop :=
+| end_path_witness from btw to bf bt:
+  has_position t (from ++ btw :: to) = true ->
+  bf = get_subterm_bound t (from ++ [btw]) 0%nat ->
+  bt = get_subterm_bound t (from ++ btw :: to) 0%nat ->
+  only_in_interval t pi[from, btw :: to] ->
+  vars_outside_range bf bt (get_subterm t (from++ btw :: to)) ->
+  end_path t (pi[from, btw :: to]).
+
+Lemma test_end_path:
+  end_path main_solution' pi[[0;0], [0]].
+Proof.
+  repeat econstructor.
+Qed.
+
+Lemma test1_end_path:
+  end_path main_solution' pi[[0;0], [1]].
+Proof.
+  repeat econstructor;lia.
+Qed.
+
 
 (* path that contributes TODO
 
-Assume π ∈ G(t, E) and nj is a lambda node. The interval π[i, j] contributes if [ri ] 6= [rj ].
+Assume π ∈ G(t, E) and n_j is a lambda node. The interval π[i, j] contributes if [r_i] ≠ [r_j].
+ *)
+Inductive non_contributes : arena -> game_tree -> interval -> Prop :=
+| contributes_helper_case a ap1 theta1 ap2 theta2 gtr gtrs1 gtrs2 from to r:
+  get_subtree gtr from = (node (ap1, theta1) gtrs1) ->
+  get_subtree gtr to = (node (ap2, theta2) gtrs2) ->
+  solved a ap1 theta1 (node (ap1, theta1) gtrs1) r -> 
+  solved a ap2 theta2 (node (ap2, theta2) gtrs2) r ->
+  non_contributes a gtr pi[from, to].
 
-*)
+(* get all prefixes of the given list *)
+Fixpoint list_prefixes {A : Type} (l : list A) : list (list A) :=
+  match l with
+  | [] => [[]]
+  | a :: l' => [] :: map (cons a) (list_prefixes l')
+  end.
 
-(* redundant path TODO
+Compute (list_prefixes [0;1;2]).
 
+(* Get from the interval pi[startg, endg] position in the game tree gtr
+   with the arena position (0, [pos]) *)
+Definition find_position_in_game_tree_int (gtr:game_tree) startg endg pos : option position :=
+  find (fun pref =>
+          let 'node ((tno, p), theta) chlds :=
+            get_subtree gtr (startg ++ pref) in
+          (tno =? 0) &&
+            (forallb (fun '(x, y) => x =? y) (combine p pos)))%bool
+    (list_prefixes endg).
+
+
+
+(* redundant path in interval
+
+TODO
+
+- we assume that check that γ is an end_path is done outside this predicate
+
+Stirling: 
 Assume γ = m1 , . . . , m2p is an end path in t.
-1. γ is redundant in the interval π[i, k] of π ∈ G(t, E) when: if πj1 , j1 < k, is the first
-position after πi with nj1 = m1 then
-(a) there is a later position πj , j ≤ k, and a chain πj1 , . . . , πj2p for πj where nj = m2p ,
-(b) π[j1 , j] does not contribute, and
+
+1. γ is redundant in the interval π[i, k] of π ∈ G(t, E) when:
+(0) if π_j1 , j1 < k, is the first position after π_i with n_j1 = m_1 then
+(a) there is a later position π_j, j ≤ k, and a chain π_j1,..., π_j_2p for πj where n_j = m_2p ,
+(b) π[j_1 , j] does not contribute, and
 (c) γ is redundant in the interval π[j, k].
-2. γ is redundant in the game G(t, E) if γ is redundant in every play π[1, l] (where πl is
-the final position of π).
 
  *)
+Inductive redundant_path_interval (a : arena) (gtr : game_tree) : interval -> interval -> Prop :=
+| redundant_interval_case  gtr' from_t to_t from_g to_g pos posend:
+  get_subtree gtr from_g = gtr' ->
+  find_position_in_game_tree_int gtr from_g to_g from_t = Some pos -> (* (0) *)
+  find_position_in_game_tree_int gtr pos to_g (from_t ++ to_t) = Some posend -> (* (a) *)
+  non_contributes a gtr pi[pos, posend] -> (* (b) *)
+  redundant_path_interval a gtr pi[from_t, to_t] pi[posend, to_g] -> (* (c) *)
+  redundant_path_interval a gtr pi[from_t, to_t] pi[from_g, to_g].
 
+(*
+2. γ is redundant in the game G(t, E) if γ is redundant in every play π[1, l] (where π_l is
+the final position of π).
+*)
+Inductive redundant_path (a : arena) (gtr : game_tree) (t:term)  : interval -> Prop :=
+| redundant_path_case from_t to_t:
+  end_path t pi[from_t, to_t] ->
+  (forall fp, is_final fp gtr -> 
+      redundant_path_interval a gtr pi[from_t, to_t] pi[[], fp]) ->
+  redundant_path a gtr t pi[from_t, to_t].
+                 
 (* transformation T2
 
-Assume the end path m1 , . . . , m2p is redundant in G(t, E). If t0 is the
-subterm whose root is the successor node of m2p then transformation T2 is t[t0 /m1 ].
+Assume the end path m_1,..., m_2p is redundant in G(t, E). If t_0 is the
+subterm whose root is the successor node of m_2p then transformation T2 is t[t_0/m_1].
+ *)
 
+Fixpoint trans_T2 (t:term) (intv : interval) (b:nat) : term :=
+  let 'pi[m1, m2p] := intv in
+  let 'tm n x ts := get_subterm t m1 in
+  let 'tm m y ts' := get_subterm t (m1 ++ m2p) in
+  let bound := get_subterm_bound (tm n x ts) m2p 0 in
+  let ts'' := map (slide_term bound) ts' in
+  replace_term (tm n (y-bound) ts'') m1 t.
+
+(* let r be the rhs of
+   t ts = r
+
+  fragment is a term
+
+  \x1...xn.r'
+
+  where x1,...,xn are of base type,
+  such that there are positions p0,p1,...,pn
+  such that
+  get_subtree r p0 = r'[x1 := get_subtree r p1,...,xn := get_subtree r pn]
+
+  Main Theorem:
+
+  Each subterm in t under the reduction of t ts normalizes to a fragment.
  *)
 
 Notation "'pi[' a ',' b ']_' TS " := (intvl TS a b) (at level 20).
