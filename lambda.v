@@ -1293,6 +1293,48 @@ Proof.
     + cbn. now intros [|?].
 Qed.
 
+(* \xy.x (\p. y p) *)
+Definition ex3_0 :=
+  tm 2 1 [tm 1 1 [tm 0 0 []]].
+
+(* \z.f (\q. z q) *)
+Definition ex3_1 :=
+  tm 1 1 [tm 1 1 [tm 0 0 []]].
+
+(* \x.x *)
+Definition ex3_2 :=
+  tm 1 0 [].
+
+(* f (\x.x) *)
+Definition ex3_rhs :=
+  tm 0 0 [tm 1 0 []].
+
+Lemma solved_ex3 : exists g, solved_start_full g ex3_0 [ex3_1; ex3_2] ex3_rhs.
+Proof.
+  eexists. split.
+  { split; [reflexivity|].
+    apply: solved_var; [reflexivity..|].
+
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|].
+    move=> [|[|?]] ?; [|done..] => - [<-].
+
+    apply: solved_var; [reflexivity..|].
+    rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+    rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+    rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|].
+    by case. }
+
+  cbn.
+  apply: is_rhs_var; [reflexivity..|].
+  apply: is_rhs_const; [reflexivity..|].
+  move=> [|[|?]] ??; [|done..] => - [<-] [<-].
+  do 4 (apply: is_rhs_var; [reflexivity..|]).
+  apply: is_rhs_const; [reflexivity..|].
+  by case.
+Qed.
+
 (* g a *)
 Definition result :=
   tm 0 1 [tm 0 0 []].
@@ -1343,8 +1385,7 @@ Proof.
   by case.
 Qed.
 
-
-
+(*
 Lemma solved_Stirling' : exists g, solved_start g main_solution' [arg1; arg2] result.
 Proof.
   unfold result.
@@ -1455,3 +1496,4 @@ Proof.
   rewrite [length _]/=. apply: (solved_const _ _ _ []); [repeat constructor..|].
   done.
 Qed.
+*)
