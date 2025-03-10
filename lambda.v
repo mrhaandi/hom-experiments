@@ -713,6 +713,10 @@ Inductive is_rhs (b : bool): rose_tree (aposition * lookup_contents) -> term -> 
   | is_rhs_const ap theta n x ts y gs rs :
     get_arena_subterm TS ap = Some (tm n x ts) ->
     compute_const theta x = Some y -> (* x points to a constant *)
+    (* TODO is the computed index y correct? need to flatten theta? e.g. what if theta points to a const *)
+    (* consider this: the abstractions always come immediately after a constant *)
+    (* maybe the game tree needs to contain the number of abstractions as information?
+       or do we track this via an argument? *)
     length gs = length rs ->
     (forall j g r, nth_error gs j = Some g -> nth_error rs j = Some r -> is_rhs true g r) ->
     is_rhs b (node (ap, theta) gs) (tm (if b then n else 0) y rs).
@@ -1334,6 +1338,65 @@ Proof.
   apply: is_rhs_const; [reflexivity..|].
   by case.
 Qed.
+
+(* \s.s (s (s a)) *)
+Definition ex4_0 :=
+  tm 1 0 [tm 0 0 [tm 0 0 [tm 0 1 []]]].
+
+(* \n.f (\x. n) *)
+Definition ex4_1 :=
+  tm 1 2 [tm 1 1 []].
+
+(* f (\x1.f (\x2. f (\x3. a))) *)
+Definition ex4_rhs :=
+  tm 0 1 [tm 1 2 [tm 1 3 [tm 1 4 [tm 0 3 []]]]].
+
+Lemma solved_ex4 : exists g, solved_start_full g ex4_0 [ex4_1] ex4_rhs.
+Proof.
+  eexists. split.
+  { split; [reflexivity|].
+    apply: solved_var; [reflexivity..|].
+
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|].
+    move=> [|[|?]] ?; [|done..] => - [<-].
+
+    apply: solved_var; [reflexivity..|].
+    rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|].
+    move=> [|[|?]] ?; [|done..] => - [<-].
+
+    apply: solved_var; [reflexivity..|].
+    rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|].
+    move=> [|[|?]] ?; [|done..] => - [<-].
+
+    apply: solved_var; [reflexivity..|].
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|].
+    by case. }
+
+  cbn.
+  apply: is_rhs_var; [reflexivity..|].
+  apply: is_rhs_const; [reflexivity..|].
+  move=> [|[|?]] ??; [|done..] => - [<-] [<-].
+
+  do 2 (apply: is_rhs_var; [reflexivity..|]).
+
+  apply: is_rhs_const; cbn. reflexivity. cbn. admit.
+  reflexivity.
+ move=> [|[|?]] ??; [|done..] => - [<-] [<-].
+
+ do 2 (apply: is_rhs_var; [reflexivity..|]).
+
+  apply: is_rhs_const; cbn. reflexivity. cbn. admit.
+  reflexivity.
+
+
+  do 4 (apply: is_rhs_var; [reflexivity..|]).
+  apply: is_rhs_const; [reflexivity..|].
+  by case.
+
 
 (* g a *)
 Definition result :=
