@@ -643,6 +643,13 @@ Inductive solved (ap : aposition) (theta : lookup_contents) :
       (forall j g, nth_error gs j = Some g -> solved (extend_ap ap [j]) (repeat None k ++ theta) 0 g) ->
       solved ap theta n (node (ap, repeat None k ++ theta) gs).
 
+(*
+theta not option, but left/right
+left ~> bound variable
+right ~> number of abstractions?
+*)
+
+(* TODO maybe wrong *)
 Fixpoint compute_const (theta : lookup_contents) (x : nat) : option nat :=
   match theta with
   | [] => Some x
@@ -1383,19 +1390,80 @@ Proof.
 
   do 2 (apply: is_rhs_var; [reflexivity..|]).
 
-  apply: is_rhs_const; cbn. reflexivity. cbn. admit.
-  reflexivity.
- move=> [|[|?]] ??; [|done..] => - [<-] [<-].
+  apply: is_rhs_const; cbn.
+  - reflexivity.
+  - cbn. (* wrong index of the free variable *)
+Abort.
 
- do 2 (apply: is_rhs_var; [reflexivity..|]).
+(* \sz2.s (\z1.s (\z0.s (\x.x) z0) z1) z2 *)
+Definition ex5_0 :=
+  tm 2 1 [tm 0 0 []; tm 1 2 [tm 0 0 []; tm 1 3 [tm 0 0 []; tm 1 0 []]]].
 
-  apply: is_rhs_const; cbn. reflexivity. cbn. admit.
-  reflexivity.
+(* 
+  f : (a -> a) -> a
+  g : a -> a -> a
+*)
+(* \ny. f (\x. n (g y x)) *)
+Definition ex5_1 :=
+  tm 2 2 [tm 1 2 [tm 0 4 [tm 0 0 []; tm 0 1 []]]].
 
+(* h *)
+Definition ex5_2 :=
+  tm 0 2 [].
 
-  do 4 (apply: is_rhs_var; [reflexivity..|]).
+(* f (\x2.f (\x1. f (\x0. g (g (g h x2) x1) x0))) *)
+Definition ex5_rhs :=
+  tm 0 0 [tm 1 1 [tm 1 2 [tm 1 4 [tm 0 0 []; tm 0 4 [tm 0 1 []; tm 0 4 [tm 0 2 []; tm 0 5 []]]]]]].
+
+Lemma solved_ex5 : exists g, solved_start_full g ex5_0 [ex5_1; ex5_2] ex5_rhs.
+Proof.
+  eexists. split.
+  { split; [reflexivity|].
+    apply: solved_var; [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|cbn].
+    move=> [|[|?]] ?; [|done..] => - [<-].
+    apply: solved_var; [reflexivity..|cbn].
+    apply: solved_var; [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|cbn].
+    move=> [|[|?]] ?; [|done..] => - [<-].
+    apply: solved_var; [reflexivity..|cbn].
+    apply: solved_var; [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|cbn].
+    move=> [|[|?]] ?; [|done..] => - [<-].
+    apply: solved_var; [reflexivity..|cbn].
+    apply: solved_var; [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ [_; _]); [reflexivity..|cbn].
+    move=> [|[|[|?]]] ?; [ | |done..] => - [<-].
+    { apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|cbn].
+      by case. }
+    apply: solved_var; [reflexivity..|cbn].
+    apply: solved_var; [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ [_; _]); [reflexivity..|cbn].
+    move=> [|[|[|?]]] ?; [ | |done..] => - [<-].
+    { apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|cbn].
+      by case. }
+    apply: solved_var; [reflexivity..|cbn].
+    apply: solved_var; [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ [_; _]); [reflexivity..|cbn].
+    move=> [|[|[|?]]] ?; [ | |done..] => - [<-].
+    { apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|cbn].
+      by case. }
+    apply: solved_var; [reflexivity..|cbn].
+    apply: solved_var; [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|cbn].
+    by case. }
+  cbn.
+  apply: is_rhs_var; [reflexivity..|].
   apply: is_rhs_const; [reflexivity..|].
-  by case.
+  move=> [|[|?]] ??; [|done..] => - [<-] [<-].
+
+  do 2 (apply: is_rhs_var; [reflexivity..|]).
+
+  apply: is_rhs_const; cbn.
+  - reflexivity.
+  - cbn. (* wrong index of the free variable *)
+  admit.
+Abort.
 
 
 (* g a *)
