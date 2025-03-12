@@ -68,7 +68,8 @@ Definition ex1_1 := tm 0 0 [].
 (* \x.a *)
 Definition ex1_2 := tm 1 1 [].
 
-
+(* \fx.f(f x) *)
+Definition ex_two := tm 2 1 [tm 0 1 [tm 0 0 []]].
 
 (* example Stirling
   constants:
@@ -78,23 +79,31 @@ Definition ex1_2 := tm 1 1 [].
 *)
 
 Definition main_solution :=
-  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x1+2) (\.x1+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
+  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x1+0+2) (\.x1+0+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
   tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 3 []; tm 0 3 []]; tm 0 8 []]; tm 0 1 []]].
 
-(* This is the solution from Stirling's paper? *)
-Definition main_solution' :=
-  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x1+2) (\.x0+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
-  tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 3 []; tm 0 2 []]; tm 0 8 []]; tm 0 1 []]].
+
 
 (* This is also some solution. *)
+Definition main_solution' :=
+  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x1+0+2) (\.x0+0+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
+  tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 3 []; tm 0 2 []]; tm 0 8 []]; tm 0 1 []]].
+
+(* This is the solution from Stirling's paper? *)
 Definition main_solution'' :=
-  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x0+2) (\.x1+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
+  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x0+0+2) (\.x1+0+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
   tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 2 []; tm 0 3 []]; tm 0 8 []]; tm 0 1 []]].
 
 (* This is also some solution. *)
 Definition main_solution''' :=
-  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x0+2) (\.x1+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
+  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x0+0+2) (\.x1+0+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
   tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 2 []; tm 0 2 []]; tm 0 8 []]; tm 0 1 []]].
+
+
+(* This is the solution from Stirling's paper? *)
+Definition main_solution''_after_T3 :=
+  (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x1+0+2+2+2 (\.x1+0+2+2) (\x1 x0.x1)) (\.x1+0+2+2+2 (\.x1+0+2+2)(\x1 x0.x0)) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
+  tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 7 [tm 2 0 []; tm 0 5 []]; tm 0 7 [tm 2 1 []; tm 0 5 []]]; tm 0 8 []]; tm 0 1 []]].
 
 
 
@@ -710,6 +719,23 @@ Definition solved_start (g : game_tree) (t : term) (ts : list term) (r : rose_tr
   end.
 
 
+(* TS[0] is solution TS[1..] are arguments *)
+Fixpoint construct_game_tree (TS:arena) (depth : nat) (ap : aposition) (theta : lookup_contents) : game_tree :=
+  match depth with
+  | 0 => node (ap, theta) []
+  | S depth =>
+    match get_arena_subterm TS ap with
+    | Some (tm n x args) =>
+      match nth_error theta x with
+      (* bound variable case, see solved_var *)
+      | Some (nap, lk theta') => node (ap, theta) [construct_game_tree TS depth nap ((map (add_lk ap theta) (seq 0 (length args))) ++ theta')]
+      (* constant case, see solved_const *)
+      | None => node (ap, theta) (map (fun j => construct_game_tree TS depth (extend_ap ap [j]) theta) (seq 0 (length args)))
+      end
+    | None => node (ap, theta) []
+    end
+  end.
+
 
 
 
@@ -1153,6 +1179,28 @@ Inductive only_internal_vars_to (x:nat) : term -> position -> Prop :=
   only_internal_vars_to x (tm n y ts) (hd :: tl).
 
 
+Definition term_interval :=
+  tm 2 0 [tm 2 1 [tm 2 3 [tm 2 7 []]]].
+
+
+Definition term_interval1 :=
+  tm 2 0 [tm 2 1 [tm 2 3 [tm 2 5 [tm 0 7 []] ]]].
+
+Lemma test_only_internal_vars_to:
+  only_internal_vars_to 2 term_interval [0].
+Proof.
+  econstructor;[cbv;done|lia|cbv].
+  constructor.
+Qed.  
+
+
+Lemma test_only_internal_vars_to1:
+  only_internal_vars_to 2 term_interval1 [0].
+Proof.
+  econstructor;[cbv;done|lia|cbv].
+  constructor.
+Qed.  
+
 (* Checks if variables in the given interval, except the first one,
    are bound only within the same interval *)                        
 Inductive only_in_interval (t:term) : interval -> Prop :=
@@ -1162,6 +1210,24 @@ Inductive only_in_interval (t:term) : interval -> Prop :=
   only_internal_vars_to 0 t' to -> (* bindings up to [to] are local *)
   only_in_interval t pi[from, btw :: to].
 
+Lemma test_only_in_interval:
+  only_in_interval term_interval pi[[],0 :: [0]].
+Proof.
+  unfold term_interval.
+  repeat (econstructor;cbn;[done|done|]).
+  econstructor.
+Qed.
+
+
+Lemma test_only_in_interval1:
+  only_in_interval term_interval1 pi[[],0 :: [0;0]].
+Proof.
+  unfold term_interval.
+  repeat (econstructor;cbn;[done|done|]).
+  econstructor.
+Qed.
+
+  
 (* end arena position TODO
 
 Stirling:
@@ -1197,6 +1263,23 @@ Proof.
 Qed.
 
 
+Lemma test1_non_end_path:
+  ~ end_path main_solution' pi[[0;0;0;0;1], [0]].
+Proof.
+  move=> EP.
+  inversion EP.
+  inversion H2.
+Qed.
+
+
+Lemma test2_end_path:
+  end_path main_solution''_after_T3 pi[[0;0;0], [0]].
+Proof.
+  repeat econstructor;lia.
+Qed.
+
+
+
 (* path that contributes TODO
 
 Assume π ∈ G(t, E) and n_j is a lambda node. The interval π[i, j] contributes if [r_i] ≠ [r_j].
@@ -1209,7 +1292,24 @@ Inductive non_contributes : arena -> game_tree -> interval -> Prop :=
   solved a ap2 theta2 (node (ap2, theta2) gtrs2) r ->
   non_contributes a gtr pi[from, to].
 
-(* get all prefixes of the given list *)
+Lemma test_non_contributes:
+  forall gtr,
+    gtr =
+      (construct_game_tree [ex_two; ex1_0; ex1_1] 6 (0, []) (map (fun j => ((S j, []), lk [])) (rev (seq 0 2)))) ->
+  non_contributes [main_solution''; arg1; arg2] gtr pi[[0], [0]].
+Proof.
+  move=> gtr Gtris.
+  cbv in Gtris.
+  subst gtr.
+  econstructor;cbv;eauto 1.
+  * apply: solved_var;[cbv;split|cbv;split|cbv].
+    admit.
+  * apply: solved_var;[cbv;split|cbv;split|cbv].
+    admit.
+Admitted.
+
+
+    (* get all prefixes of the given list *)
 Fixpoint list_prefixes {A : Type} (l : list A) : list (list A) :=
   match l with
   | [] => [[]]
@@ -1468,6 +1568,47 @@ Proof.
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
   rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
+
+  rewrite [length _]/=. apply: (solved_const _ _ _ []); [repeat constructor..|].
+  done.
+Qed.
+
+
+Lemma solved_Stirling''_after_T3 : exists g, solved_start g main_solution''_after_T3 [arg1; arg2] result.
+Proof.
+  unfold result.
+  eexists.
+  cbn. split; [reflexivity|].
+  apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  
+
+  rewrite [length _]/=. apply: (solved_const _ _ _ [_]); [repeat constructor..|].
+  move=> > [|]; last done.
+  move=> [*]. subst.
+  apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
+  rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
   rewrite [length _]/=. apply: (solved_const _ _ _ []); [repeat constructor..|].
   done.
