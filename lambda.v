@@ -661,49 +661,25 @@ Definition compute_const (theta : lookup_contents) (l x : nat) : option nat :=
   |_ => None
   end.
 
-(*
-Inductive solved_rhs (ap : aposition) (theta : lookup_contents) :
-  nat -> rose_tree (aposition * lookup_contents) -> term -> Prop :=
-    | solved_rhs_var k n x args ap' theta' g y rs:
-      get_arena_subterm TS ap = Some (tm (n + k) x args) -> (* get subarena at position ap *)
-      lookup_var (repeat None k ++ theta) x = Some (ap', lk theta') -> (* get interpretation of x *)
-      (* check that at ap' there are "length args" many abstractions *)
-      solved_rhs ap' ((map (add_lk ap (repeat None k ++ theta)) (seq 0 (length args))) ++ theta') (length args) g (tm 0 y rs) ->
-      (* (map (add_lk ap theta) (seq 0 (length args))) - uses arguments of x
-         to interpret variables abstracted in the interpretation of x *)
-      solved_rhs ap theta n (node (ap, repeat None k ++ theta) [g]) (tm k y rs)
-
-    | solved_rhs_const k n x args gs y rs:
-      get_arena_subterm TS ap = Some (tm (n + k) x args) ->
-      length gs = length args ->
-      length rs = length args ->
-      (forall j g r, nth_error gs j = Some g -> nth_error rs j = Some r ->
-        solved_rhs (extend_ap ap [j]) (repeat None k ++ theta) 0 g r) ->
-      compute_const (repeat None k ++ theta) x = Some y ->
-      solved_rhs ap theta n (node (ap, repeat None k ++ theta) gs) (tm k y rs).
-*)
-(*
-Fixpoint get_rhs (gtr : rose_tree (aposition * lookup_contents)) : option term :=
-  match gtr with
-  | node (ap, theta) gs =>
+(* TS[0] is solution TS[1..] are arguments *)
+Fixpoint construct_game_tree (depth : nat) (ap : aposition) (theta : lookup_contents) (n l : nat) : game_tree :=
+  match depth with
+  | 0 => node (ap, theta) []
+  | S depth =>
     match get_arena_subterm TS ap with
-    | Some (tm n x ts) =>
-      match (S x) - length theta with
-      | 0 => (* if x is a variable, continue with the subtree - case "solved_var" *)
-        match gs with
-        | [g] => get_rhs g
-        | _ => None
-        end
-      | S j => (* if x is a constant, continue with the subtrees - case "solved_const" *)
-        match sequence get_rhs gs with
-        | Some rs => Some (node j rs)
-        | None => None
-        end
+    | Some (tm m x args) =>
+      let k := m - n in
+      match lookup_var (map inr (seq l k) ++ theta) x with
+      | Some (ap', lk theta') => (* bound variable case, see solved_var *)
+          node (ap, map inr (seq l k) ++ theta)
+            [construct_game_tree depth ap' ((map (add_lk ap (map inr (seq l k) ++ theta)) (seq 0 (length args))) ++ theta') (length args) (k+l)]
+      | None => (* constant case, see solved_const *)
+          node (ap, map inr (seq l k) ++ theta)
+            (map (fun j => construct_game_tree depth (extend_ap ap [j]) (map inr (seq l k) ++ theta) 0 (k+l)) (seq 0 (length args)))
       end
-    | None => None
+    | None => node (ap, theta) []
     end
   end.
-*)
 
 (* "is_rhs b gt r" means that the term "r" is the unique rhs corresponding to the game tree "gt"
    the argument "b" specifies whether "r" has abstractions *)
@@ -861,9 +837,54 @@ Definition solved_start g t (ts : list term) :=
   length ts = get_binders t /\
   solved (t :: ts) (0, []) (map (fun j => inl ((S j, []), lk [])) (rev (seq 0 (length ts)))) (length ts) 0 g.
 
+Definition construct_game_tree_start (depth : nat) t (ts : list term) :=
+  match t with
+  | tm n x us =>
+    construct_game_tree (t :: ts) depth (0, []) (map (fun j => inl ((S j, []), lk [])) (rev (seq 0 (length ts)))) (length ts) 0
+  end.
+
 Definition solved_start_full g t (ts : list term) (r : term) :=
   solved_start g t ts /\
   is_rhs (t :: ts) false 0 g r.
+
+(* if the game is solved, its game tree is unique and is constructed by construct_game_tree_start *)
+Lemma construct_game_tree_start_spec g t ts : solved_start g t ts -> exists depth0, forall depth, depth0 <= depth -> g = construct_game_tree_start depth t ts.
+Proof.
+  rewrite /solved_start /construct_game_tree_start.
+  move: t => [] [? x] args /= [<-].
+  move: (map _ _) => theta.
+  move: (_ :: _) => TS.
+  move: (0, []) => ap.
+  move: (0) => l.
+  elim.
+  - move=> > Hap ? Hx _ [depth0] H.
+    exists (S depth0).
+    move=> [|depth] ?; first by lia.
+    by rewrite /= Hap Nat.add_comm Nat.add_sub Hx (H depth); [lia|].
+  - move=> {}ap {}theta n {}l k {}x {}args gs Hap ? Hx Hlen Hgs H'gs.
+    suff: exists depth0, forall depth, depth0 <= depth -> gs = (map (fun j => construct_game_tree TS depth (extend_ap ap [j]) (map inr (seq l k) ++ theta) 0 (k + l)) (seq 0 (length args))).
+    { move=> [depth0] H. exists (S depth0).
+      move=> [|depth] ?; first by lia.
+      rewrite /= Hap (H depth); first by lia.
+      by rewrite (Nat.add_comm n k) Nat.add_sub Hx. }
+    move: H'gs. rewrite -Hlen.
+    elim /rev_ind: gs {Hgs Hlen}.
+    + move=> _. by exists 0.
+    + move=> g' {}gs IH H.
+      have := H (length gs).
+      rewrite nth_error_app2 ?Nat.sub_diag; first by lia.
+      move=> /(_ _ eq_refl).
+      case: IH.
+      { move=> j ? Hj.
+        apply: H.
+        by rewrite nth_error_app1; first apply /nth_error_Some; rewrite Hj. }
+      move=> depth1 Hdepth1 [depth2] Hdepth2.
+      exists (depth1+depth2).
+      move=> depth ?.
+      rewrite length_app seq_app map_app. congr app.
+      * apply: Hdepth1. lia.
+      * congr cons. apply: Hdepth2. lia.
+Qed.
 
 Inductive same_variable_at_start (ar : arena) (gtr : game_tree) : interval -> interval -> Prop :=
 | svar_case j jend m mend ap1 tht1 chldrn1 n1 x1 ts1 b1 ap2 tht2 chldrn2 n2 x2 ts2 b2:
