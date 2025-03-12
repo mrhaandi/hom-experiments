@@ -653,36 +653,13 @@ Inductive solved (ap : aposition) (theta : lookup_contents) (n l : nat):
       (forall j g, nth_error gs j = Some g -> solved (extend_ap ap [j]) (map inr (seq l k) ++ theta) 0 (k+l) g) ->
       solved ap theta n l (node (ap, map inr (seq l k) ++ theta) gs).
 
-(*
-theta not option, but left/right
-left ~> bound variable
-right ~> number of abstractions at point of abstraction
-*)
-
+(* compute the actual index for true constant / variable constant *)
 Definition compute_const (theta : lookup_contents) (l x : nat) : option nat :=
   match nth_error theta x with
   | Some (inr n) => Some (l-n-1) (* the variable was bound at n abstractions - l is the number of current abstractions *)
   | None => Some (x+l-length theta) (* constant case *)
   |_ => None
   end.
-(*
-(* TODO maybe wrong *)
-Fixpoint compute_const (theta : lookup_contents) (l x : nat) : option nat :=
-  match theta with
-  | [] => Some (x+l) (* constant case *)
-  | inl _ :: theta' =>
-    match x with
-    | 0 => None
-    | S x' => compute_const theta' l x'
-    end
-  | inr n :: theta' =>
-    match x with
-    | 0 => Some (l-n-1) (* the variable was bound at n abstractions - l is the number of current abstractions *)
-    | S x' => compute_const theta' l x'
-    end
-  end.
-*)
-
 
 (*
 Inductive solved_rhs (ap : aposition) (theta : lookup_contents) :
@@ -740,10 +717,6 @@ Inductive is_rhs (b : bool) (l : nat): rose_tree (aposition * lookup_contents) -
   | is_rhs_const ap theta n x ts y gs rs :
     get_arena_subterm TS ap = Some (tm n x ts) ->
     compute_const theta l x = Some y -> (* x points to a constant *)
-    (* TODO is the computed index y correct? need to flatten theta? e.g. what if theta points to a const *)
-    (* consider this: the abstractions always come immediately after a constant *)
-    (* maybe the game tree needs to contain the number of abstractions as information?
-       or do we track this via an argument? *)
     length gs = length rs ->
     (forall j g r, nth_error gs j = Some g -> nth_error rs j = Some r -> is_rhs true ((if b then n else 0)+l) g r) ->
     is_rhs b l (node (ap, theta) gs) (tm (if b then n else 0) y rs).
@@ -1423,7 +1396,19 @@ Proof.
   by case.
 Qed.
 
+(* Properties of ex5
+  + uses true constants
+  + uses variable constants
+  + distance between binding of a variable constant and use of it is arbitrary
+  + number of abstractions is arbitrary
+  + number of abstractions for variable constants before using a true constant is arbitrary
+  + number of abstractions in the arena is bounded
+
+  - number of abstractions in the solution term is not bounded! (TODO I want this to be bounded!)
+*)
+
 (* \s z2.s (\z1.s (\z0.s (\x.x) z0) z1) z2 *)
+(* eta expansion of \s.s (s (s (\x.x))) *)
 Definition ex5_0 :=
   tm 2 1 [tm 0 0 []; tm 1 2 [tm 0 0 []; tm 1 3 [tm 0 0 []; tm 1 0 []]]].
 
