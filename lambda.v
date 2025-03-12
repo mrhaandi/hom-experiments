@@ -271,13 +271,13 @@ Qed.
    - theta' is the interpretation of the free variables in t
 *)
 Inductive lookup : Type :=
-  | lk : list (option (aposition * lookup)) -> lookup.
+  | lk : list ((aposition * lookup) + nat) -> lookup.
 
-Definition lookup_contents := list (option (aposition * lookup)).
+Definition lookup_contents := list ((aposition * lookup) + nat).
 
-Definition add_lk (ap:aposition) (theta : lookup_contents) (j : nat) :=
+Definition add_lk (ap:aposition) (theta : lookup_contents) (j : nat) : (aposition * lookup) + nat :=
   let '(i, p) := ap in
-    Some ((i, p ++ [j]), lk theta).
+    inl ((i, p ++ [j]), lk theta).
 
 Arguments add_lk /.
 
@@ -583,9 +583,9 @@ Definition get_args (t : term) :=
   match t with node _ args => args end.
 
 (* look up the assignment of a variable *)
-Definition lookup_var (theta : lookup_contents) (x : nat) :=
+Definition lookup_var (theta : lookup_contents) (x : nat) : option (aposition * lookup) :=
   match nth_error theta x with
-  | Some (Some v) => Some v
+  | Some (inl v) => Some v
   | _ => None
   end.
 
@@ -623,48 +623,68 @@ Inductive eval : term -> list (option term) -> term -> Prop :=
     eval (tm 0 x args) theta (tm 0 x rs).
 *)
 
-Inductive solved (ap : aposition) (theta : lookup_contents) :
-  nat -> rose_tree (aposition * lookup_contents) -> Prop :=
-    | solved_var k n x args ap' theta' g:
+(*
+  "solved ap theta n l gt" means
+  - at position ap in the arena TS
+  - with the lookup table theta
+  - with n many abstractions
+    if there are n + k many abstractions at ap, then then theta is extended by k many free variables
+  - l is the total number of prior abstractions 
+  the game represented by gt is well-formed
+*)
+
+Inductive solved (ap : aposition) (theta : lookup_contents) (n l : nat):
+  rose_tree (aposition * lookup_contents) -> Prop :=
+    | solved_var k x args ap' theta' g:
       get_arena_subterm TS ap = Some (tm (n + k) x args) -> (* get subarena at position ap *)
       n * k = 0 -> (* there is no partial application *)
-      lookup_var (repeat None k ++ theta) x = Some (ap', lk theta') -> (* get interpretation of x *)
+      lookup_var (map inr (seq l k) ++ theta) x = Some (ap', lk theta') -> (* get interpretation of x *)
       (* check that at ap' there are "length args" many abstractions *)
-      solved ap' ((map (add_lk ap (repeat None k ++ theta)) (seq 0 (length args))) ++ theta') (length args) g ->
+      solved ap' ((map (add_lk ap (map inr (seq l k) ++ theta)) (seq 0 (length args))) ++ theta') (length args) (k+l) g ->
       (* (map (add_lk ap theta) (seq 0 (length args))) - uses arguments of x
          to interpret variables abstracted in the interpretation of x *)
-      solved ap theta n (node (ap, repeat None k ++ theta) [g])
+      solved ap theta n l (node (ap, map inr (seq l k) ++ theta) [g])
 
-    | solved_const k n x args gs:
+    | solved_const k x args gs:
       get_arena_subterm TS ap = Some (tm (n + k) x args) ->
       n * k = 0 -> (* there is no partial application *)
-      lookup_var (repeat None k ++ theta) x = None ->
+      lookup_var (map inr (seq l k) ++ theta) x = None ->
       length gs = length args ->
-      (forall j g, nth_error gs j = Some g -> solved (extend_ap ap [j]) (repeat None k ++ theta) 0 g) ->
-      solved ap theta n (node (ap, repeat None k ++ theta) gs).
+      (forall j g, nth_error gs j = Some g -> solved (extend_ap ap [j]) (map inr (seq l k) ++ theta) 0 (k+l) g) ->
+      solved ap theta n l (node (ap, map inr (seq l k) ++ theta) gs).
 
 (*
 theta not option, but left/right
 left ~> bound variable
-right ~> number of abstractions?
+right ~> number of abstractions at point of abstraction
 *)
 
+Definition compute_const (theta : lookup_contents) (l x : nat) : option nat :=
+  match nth_error theta x with
+  | Some (inr n) => Some (l-n-1) (* the variable was bound at n abstractions - l is the number of current abstractions *)
+  | None => Some (x+l-length theta) (* constant case *)
+  |_ => None
+  end.
+(*
 (* TODO maybe wrong *)
-Fixpoint compute_const (theta : lookup_contents) (x : nat) : option nat :=
+Fixpoint compute_const (theta : lookup_contents) (l x : nat) : option nat :=
   match theta with
-  | [] => Some x
-  | None :: theta' =>
-    match x with
-    | 0 => Some 0
-    | S x' => option_map S (compute_const theta' x')
-    end
-  | Some _ :: theta' =>
+  | [] => Some (x+l) (* constant case *)
+  | inl _ :: theta' =>
     match x with
     | 0 => None
-    | S x' => compute_const theta' x'
+    | S x' => compute_const theta' l x'
+    end
+  | inr n :: theta' =>
+    match x with
+    | 0 => Some (l-n-1) (* the variable was bound at n abstractions - l is the number of current abstractions *)
+    | S x' => compute_const theta' l x'
     end
   end.
+*)
 
+
+(*
 Inductive solved_rhs (ap : aposition) (theta : lookup_contents) :
   nat -> rose_tree (aposition * lookup_contents) -> term -> Prop :=
     | solved_rhs_var k n x args ap' theta' g y rs:
@@ -684,7 +704,7 @@ Inductive solved_rhs (ap : aposition) (theta : lookup_contents) :
         solved_rhs (extend_ap ap [j]) (repeat None k ++ theta) 0 g r) ->
       compute_const (repeat None k ++ theta) x = Some y ->
       solved_rhs ap theta n (node (ap, repeat None k ++ theta) gs) (tm k y rs).
-
+*)
 (*
 Fixpoint get_rhs (gtr : rose_tree (aposition * lookup_contents)) : option term :=
   match gtr with
@@ -711,22 +731,22 @@ Fixpoint get_rhs (gtr : rose_tree (aposition * lookup_contents)) : option term :
 (* "is_rhs b gt r" means that the term "r" is the unique rhs corresponding to the game tree "gt"
    the argument "b" specifies whether "r" has abstractions *)
 
-Inductive is_rhs (b : bool): rose_tree (aposition * lookup_contents) -> term -> Prop :=
+Inductive is_rhs (b : bool) (l : nat): rose_tree (aposition * lookup_contents) -> term -> Prop :=
   | is_rhs_var ap theta n x y args gt rs :
     get_arena_subterm TS ap = Some (tm n x args) ->
-    compute_const theta x = None -> (* x points to a variable *)
-    is_rhs false gt (tm 0 y rs) ->
-    is_rhs b (node (ap, theta) [gt]) (tm (if b then n else 0) y rs)
+    compute_const theta l x = None -> (* x points to a variable *)
+    is_rhs false ((if b then n else 0)+l) gt (tm 0 y rs) ->
+    is_rhs b l (node (ap, theta) [gt]) (tm (if b then n else 0) y rs)
   | is_rhs_const ap theta n x ts y gs rs :
     get_arena_subterm TS ap = Some (tm n x ts) ->
-    compute_const theta x = Some y -> (* x points to a constant *)
+    compute_const theta l x = Some y -> (* x points to a constant *)
     (* TODO is the computed index y correct? need to flatten theta? e.g. what if theta points to a const *)
     (* consider this: the abstractions always come immediately after a constant *)
     (* maybe the game tree needs to contain the number of abstractions as information?
        or do we track this via an argument? *)
     length gs = length rs ->
-    (forall j g r, nth_error gs j = Some g -> nth_error rs j = Some r -> is_rhs true g r) ->
-    is_rhs b (node (ap, theta) gs) (tm (if b then n else 0) y rs).
+    (forall j g r, nth_error gs j = Some g -> nth_error rs j = Some r -> is_rhs true ((if b then n else 0)+l) g r) ->
+    is_rhs b l (node (ap, theta) gs) (tm (if b then n else 0) y rs).
     (*
   | is_rhs_inner_var ap theta n x ts gs rs:
     get_arena_subterm TS ap = Some (tm n x ts) ->
@@ -861,18 +881,16 @@ Inductive chain_condition (gtr: game_tree) : (position * position) * nat -> Prop
 Definition chain (gtr : game_tree) (l : list position)  :=
   Forall (chain_condition gtr) (combine (combine l (skipn 1 l)) (seq 0 (length l))).
 
-
-
 End Arenas.
 
 (* t ts = r *)
 Definition solved_start g t (ts : list term) :=
   length ts = get_binders t /\
-  solved (t :: ts) (0, []) (map (fun j => Some ((S j, []), lk [])) (rev (seq 0 (length ts)))) (length ts) g.
+  solved (t :: ts) (0, []) (map (fun j => inl ((S j, []), lk [])) (rev (seq 0 (length ts)))) (length ts) 0 g.
 
 Definition solved_start_full g t (ts : list term) (r : term) :=
   solved_start g t ts /\
-  is_rhs (t :: ts) false g r.
+  is_rhs (t :: ts) false 0 g r.
 
 Inductive same_variable_at_start (ar : arena) (gtr : game_tree) : interval -> interval -> Prop :=
 | svar_case j jend m mend ap1 tht1 chldrn1 n1 x1 ts1 b1 ap2 tht2 chldrn2 n2 x2 ts2 b2:
@@ -1035,17 +1053,17 @@ Qed.
 
 Arguments nth_error_In {A l n x}.
 
-Lemma locally_equivalent_solved ts ts' ap theta n gtr:
-  solved ts ap theta n gtr ->
+Lemma locally_equivalent_solved ts ts' ap theta n l gtr:
+  solved ts ap theta n l gtr ->
   Forall (fun ap' => locally_equivalent (get_arena_subterm ts ap') (get_arena_subterm ts' ap')) (get_apositions gtr) ->
-  solved ts' ap theta n gtr.
+  solved ts' ap theta n l gtr.
 Proof.
   move=> H. elim: H ts'.
-  - move=> {}ap {}theta k {}n x args nap theta' {}gtr.
+  - move=> {}ap {}theta k {}n {}l x args nap theta' {}gtr.
     move=> /locally_equivalent_elim Hap Hnk Hx Hgtr IH ts' /=.
     move=> /Forall_cons_iff [/Hap [?] [H'args H'ap]] /Forall_app [/IH] + _.
     rewrite H'args. by apply: solved_var; eassumption.
-  - move=> {}ap {}theta k {}n x args gs.
+  - move=> {}ap {}theta k {}n {}l x args gs.
     move=> /[dup] H''ap /locally_equivalent_elim Hap Hnk Hx Hlen IH' IH ts' /=.
     move=> /Forall_cons_iff [/Hap [ts''] [H'ts'' H'ap]] /Forall_flat_map Hgs.
     apply: solved_const.
@@ -1059,8 +1077,8 @@ Qed.
 
 Arguments node {A}.
 
-Lemma solved_ap_in_get_apositions ts ap theta n gtr:
-  solved ts ap theta n gtr ->
+Lemma solved_ap_in_get_apositions ts ap theta n l gtr:
+  solved ts ap theta n l gtr ->
   In ap (get_apositions gtr).
 Proof.
   case; by left.
@@ -1068,13 +1086,13 @@ Qed.
 
 Fixpoint get_apositions_lk (l : lookup) : list aposition :=
   match l with
-  | lk theta => flat_map (fun c => match c with Some (ap', theta') => ap' :: get_apositions_lk theta' | None => [] end) theta
+  | lk theta => flat_map (fun c => match c with inl (ap', theta') => ap' :: get_apositions_lk theta' | _ => [] end) theta
   end.
 
 Arguments nth_error_In {A l n x}.
 
 Lemma in_get_apositions_lk_intro ap (theta : lookup_contents) ap' theta':
-  In (Some (ap', lk theta')) theta ->
+  In (inl (ap', lk theta')) theta ->
   In ap (get_apositions_lk (lk theta')) ->
   In ap (get_apositions_lk (lk theta)).
 Proof.
@@ -1085,15 +1103,16 @@ Proof.
   apply /in_app_iff. by left.
 Qed.
 
-Lemma loopup_var_Some k theta x v :
-  lookup_var (repeat None k ++ theta) x = Some v ->
-  exists n, x = n + k /\ nth_error theta n = Some (Some v).
+Lemma loopup_var_Some l k theta x v :
+  lookup_var (map inr (seq l k) ++ theta) x = Some v ->
+  exists n, x = n + k /\ nth_error theta n = Some (inl v).
 Proof.
   rewrite /lookup_var.
-  have [?|?]: x < k \/ k <= x by lia.
-  - rewrite nth_error_app1 ?repeat_length; first done.
-    by rewrite nth_error_repeat.
-  - rewrite nth_error_app2 ?repeat_length; first done.
+  have [Hxk|?]: x < k \/ k <= x by lia.
+  - rewrite nth_error_app1 ?length_map ?length_seq; first done.
+    rewrite nth_error_map nth_error_seq.
+    by move: Hxk => /Nat.ltb_lt ->.
+  - rewrite nth_error_app2 ?length_map ?length_seq; first done.
     case E: (nth_error theta (x - k)) => [ov|]; last done.
     case E': ov=> [v'|]; last done.
     move=> [<-]. subst.
@@ -1108,8 +1127,8 @@ Arguments repeat_spec {A n x y}.
    the start,
    occurs the lookup table,
    or its direct prefix occurs in the game tree *)
-Lemma solved_ap_cone ts ap (theta : lookup_contents) n gtr ap':
-  solved ts ap theta n gtr ->
+Lemma solved_ap_cone ts ap (theta : lookup_contents) n l gtr ap':
+  solved ts ap theta n l gtr ->
   In ap' (get_apositions gtr) ->
     ap = ap' \/
     In ap' (get_apositions_lk (lk theta)) \/
@@ -1130,7 +1149,7 @@ Proof.
         move=> /in_flat_map [?] [_] /= [?|].
         ** subst. right. right. eexists _, _. by split; last by left.
         ** rewrite flat_map_app. move=> /in_app_iff [|]; last by tauto.
-           by move=> /in_flat_map [?] [/repeat_spec] ->.
+           by move=> /in_flat_map [?] [/in_map_iff] [?] [<-].
       * move=> /in_get_apositions_lk_intro H.
         right. left. apply: H.
         move: Htheta=> /loopup_var_Some [n'] [?] /nth_error_In ?. subst.
@@ -1138,21 +1157,21 @@ Proof.
     + rewrite app_nil_r.
       move=> [?] [?] [-> ?]. do 2 right.
       eexists _, _. split; first done. by right.
-  - move=> ??????? Ets ? Hx Egs ? IH /= [|]; first by tauto.
+  - move=> ???????? Ets ? Hx Egs ? IH /= [|]; first by tauto.
     move=> /in_flat_map [g] [Hg] /IH {}IH.
     move: (Hg) => /In_nth_error [j] /IH [?|[|]].
     + subst. do 2 right. eexists _, _.
       split; first done. by left.
     + rewrite /= flat_map_app. move=> /in_app_iff [|]; last by tauto.
-      by move=> /in_flat_map [?] [/repeat_spec] ->.
+      by move=> /in_flat_map [?] [/in_map_iff] [?] [<-].
     + move=> [?] [?] [->] ?. do 2 right. eexists _, _.
       split; first done. right.
       apply /in_flat_map. eexists. by split; last by eassumption.
 Qed.
 
 (* apositions form a cone in a full game tree *)
-Lemma solved_start_ap_cone ts p (theta : lookup_contents) n gtr :
-  solved ts (0, []) theta n gtr ->
+Lemma solved_start_ap_cone ts p (theta : lookup_contents) n l gtr :
+  solved ts (0, []) theta n l gtr ->
   In (0, p) (get_apositions gtr) ->
   Forall (fun ap => fst ap <> 0) (get_apositions_lk (lk theta)) ->
   forall i, In (0, firstn i p) (get_apositions gtr).
@@ -1288,7 +1307,7 @@ Proof.
     - cbn. reflexivity.
     - cbn. reflexivity.
     - cbn. reflexivity.
-    - cbn. apply: (solved_const _ _ _ _ _ _ _ []).
+    - cbn. apply: (solved_const _ _ _ _ _ _ _ _ []).
       + cbn. reflexivity.
       + cbn. reflexivity.
       + cbn. reflexivity.
@@ -1326,7 +1345,7 @@ Proof.
   { split; [reflexivity|].
     apply: solved_var; [reflexivity..|].
 
-    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|].
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ _ [_]); [reflexivity..|].
     move=> [|[|?]] ?; [|done..] => - [<-].
 
     apply: solved_var; [reflexivity..|].
@@ -1334,13 +1353,13 @@ Proof.
     rewrite [length _]/=. apply: solved_var; [reflexivity..|].
     rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
-    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|].
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ _ []); [reflexivity..|].
     by case. }
 
-  cbn.
   apply: is_rhs_var; [reflexivity..|].
   apply: is_rhs_const; [reflexivity..|].
   move=> [|[|?]] ??; [|done..] => - [<-] [<-].
+
   do 4 (apply: is_rhs_var; [reflexivity..|]).
   apply: is_rhs_const; [reflexivity..|].
   by case.
@@ -1356,7 +1375,7 @@ Definition ex4_1 :=
 
 (* f (\x1.f (\x2. f (\x3. a))) *)
 Definition ex4_rhs :=
-  tm 0 1 [tm 1 2 [tm 1 3 [tm 1 4 [tm 0 3 []]]]].
+  tm 0 1 [tm 1 2 [tm 1 3 [tm 1 3 []]]].
 
 Lemma solved_ex4 : exists g, solved_start_full g ex4_0 [ex4_1] ex4_rhs.
 Proof.
@@ -1364,23 +1383,23 @@ Proof.
   { split; [reflexivity|].
     apply: solved_var; [reflexivity..|].
 
-    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|].
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ _ [_]); [reflexivity..|].
     move=> [|[|?]] ?; [|done..] => - [<-].
 
     apply: solved_var; [reflexivity..|].
     rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
-    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|].
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ _ [_]); [reflexivity..|].
     move=> [|[|?]] ?; [|done..] => - [<-].
 
     apply: solved_var; [reflexivity..|].
     rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
-    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|].
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ _ [_]); [reflexivity..|].
     move=> [|[|?]] ?; [|done..] => - [<-].
 
     apply: solved_var; [reflexivity..|].
-    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|].
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ _ []); [reflexivity..|].
     by case. }
 
   cbn.
@@ -1390,24 +1409,33 @@ Proof.
 
   do 2 (apply: is_rhs_var; [reflexivity..|]).
 
-  apply: is_rhs_const; cbn.
-  - reflexivity.
-  - cbn. (* wrong index of the free variable *)
-Abort.
+  apply: is_rhs_const; [reflexivity..|].
+  move=> [|[|?]] ??; [|done..] => - [<-] [<-].
 
-(* \sz2.s (\z1.s (\z0.s (\x.x) z0) z1) z2 *)
+  do 2 (apply: is_rhs_var; [reflexivity..|]).
+
+  apply: is_rhs_const; [reflexivity..|].
+  move=> [|[|?]] ??; [|done..] => - [<-] [<-].
+
+  do 1 (apply: is_rhs_var; [reflexivity..|]).
+
+  apply: is_rhs_const; [reflexivity..|].
+  by case.
+Qed.
+
+(* \s z2.s (\z1.s (\z0.s (\x.x) z0) z1) z2 *)
 Definition ex5_0 :=
   tm 2 1 [tm 0 0 []; tm 1 2 [tm 0 0 []; tm 1 3 [tm 0 0 []; tm 1 0 []]]].
 
 (* 
-  f : (a -> a) -> a
-  g : a -> a -> a
+  [0] f : (a -> a) -> a
+  [1] g : a -> a -> a
 *)
-(* \ny. f (\x. n (g y x)) *)
+(* \n y. f (\x. n (g y x)) *)
 Definition ex5_1 :=
   tm 2 2 [tm 1 2 [tm 0 4 [tm 0 0 []; tm 0 1 []]]].
 
-(* h *)
+(* [2] h *)
 Definition ex5_2 :=
   tm 0 2 [].
 
@@ -1420,50 +1448,73 @@ Proof.
   eexists. split.
   { split; [reflexivity|].
     apply: solved_var; [reflexivity..|cbn].
-    apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ _ [_]); [reflexivity..|cbn].
     move=> [|[|?]] ?; [|done..] => - [<-].
     apply: solved_var; [reflexivity..|cbn].
     apply: solved_var; [reflexivity..|cbn].
-    apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ _ [_]); [reflexivity..|cbn].
     move=> [|[|?]] ?; [|done..] => - [<-].
     apply: solved_var; [reflexivity..|cbn].
     apply: solved_var; [reflexivity..|cbn].
-    apply: (solved_const _ _ _ _ _ _ _ [_]); [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ _ [_]); [reflexivity..|cbn].
     move=> [|[|?]] ?; [|done..] => - [<-].
     apply: solved_var; [reflexivity..|cbn].
     apply: solved_var; [reflexivity..|cbn].
-    apply: (solved_const _ _ _ _ _ _ _ [_; _]); [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ _ [_; _]); [reflexivity..|cbn].
     move=> [|[|[|?]]] ?; [ | |done..] => - [<-].
-    { apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|cbn].
+    { apply: (solved_const _ _ _ _ _ _ _ _ []); [reflexivity..|cbn].
       by case. }
     apply: solved_var; [reflexivity..|cbn].
     apply: solved_var; [reflexivity..|cbn].
-    apply: (solved_const _ _ _ _ _ _ _ [_; _]); [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ _ [_; _]); [reflexivity..|cbn].
     move=> [|[|[|?]]] ?; [ | |done..] => - [<-].
-    { apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|cbn].
+    { apply: (solved_const _ _ _ _ _ _ _ _ []); [reflexivity..|cbn].
       by case. }
     apply: solved_var; [reflexivity..|cbn].
     apply: solved_var; [reflexivity..|cbn].
-    apply: (solved_const _ _ _ _ _ _ _ [_; _]); [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ _ [_; _]); [reflexivity..|cbn].
     move=> [|[|[|?]]] ?; [ | |done..] => - [<-].
-    { apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|cbn].
+    { apply: (solved_const _ _ _ _ _ _ _ _ []); [reflexivity..|cbn].
       by case. }
     apply: solved_var; [reflexivity..|cbn].
     apply: solved_var; [reflexivity..|cbn].
-    apply: (solved_const _ _ _ _ _ _ _ []); [reflexivity..|cbn].
+    apply: (solved_const _ _ _ _ _ _ _ _ []); [reflexivity..|cbn].
     by case. }
   cbn.
   apply: is_rhs_var; [reflexivity..|].
-  apply: is_rhs_const; [reflexivity..|].
+  apply: is_rhs_const; [reflexivity..|cbn].
   move=> [|[|?]] ??; [|done..] => - [<-] [<-].
 
   do 2 (apply: is_rhs_var; [reflexivity..|]).
+  apply: is_rhs_const; [reflexivity..|cbn].
+  move=> [|[|?]] ??; [|done..] => - [<-] [<-].
 
-  apply: is_rhs_const; cbn.
-  - reflexivity.
-  - cbn. (* wrong index of the free variable *)
-  admit.
-Abort.
+  do 2 (apply: is_rhs_var; [reflexivity..|]).
+  apply: is_rhs_const; [reflexivity..|cbn].
+  move=> [|[|?]] ??; [|done..] => - [<-] [<-].
+
+  do 2 (apply: is_rhs_var; [reflexivity..|]).
+  apply: is_rhs_const; [reflexivity..|cbn].
+  move=> [|[|[|?]]] ??; [| |done..] => - [<-] [<-].
+  { apply: is_rhs_const; [reflexivity..|cbn].
+    by case. }
+  
+  do 2 (apply: is_rhs_var; [reflexivity..|]).
+  apply: is_rhs_const; [reflexivity..|cbn].
+  move=> [|[|[|?]]] ??; [| |done..] => - [<-] [<-].
+  { apply: is_rhs_const; [reflexivity..|cbn].
+    by case. }
+
+  do 2 (apply: is_rhs_var; [reflexivity..|]).
+  apply: is_rhs_const; [reflexivity..|cbn].
+  move=> [|[|[|?]]] ??; [| |done..] => - [<-] [<-].
+  { apply: is_rhs_const; [reflexivity..|cbn].
+    by case. }
+
+  do 2 (apply: is_rhs_var; [reflexivity..|]).
+  apply: is_rhs_const; [reflexivity..|cbn].
+  by case.
+Qed.
 
 
 (* g a *)
@@ -1483,7 +1534,7 @@ Proof.
     rewrite [length _]/=. apply: solved_var; [reflexivity..|].
     rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
-    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ [_]); [repeat constructor..|].
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ _ [_]); [repeat constructor..|].
     move=> [|[|?]] ?; [|done..] => - [<-].
     apply: solved_var; [reflexivity..|].
     rewrite [length _]/=. apply: solved_var; [reflexivity..|].
@@ -1501,7 +1552,7 @@ Proof.
     rewrite [length _]/=. apply: solved_var; [reflexivity..|].
 
 
-    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ []); [repeat constructor..|].
+    rewrite [length _]/=. apply: (solved_const _ _ _ _ _ _ _ _ []); [repeat constructor..|].
     by case. }
   
   cbn.
