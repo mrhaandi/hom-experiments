@@ -1112,10 +1112,12 @@ term is a solution.
 Definition scons {X: Type} (x : X) (f : nat -> X) :=
   fun n => match n with | 0 => x | S n => f n end.
 
+Definition up (f : nat -> nat) (x : nat) := S (scons 0 f x).
+
 (* rename free variables of a term *)
 Fixpoint ren_term (f: nat -> nat) (t: term) : term :=
   match t with
-  | tm n x ts => tm n (Nat.iter n (scons 0) f x) (map (ren_term (Nat.iter n (scons 0) f)) ts)
+  | tm n x ts => tm n (Nat.iter n up f x) (map (ren_term (Nat.iter n up f)) ts)
   end.
 
 (* do all elements in l satisfy the predicate P *)
@@ -1158,14 +1160,16 @@ Fixpoint allfv (P: nat -> Prop) (t: term) : Prop :=
 
 (* arena1 is equivalent to arena2 up to renaming of free variables *)
 Inductive up_to_renaming (arena1 arena2: arena) :
-  (aposition * lookup) -> (aposition * lookup) -> Prop :=
+  ((aposition * lookup) + nat) -> ((aposition * lookup) + nat) -> Prop :=
   | up_to_renaming_inl ap1 ap2 (theta1 theta2 : lookup_contents) f t:
     get_arena_subterm arena1 ap1 = Some (ren_term f t) ->
     get_arena_subterm arena2 ap2 = Some t ->
-    (forall x ap1' theta1', nth_error theta1 (f x) = Some (inl (ap1', lk theta1')) ->
-      exists ap2' theta2', nth_error theta2 x = Some (inl (ap2', lk theta2')) /\
-        up_to_renaming arena1 arena2 (ap1', lk theta1') (ap2', lk theta2')) ->
-    up_to_renaming arena1 arena2 (ap1, lk theta1) (ap2, lk theta2).
+    (forall x v, nth_error theta1 (f x) = Some v ->
+      exists w, nth_error theta2 x = Some w /\
+        up_to_renaming arena1 arena2 v w) ->
+    up_to_renaming arena1 arena2 (inl (ap1, lk theta1)) (inl (ap2, lk theta2))
+  | up_to_renaming_inr n:
+    up_to_renaming arena1 arena2 (inr n) (inr n).
 (*
 Inductive up_to_renaming (arena1 arena2: arena) :
   (aposition * lookup) -> (aposition * lookup) -> Prop :=
@@ -1177,38 +1181,73 @@ Inductive up_to_renaming (arena1 arena2: arena) :
 up_to_renaming arena1 arena2 (ap1', lk theta1') (ap2', lk theta2')) ->
     up_to_renaming arena1 arena2 (ap1, lk theta1) (ap2, lk theta2).
 *)
-(*
-lookup_var (map inr (seq l k) ++ theta) x = Some (nap, lk ntheta)
-x = Nat.iter (n + k) (scons 0) f x''
-nth_error (map inr (seq l k) ++ theta') x''''' = Some (inl (ap2', lk theta2')
-lookup_var (map inr (seq l k) ++ theta') x'' = Some (?Goal0, lk ?Goal1)
-*)
 
+Lemma get_arena_subterm_extend_ap ts ap n x rs j:
+  get_arena_subterm ts ap = Some (tm n x rs) ->
+  get_arena_subterm ts (extend_ap ap [j]) = nth_error rs j.
+Proof.
+  move: ap => [i p] /=.
+  move: (nth_error ts i)=> [t|]; last done.
+  rewrite get_subtree_error_app=> -> /=.
+  by case: (nth_error rs j).
+Qed.
 
 (*
   two arenas evaluate similarly if they are quivalent up to renaming of free variables
-
-Lemma eval_shift arena arena' ap ap' theta theta' n l r k x args:
-  eval arena ap theta n l r ->
-  get_arena_subterm arena ap = Some (tm (n + k) x args) ->
-
-  (* address x *)
-  (* address args use addlk *)
-  up_to_renaming arena arena' (ap, lk (map inr (seq l k) ++ theta)) (ap', lk (map inr (seq l k) ++ theta')) ->
-  eval arena' ap' theta' n l r.
-Proof.
-  move=> H. elim: H ap' theta' k x args.
-  - move=> {}ap {}theta {}n {}l k x args nap ntheta y rs.
-    move=> Hap ? Hx ? IH ap' theta' k' x' args'.
-    rewrite Hap => - [???].
-    have ?: k = k' by lia.
-    move Ev: (ap, _) => v.
-    move Ew: (ap', _) => w H.
-    case: H Ev Ew=> ap1 ap2 theta1 theta2 f [[m'' x''] args''] Hap1 Hap2 H' [??] [??].
-    subst ap1 theta1 ap2 theta2 x' args' k'.
-    move: (Hap) Hap1 Hap2 => -> /= [<- ??] ?.
-    apply: eval_var; try eassumption.
 *)
+Lemma eval_shift arena arena' ap ap' theta theta' ts ts' l r:
+  eval arena ap theta ts l r ->
+  up_to_renaming arena arena' (inl (ap, lk theta)) (inl (ap', lk theta')) ->
+  Forall2 (up_to_renaming arena arena') ts ts' ->
+  eval arena' ap' theta' ts' l r.
+Proof.
+  move=> H. elim: H ap' theta' ts'.
+  - move=> {}ap {}theta {}ts {}l k x args nap ntheta y rs.
+    move=> Hap H0 Hx ? IH ap' theta' ts'.
+    move Ev: (inl (ap, _)) => v.
+    move Ew: (inl (ap', _)) => w H.
+    case: H Ev Ew=> ap1 ap2 theta1 theta2; last done.
+    move=> f [[m'' x''] args''] Hap1 Hap2 H' [??] [??].
+    subst ap1 theta1 ap2 theta2.
+    move: (Hap) Hap1 Hap2 => -> /= [<- ? Eargs] Hap'.
+    move=> /[dup] /Forall2_length E H''.
+    rewrite E in Hap' H0.
+    have E'args: length args = length args'' by rewrite Eargs length_map.
+    have [nap' [ntheta' [??]]]: exists nap' ntheta',
+      lookup_var (map inr (seq l k) ++ ts' ++ theta') x'' = Some (nap', lk ntheta') /\
+      up_to_renaming arena arena' (inl (nap, lk ntheta)) (inl (nap', lk ntheta')).
+    { subst x. move: Hx.
+      have [?|?]: x'' < length ts + k \/ length ts + k <= x'' by lia.
+      - have ->: (Nat.iter (length ts + k) up f x'') = x'' by admit.
+        admit. (* doable *)
+      - have ->: (Nat.iter (length ts + k) up f x'') = (length ts + k) + f (x'' - (length ts + k)) by admit.
+        rewrite /lookup_var.
+        admit. (* doable *) }
+    apply: eval_var; [eassumption..|].
+    apply: IH; first done.
+    rewrite E'args.
+    admit. (* maybe *) 
+  - move=> {}ap {}theta {}ts {}l k x args y rs.
+    move=> Hap H0 Hx ? ? IH ap' theta' ts'.
+    move Ev: (inl (ap, _)) => v.
+    move Ew: (inl (ap', _)) => w H.
+    case: H Ev Ew=> ap1 ap2 theta1 theta2; last done.
+    move=> f [[m'' x''] args''] Hap1 Hap2 H' [??] [??].
+    subst ap1 theta1 ap2 theta2.
+    move: (Hap) Hap1 Hap2 => -> /= [<- ? Eargs] Hap'.
+    move=> /[dup] /Forall2_length E H''.
+    rewrite E in Hap' H0.
+    have E'args: length args = length args'' by rewrite Eargs length_map.
+    have ?: length rs = length args'' by lia.
+
+    have ?: compute_const (map inr (seq l k) ++ ts' ++ theta') l x'' = Some y.
+    { admit. }
+    apply: eval_const; try eassumption.
+    move=> j r' Hj.
+    apply: IH; [eassumption| |done].
+    admit. (* looks doable *)
+Admitted.
+
 Fixpoint get_apositions (gtr: game_tree) : list aposition :=
   match gtr with
   | node (ap, _) children => ap :: flat_map get_apositions children
@@ -1231,15 +1270,7 @@ Qed.
 Arguments in_combine_l {A B l l' x y}.
 Arguments in_split {A x l}.
 
-Lemma get_arena_subterm_extend_ap ts ap n x rs j:
-  get_arena_subterm ts ap = Some (tm n x rs) ->
-  get_arena_subterm ts (extend_ap ap [j]) = nth_error rs j.
-Proof.
-  move: ap => [i p] /=.
-  move: (nth_error ts i)=> [t|]; last done.
-  rewrite get_subtree_error_app=> -> /=.
-  by case: (nth_error rs j).
-Qed.
+
 
 Lemma combine_map {A B A' B' : Type} (f : A -> A') (g : B -> B') (l1 : list A) (l2 : list B) :
   combine (map f l1) (map g l2) = map (fun ab => (f (fst ab), g (snd ab))) (combine l1 l2).
@@ -1431,29 +1462,29 @@ Proof.
   move: ot=> [[]|]; by constructor.
 Qed.
 
-(* temporary experiment *)
-Lemma more_local_equivalence l k theta x ap'' theta'' theta' ts ts':
-lookup_var (map inr (seq l k) ++ theta) x =
-Some (ap'', lk theta'') ->
-Forall2
-(fun ap ap' =>
-locally_equivalent (get_arena_subterm ts ap)
-(get_arena_subterm ts' ap'))
-(get_apositions_lk (lk theta))
-(get_apositions_lk (lk theta')) ->
+(* is this helpful?
+   difficult to adjust whole game tree
+   maybe just adjust eval on the basis of the game tree?
+*)
+Inductive solved_arena (ap : aposition) (theta ts : lookup_contents) (l : nat):
+  rose_tree (arena * aposition * lookup_contents) -> Prop :=
+    | solved_arena_var arena k x args ap' theta' g:
+      get_arena_subterm arena ap = Some (tm (length ts + k) x args) -> (* get subarena at position ap *)
+      length ts * k = 0 -> (* there is no partial application *)
+      lookup_var (map inr (seq l k) ++ ts ++ theta) x = Some (ap', lk theta') -> (* get interpretation of x *)
+      (* check that at ap' there are "length args" many abstractions *)
+      solved_arena ap' theta' (map (add_lk ap (map inr (seq l k) ++ ts ++ theta)) (seq 0 (length args))) (k+l) g ->
+      (* (map (add_lk ap theta) (seq 0 (length args))) - uses arguments of x
+         to interpret variables abstracted in the interpretation of x *)
+      solved_arena ap theta ts l (node (arena, ap, map inr (seq l k) ++ ts ++ theta) [g])
 
-exists ap''' theta''',
-lookup_var (map inr (seq l k) ++ theta') x =
-Some (ap''', lk theta''') /\
-locally_equivalent (get_arena_subterm ts ap'') (get_arena_subterm ts' ap''') /\
-Forall2
-(fun ap ap' =>
-locally_equivalent (get_arena_subterm ts ap)
-(get_arena_subterm ts' ap'))
-(get_apositions_lk (lk theta''))
-(get_apositions_lk (lk theta''')).
-Proof.
-Admitted.
+    | solved_arena_const arena k x args gs:
+      get_arena_subterm arena ap = Some (tm (length ts + k) x args) ->
+      length ts * k = 0 -> (* there is no partial application *)
+      lookup_var (map inr (seq l k) ++ ts ++ theta) x = None ->
+      length gs = length args ->
+      (forall j g, nth_error gs j = Some g -> solved_arena (extend_ap ap [j]) (map inr (seq l k) ++ ts ++ theta) [] (k+l) g) ->
+      solved_arena ap theta ts l (node (arena, ap, map inr (seq l k) ++ ts ++ theta) gs).
 
 Lemma get_apositions_lk_app theta theta':
   get_apositions_lk (lk (theta ++ theta')) = 
