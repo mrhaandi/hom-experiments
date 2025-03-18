@@ -62,14 +62,14 @@ Fixpoint replace_subterm (t' : term) (p : position) (t : term) :=
 *)
 
 (* \x.x *)
-Definition ex1_0 := tm 1 0 [].
+Example ex1_0 := tm 1 0 [].
 (* a *)
-Definition ex1_1 := tm 0 0 [].
+Example ex1_1 := tm 0 0 [].
 (* \x.a *)
-Definition ex1_2 := tm 1 1 [].
+Example ex1_2 := tm 1 1 [].
 
 (* \fx.f(f x) *)
-Definition ex_two := tm 2 1 [tm 0 1 [tm 0 0 []]].
+Example ex_two := tm 2 1 [tm 0 1 [tm 0 0 []]].
 
 (* example Stirling
   constants:
@@ -78,39 +78,39 @@ Definition ex_two := tm 2 1 [tm 0 1 [tm 0 0 []]].
   a := 0
 *)
 
-Definition main_solution :=
+Example main_solution :=
   (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x1+0+2) (\.x1+0+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
   tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 3 []; tm 0 3 []]; tm 0 8 []]; tm 0 1 []]].
 
 
 
 (* This is also some solution. *)
-Definition main_solution' :=
+Example main_solution' :=
   (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x1+0+2) (\.x0+0+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
   tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 3 []; tm 0 2 []]; tm 0 8 []]; tm 0 1 []]].
 
 (* This is the solution from Stirling's paper? *)
-Definition main_solution'' :=
+Example main_solution'' :=
   (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x0+0+2) (\.x1+0+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
   tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 2 []; tm 0 3 []]; tm 0 8 []]; tm 0 1 []]].
 
 (* This is also some solution. *)
-Definition main_solution''' :=
+Example main_solution''' :=
   (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x0+0+2) (\.x1+0+2) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
   tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 2 []; tm 0 2 []]; tm 0 8 []]; tm 0 1 []]].
 
 
 (* This is the solution from Stirling's paper? *)
-Definition main_solution''_after_T3 :=
+Example main_solution''_after_T3 :=
   (* \x1 x0.x0 (\x1 x0.  x1+2  (\x1 x0.x1+2+2  (\x1 x0.x0+2+2 (\.x1+0+2+2+2 (\.x1+0+2+2) (\x1 x0.x1)) (\.x1+0+2+2+2 (\.x1+0+2+2)(\x1 x0.x0)) )  (\.x2+0+2+2+2))  (\.x1+0) ) *)
   tm 2 0 [tm 2 3 [tm 2 5 [tm 2 4 [tm 0 7 [tm 2 0 []; tm 0 5 []]; tm 0 7 [tm 2 1 []; tm 0 5 []]]; tm 0 8 []]; tm 0 1 []]].
 
 
 
-Definition arg1 :=
+Example arg1 :=
   tm 2 0 [tm 0 1 []; tm 0 1 []].
 
-Definition arg2 :=
+Example arg2 :=
   tm 1 0 [tm 2 4 [tm 0 0 []]; tm 0 0 [tm 2 1 []; tm 0 1 []]].
 
 Lemma test_get_depth1: (get_depth ex1_0) = 0.
@@ -196,8 +196,10 @@ Definition arena  := list term.
    a position in t. *)
 Definition aposition  := (nat * position)%type.
 
-Definition ex_arena0 :=  [ex1_0; ex1_1].
-Definition ex_arena1 :=  [main_solution; arg1; arg2].
+Example ex_arena0 :=  [ex1_0; ex1_1].
+Example ex_arena_main_solution :=  [main_solution; arg1; arg2].
+Example ex_arena_after_T3 :=  [main_solution''_after_T3; arg1; arg2].
+Example ex_arena_two := [ex_two; ex1_0; ex1_1].
 
 
 (* Gives the portion of the arena [TS] under the position [ap],
@@ -222,32 +224,32 @@ Definition get_arena_subterm_bound TS ap : option nat :=
   | None => None
   end.
 
-Lemma test1_subterm_ex_arena1: get_arena_subterm ex_arena1 (0, nil) = Some main_solution.
+Lemma test1_subterm_ex_arena1: get_arena_subterm ex_arena_main_solution (0, nil) = Some main_solution.
 Proof.
   now compute.
 Qed.
 
 (* The result is tm 0 8 [] *)
-Lemma test2_subterm_ex_arena1: get_arena_subterm ex_arena1 (0, [0;0;1]) = Some (tm 0 8 []).
+Lemma test2_subterm_ex_arena1: get_arena_subterm ex_arena_main_solution (0, [0;0;1]) = Some (tm 0 8 []).
 Proof.
   now compute.
 Qed.
 
 (* Since bound is 6, this tm 0 8 [] is actually tm 0 2 [], which corresponds to the constant b. *)
-Lemma test2_subterm_bound_ex_arena1: get_arena_subterm_bound ex_arena1 (0, [0;0;1]) = Some 6.
+Lemma test2_subterm_bound_ex_arena1: get_arena_subterm_bound ex_arena_main_solution (0, [0;0;1]) = Some 6.
 Proof.
   now compute.
 Qed.
 
 
 (* The result is tm 0 3 [] *)
-Lemma test3_subterm_ex_arena1: get_arena_subterm ex_arena1 (0, [0;0;0;1]) = Some (tm 0 3 []).
+Lemma test3_subterm_ex_arena1: get_arena_subterm ex_arena_main_solution (0, [0;0;0;1]) = Some (tm 0 3 []).
 Proof.
    now compute.
 Qed.
 
 (* Since bound is 8, tm 0 8 [] is actually an occurrence of a bound variable. *)
-Lemma test3_subterm_bound_ex_arena1: get_arena_subterm_bound ex_arena1 (0, [0;0;0;1]) = Some 8.
+Lemma test3_subterm_bound_ex_arena1: get_arena_subterm_bound ex_arena_main_solution (0, [0;0;0;1]) = Some 8.
 Proof.
    now compute.
 Qed.
@@ -396,7 +398,7 @@ Proof.
 Qed.
 
 (* \x.x (\y.x (\z.y)) *)
-Definition ex2_0 := tm 1 0 [tm 1 1 [tm 1 1 []]].
+Example ex2_0 := tm 1 0 [tm 1 1 [tm 1 1 []]].
 
 (* 
 level of y in \x.x (\y.x (\z.y)) is 2 because it is bound as successor of x
@@ -624,8 +626,124 @@ Inductive is_final : position -> game_tree -> Prop :=
   is_final tl t' ->
   is_final (hd::tl) (node v l).
 
-    
-  
+Fixpoint get_final_nodes (gtr:game_tree) : list (list nat) :=
+  match gtr with
+  | node v [] => [[]]
+  | node v (hd :: tl) =>
+      let fndss := map (fun el => get_final_nodes el) (hd::tl) in
+      flat_map (fun '(no, fnds) => map (fun el => no :: el) fnds)
+        (combine (seq 0 (length fndss)) fndss)
+  end.
+
+
+Lemma in_combine_seq:
+  forall A l (n:nat) (el:A) k,
+    In (n, el) (combine (seq k (length l)) l) -> n >= k /\ nth_error l (n-k) = Some el.
+Proof.
+  induction l.
+  * cbn.
+    tauto.
+  * intros.
+    simpl in H.
+    destruct H.
+    ** inversion H.
+       subst n el.
+       replace (k-k) with 0 by lia.
+       split; [lia|now simpl].
+    ** apply IHl in H.
+       decompose [and] H;clear H.
+       split;try lia.
+       replace (n-k) with (S (n - S k)) by lia.
+       now simpl.
+Qed.       
+
+
+Lemma get_final_nodes_is_final:
+  forall gtr,
+    Forall (fun nd => is_final nd gtr) (get_final_nodes gtr).
+Proof.
+  induction gtr using rose_tree_ind'.
+  unfold get_final_nodes.
+  destruct l.
+  * constructor; constructor.
+  * inversion H.
+    subst x l0.
+    fold get_final_nodes.
+    apply Forall_flat_map.
+    rewrite length_map.
+    rewrite map_cons.
+
+    replace (@length game_tree (r :: l)) with (S (length l)) by now simpl.
+    rewrite <- cons_seq.
+    simpl.
+    constructor.
+    ** apply Forall_forall.
+       intros.
+       apply in_map_iff in H0.
+       destruct H0.
+       decompose [and] H0;clear H0.
+       subst x.
+       eapply Forall_forall in H2;eauto 1.
+       econstructor 2;simpl;auto.
+    ** apply Forall_forall.
+       intros.
+       destruct x.
+       assert (length l = length (map (fun el : game_tree => get_final_nodes el) l)) by now rewrite length_map.
+       rewrite H1 in H0.
+       apply in_combine_seq in H0.
+       decompose [and] H0;clear H0.
+       apply Forall_forall.
+       intros.
+       apply in_map_iff in H0.
+       destruct H0.
+       decompose [and] H0;clear H0.
+       subst x.
+       generalize H5;intros.
+       rewrite nth_error_map in H5.
+       destruct (nth_error l (n-1)) eqn: NElnm;
+         try (rewrite NElnm in H5;simpl in H5;congruence).
+       generalize NElnm;intros.
+       assert (exists n, nth_error l n = Some r0) by now exists (n-1).
+       apply In_iff_nth_error in H6.
+       eapply Forall_forall in H3;eauto 1.
+       assert (nth_error (r :: l) n = Some r0). {
+         replace n with (S (n-1)) by lia.
+         now simpl.
+       }
+       econstructor 2; eauto 1.
+       assert (In x0 (get_final_nodes r0)). {
+         destruct (nth_error l (n - 1)) eqn: nel; try congruence.
+         rewrite nel in H5.
+         simpl in H5.
+         inversion H5.
+         inversion NElnm.
+         now subst r1 l0.
+       }
+       eapply Forall_forall in H3; eauto 1.
+Qed.
+
+Lemma is_final_in_final_nodes:
+  forall gtr nd,
+    is_final nd gtr ->
+    In nd (get_final_nodes gtr).
+Proof.
+  induction gtr using rose_tree_ind'.
+  intros.
+  destruct nd.
+  * inversion H0.
+    subst v l.
+    cbv.
+    now left.
+  * inversion H0.
+    subst hd tl v0 l0.
+    simpl.
+    destruct l.
+    ** now rewrite nth_error_nil in H4.
+    ** inversion H0. 
+       subst hd tl v0 l0.
+       admit.
+Admitted.
+
 (* parent_binder_var: in the game tree TS the game position pi1 is the parent of pi2
    when
 
@@ -736,6 +854,54 @@ Fixpoint construct_game_tree (TS:arena) (depth : nat) (ap : aposition) (theta : 
     end
   end.
 
+(* normal form of
+   construct_game_tree [ex1_0; ex1_1] 3 (0,[]) (map (fun j => ((S j, []), lk [])) (rev (seq 0 1))) *)
+Example game_tree_ex1_0_1 : game_tree := tm (0, []) [(1, [], lk [])] [tm (1, []) [] []].
+
+Example game_tree_ex_two :=
+  construct_game_tree ex_arena_two 6 (0, []) (map (fun j => ((S j, []), lk [])) (rev (seq 0 2))).
+
+Example game_tree_ex_after_T3 :=
+  construct_game_tree [main_solution''_after_T3; arg1; arg2] 6 (0, []) (map (fun j => ((S j, []), lk [])) (rev (seq 0 2))).
+
+Compute get_final_nodes game_tree_ex1_0_1.
+Compute get_final_nodes game_tree_ex_two.
+Compute get_final_nodes game_tree_ex_after_T3.
+
+Compute game_tree_ex_after_T3.
+
+Fixpoint sequence {A B} (f : A -> option B) (l : list A) : option (list B) :=
+  match l with
+  | [] => Some []
+  | hd :: tl =>
+    match f hd with
+    | Some b => match sequence f tl with Some bs => Some (b :: bs) | None => None end
+    | None => None
+    end
+  end.
+
+
+(* compute the unique rhs from a given game tree *)
+Fixpoint get_rhs (TS:arena) (gtr : rose_tree (aposition * lookup_contents)) : option (rose_tree nat) :=
+  match gtr with
+  | node (ap, theta) gs =>
+    match get_arena_subterm TS ap with
+    | Some (tm n x ts) =>
+      match (S x) - length theta with
+      | 0 => (* if x is a variable, continue with the subtree - case "solved_var" *)
+        match gs with
+        | [g] => get_rhs TS g
+        | _ => None
+        end
+      | S j => (* if x is a constant, continue with the subtrees - case "solved_const" *)
+        match sequence (get_rhs TS) gs with
+        | Some rs => Some (node j rs)
+        | None => None
+        end
+      end
+    | None => None
+    end
+  end.
 
 
 
@@ -1179,15 +1345,15 @@ Inductive only_internal_vars_to (x:nat) : term -> position -> Prop :=
   only_internal_vars_to x (tm n y ts) (hd :: tl).
 
 
-Definition term_interval :=
+Example ex_term_interval :=
   tm 2 0 [tm 2 1 [tm 2 3 [tm 2 7 []]]].
 
 
-Definition term_interval1 :=
+Example ex_term_interval1 :=
   tm 2 0 [tm 2 1 [tm 2 3 [tm 2 5 [tm 0 7 []] ]]].
 
 Lemma test_only_internal_vars_to:
-  only_internal_vars_to 2 term_interval [0].
+  only_internal_vars_to 2 ex_term_interval [0].
 Proof.
   econstructor;[cbv;done|lia|cbv].
   constructor.
@@ -1195,7 +1361,7 @@ Qed.
 
 
 Lemma test_only_internal_vars_to1:
-  only_internal_vars_to 2 term_interval1 [0].
+  only_internal_vars_to 2 ex_term_interval1 [0].
 Proof.
   econstructor;[cbv;done|lia|cbv].
   constructor.
@@ -1211,18 +1377,18 @@ Inductive only_in_interval (t:term) : interval -> Prop :=
   only_in_interval t pi[from, btw :: to].
 
 Lemma test_only_in_interval:
-  only_in_interval term_interval pi[[],0 :: [0]].
+  only_in_interval ex_term_interval pi[[],0 :: [0]].
 Proof.
-  unfold term_interval.
+  unfold ex_term_interval.
   repeat (econstructor;cbn;[done|done|]).
   econstructor.
 Qed.
 
 
 Lemma test_only_in_interval1:
-  only_in_interval term_interval1 pi[[],0 :: [0;0]].
+  only_in_interval ex_term_interval1 pi[[],0 :: [0;0]].
 Proof.
-  unfold term_interval.
+  unfold ex_term_interval.
   repeat (econstructor;cbn;[done|done|]).
   econstructor.
 Qed.
@@ -1278,6 +1444,11 @@ Proof.
   repeat econstructor;lia.
 Qed.
 
+Lemma test3_end_path:
+  end_path ex_two pi[ [], [0]].
+Proof.
+  repeat econstructor;lia.
+Qed.
 
 
 (* path that contributes TODO
@@ -1288,50 +1459,133 @@ Inductive non_contributes : arena -> game_tree -> interval -> Prop :=
 | contributes_helper_case a ap1 theta1 ap2 theta2 gtr gtrs1 gtrs2 from to r:
   get_subtree gtr from = (node (ap1, theta1) gtrs1) ->
   get_subtree gtr to = (node (ap2, theta2) gtrs2) ->
+  (* TODO: change to all nodes in gtr refer only to true variables *)
   solved a ap1 theta1 (node (ap1, theta1) gtrs1) r -> 
   solved a ap2 theta2 (node (ap2, theta2) gtrs2) r ->
   non_contributes a gtr pi[from, to].
 
-Lemma test_non_contributes:
-  forall gtr,
-    gtr =
-      (construct_game_tree [ex_two; ex1_0; ex1_1] 6 (0, []) (map (fun j => ((S j, []), lk [])) (rev (seq 0 2)))) ->
-  non_contributes [main_solution''; arg1; arg2] gtr pi[[0], [0]].
+Lemma test1_non_contributes:
+  non_contributes ex_arena_two game_tree_ex_two pi[[0], [0]].
 Proof.
-  move=> gtr Gtris.
-  cbv in Gtris.
-  subst gtr.
+  set (rhs := get_rhs ex_arena_two game_tree_ex_two).
+  simpl in rhs.
+  destruct rhs eqn: rhs'; try (subst rhs;congruence).
+  subst rhs.
+  inversion rhs'.
   econstructor;cbv;eauto 1.
-  * apply: solved_var;[cbv;split|cbv;split|cbv].
-    admit.
-  * apply: solved_var;[cbv;split|cbv;split|cbv].
-    admit.
-Admitted.
+  * instantiate (1 := r).
+    rewrite <- H0.
+    do 4 (apply: solved_var;[cbv;split|cbv;split|cbv]).
+    apply: solved_const;simpl;auto;simpl;auto;[cbv;split|idtac].
+    tauto.
+  * rewrite <- H0.
+    do 4 (apply: solved_var;[cbv;split|cbv;split|cbv]).
+    apply: solved_const;simpl;auto;simpl;auto;[cbv;split|idtac].
+    tauto.
+Qed.
 
 
-    (* get all prefixes of the given list *)
+Lemma test2_non_contributes:
+  non_contributes ex_arena_two game_tree_ex_two pi[ [], [0; 0]].
+Proof.
+  set (rhs := get_rhs ex_arena_two game_tree_ex_two).
+  simpl in rhs.
+  destruct rhs eqn: rhs'; try (subst rhs;congruence).
+  subst rhs.
+  inversion rhs'.
+  econstructor;cbv;eauto 1.
+  * instantiate (1 := r).
+    rewrite <- H0.
+    do 5 (apply: solved_var;[cbv;split|cbv;split|cbv]).
+    apply: solved_const;simpl;auto;simpl;auto;[cbv;split|idtac].
+    tauto.
+  * rewrite <- H0.
+    do 3 (apply: solved_var;[cbv;split|cbv;split|cbv]).
+    apply: solved_const;simpl;auto;simpl;auto;[cbv;split|idtac].
+    tauto.
+Qed.
+
+
+(* get all prefixes of the given list *)
 Fixpoint list_prefixes {A : Type} (l : list A) : list (list A) :=
   match l with
   | [] => [[]]
   | a :: l' => [] :: map (cons a) (list_prefixes l')
   end.
 
-Compute (list_prefixes [0;1;2]).
+Lemma test_list_prefixes:
+  list_prefixes [0;1] = [[];[0];[0;1]].
+Proof.
+  now compute.
+Qed.
 
-(* Get from the interval pi[startg, endg] position in the game tree gtr
-   with the arena position (0, [pos]) *)
+
+(* Get from the interval pi[startg, endg] in the game tree gtr
+   a position such that the node at the position in gtr has the arena position
+   (0, [pos]) *)
 Definition find_position_in_game_tree_int (gtr:game_tree) startg endg pos : option position :=
   find (fun pref =>
           let 'node ((tno, p), theta) chlds :=
             get_subtree gtr (startg ++ pref) in
-          (tno =? 0) &&
+          (tno =? 0) && (length p =? length pos) &&
             (forallb (fun '(x, y) => x =? y) (combine p pos)))%bool
     (list_prefixes endg).
 
 
 
+
+Lemma test1_find_position_in_game_tree_int:
+  find_position_in_game_tree_int game_tree_ex1_0_1 [] [0] [] = Some [].
+Proof.
+  now compute.
+Qed.
+
+Lemma test2_find_position_in_game_tree_int:
+  find_position_in_game_tree_int game_tree_ex1_0_1 [] [] [] = Some [].
+Proof.
+  now compute.
+Qed.
+
+Lemma test3_find_position_in_game_tree_int:
+  find_position_in_game_tree_int game_tree_ex1_0_1 [] [] [0] = None.
+Proof.
+  now compute.
+Qed.
+
+(*
+game_tree_ex_two =
+      tm (0, []) [(2, [], lk []); (1, [], lk [])]
+       [tm (1, []) [(0, [0], lk [(2, [], lk []); (1, [], lk [])])]
+        [tm (0, [0]) [(2, [], lk []); (1, [], lk [])]
+         [tm (1, []) [(0, [0; 0], lk [(2, [], lk []); (1, [], lk [])])]
+          [tm (0, [0; 0]) [(2, [], lk []); (1, [], lk [])] [tm (2, []) [] []]]]]]
+
+*)
+
+Lemma test4_find_position_in_game_tree_int:
+  find_position_in_game_tree_int game_tree_ex_two [] [0;0;0] [0] = Some [0;0].
+Proof.
+  now compute.
+Qed.
+
+Lemma test5_find_position_in_game_tree_int:
+  find_position_in_game_tree_int game_tree_ex_two [] [0;0;0] [0;0] = None.
+Proof.
+  now compute.
+Qed.
+
+Lemma test6_find_position_in_game_tree_int:
+  find_position_in_game_tree_int game_tree_ex_two [] [0;0;0;0] [0;0] = Some [0;0;0;0].
+Proof.
+  now compute.
+Qed.
+
+
 (* redundant path in interval
 
+- G(t, E) is gtr
+- γ is pi[from_t, to_t]
+- π[i, k] of π ∈ G(t, E) is pi[from_g, to_g]
 TODO
 
 - we assume that check that γ is an end_path is done outside this predicate
@@ -1353,7 +1607,35 @@ Inductive redundant_path_interval (a : arena) (gtr : game_tree) : interval -> in
   find_position_in_game_tree_int gtr pos to_g (from_t ++ to_t) = Some posend -> (* (a) *)
   non_contributes a gtr pi[pos, posend] -> (* (b) *)
   redundant_path_interval a gtr pi[from_t, to_t] pi[posend, to_g] -> (* (c) *)
+  redundant_path_interval a gtr pi[from_t, to_t] pi[from_g, to_g]
+| redundant_no_first_case  from_t to_t from_g to_g:
+  find_position_in_game_tree_int gtr from_g to_g from_t = None -> (* (0) *)
+  redundant_path_interval a gtr pi[from_t, to_t] pi[from_g, to_g]
+| redundant_no_second_case  from_t to_t from_g to_g pos:
+  find_position_in_game_tree_int gtr from_g to_g from_t = Some pos -> (* (0) *)
+  find_position_in_game_tree_int gtr pos to_g (from_t ++ to_t) = None -> (* (a) *)
   redundant_path_interval a gtr pi[from_t, to_t] pi[from_g, to_g].
+
+
+(*
+ex_two = tm 2 1 [tm 0 1 [tm 0 0 []]]
+
+game_tree_ex_two =
+      tm (0, []) [(2, [], lk []); (1, [], lk [])]
+       [tm (1, []) [(0, [0], lk [(2, [], lk []); (1, [], lk [])])]
+        [tm (0, [0]) [(2, [], lk []); (1, [], lk [])]
+         [tm (1, []) [(0, [0; 0], lk [(2, [], lk []); (1, [], lk [])])]
+          [tm (0, [0; 0]) [(2, [], lk []); (1, [], lk [])] [tm (2, []) [] []]]]]]
+
+*)
+
+Lemma test1_redundant_path_interval:
+  redundant_path_interval ex_arena_two game_tree_ex_two pi[[], [0]] pi[[], [0;0;0;0]].
+Proof.
+  econstructor;cbn; eauto 1;simpl;eauto 1.
+  * apply test2_non_contributes.
+  * econstructor 2;cbn; eauto 1;simpl;eauto 1.
+Qed.
 
 (*
 2. γ is redundant in the game G(t, E) if γ is redundant in every play π[1, l] (where π_l is
@@ -1365,6 +1647,23 @@ Inductive redundant_path (a : arena) (gtr : game_tree) (t:term)  : interval -> P
   (forall fp, is_final fp gtr -> 
       redundant_path_interval a gtr pi[from_t, to_t] pi[[], fp]) ->
   redundant_path a gtr t pi[from_t, to_t].
+
+Lemma test1_redundant_path:
+  redundant_path ex_arena_two game_tree_ex_two ex_two pi[[], [0]].
+Proof.
+  econstructor;cbn; eauto 1;simpl;eauto 1.
+  * apply test3_end_path.
+  * intros fp IF.
+    apply is_final_in_final_nodes in IF;auto.
+    cbv in IF.
+    destruct IF;try tauto.
+    subst fp.
+    econstructor;cbn; eauto 1;simpl;eauto 1.
+    ** apply test2_non_contributes.
+    ** econstructor 2;cbn; eauto 1;simpl;eauto 1.
+    ** apply ex_arena_two.
+Qed.
+
                  
 (* transformation T2
 
@@ -1400,10 +1699,10 @@ Fixpoint trans_T2 (t:term) (intv : interval) (b:nat) : term :=
 Notation "'pi[' a ',' b ']_' TS " := (intvl TS a b) (at level 20).
 
 (* a as applicative term *)
-Definition ex1_rhs := node 0 [].
+Example ex1_rhs := node 0 [].
 
 (* g a *)
-Definition result :=
+Example ex_result :=
   node 1 [node 0 []].
 
 
@@ -1424,9 +1723,9 @@ Qed.
 
 
 
-Lemma solved_Stirling : exists g, solved_start g main_solution [arg1; arg2] result.
+Lemma solved_Stirling : exists g, solved_start g main_solution [arg1; arg2] ex_result.
 Proof.
-  unfold result.
+  unfold ex_result.
   eexists.
   cbn. split; [reflexivity|].
   apply: solved_var; [reflexivity..|].
@@ -1462,9 +1761,9 @@ Qed.
 
 
 
-Lemma solved_Stirling' : exists g, solved_start g main_solution' [arg1; arg2] result.
+Lemma solved_Stirling' : exists g, solved_start g main_solution' [arg1; arg2] ex_result.
 Proof.
-  unfold result.
+  unfold ex_result.
   eexists.
   cbn. split; [reflexivity|].
   apply: solved_var; [reflexivity..|].
@@ -1499,9 +1798,9 @@ Proof.
 Qed.
 
 
-Lemma solved_Stirling'' : exists g, solved_start g main_solution'' [arg1; arg2] result.
+Lemma solved_Stirling'' : exists g, solved_start g main_solution'' [arg1; arg2] ex_result.
 Proof.
-  unfold result.
+  unfold ex_result.
   eexists.
   cbn. split; [reflexivity|].
   apply: solved_var; [reflexivity..|].
@@ -1537,9 +1836,9 @@ Qed.
 
 
 
-Lemma solved_Stirling''' : exists g, solved_start g main_solution''' [arg1; arg2] result.
+Lemma solved_Stirling''' : exists g, solved_start g main_solution''' [arg1; arg2] ex_result.
 Proof.
-  unfold result.
+  unfold ex_result.
   eexists.
   cbn. split; [reflexivity|].
   apply: solved_var; [reflexivity..|].
@@ -1574,9 +1873,9 @@ Proof.
 Qed.
 
 
-Lemma solved_Stirling''_after_T3 : exists g, solved_start g main_solution''_after_T3 [arg1; arg2] result.
+Lemma solved_Stirling''_after_T3 : exists g, solved_start g main_solution''_after_T3 [arg1; arg2] ex_result.
 Proof.
-  unfold result.
+  unfold ex_result.
   eexists.
   cbn. split; [reflexivity|].
   apply: solved_var; [reflexivity..|].
