@@ -7,7 +7,6 @@ Require Import Nat Lia.
 Require Import HOM.RoseTree.
 Import HOM.RoseTree.
 
-
 Notation term := (rose_tree (nat * nat)).
 
 (* increment all free variables by k *)
@@ -19,11 +18,7 @@ Definition replace_term (t' : term) (p : position) (t : term) : term :=
   let bound := list_sum (map fst (get_branch t p)) in
   replace_subtree (shift_term bound t') p t.
 
-
-
-
 Definition get_depth (t : term) := get_tree_depth t.
-
 
 (* compute the subterm of [t] at position [p] *)
 Definition get_subterm (t : term) (p : position) : term :=
@@ -172,7 +167,6 @@ Definition aposition  := (nat * position)%type.
 Definition ex_arena0 :=  [ex1_0; ex1_1].
 Definition ex_arena1 :=  [main_solution; arg1; arg2].
 
-
 (* Gives the portion of the arena [TS] under the position [ap],
    provided that [ap] is an address in the arena. *)
 Definition get_arena_subterm TS ap :=
@@ -181,8 +175,6 @@ Definition get_arena_subterm TS ap :=
       | Some t => get_subterm_error t p
       | None => None
       end.
-
-
 
 (* as above, but gives the limit for variables that were bound
    above the returned term
@@ -434,8 +426,6 @@ Inductive level : arena -> aposition -> nat -> Prop :=
 *)
 
 
-
-
 (* Extend the arena position ap at its end with extension. *)
 Definition extend_ap (ap: aposition) (extension: position) :=
    (fst ap, snd ap ++ extension).
@@ -579,12 +569,11 @@ Definition lookup_var (theta : lookup_contents) (x : nat) : option (aposition * 
   end.
 
 (*
-  "solved ap theta n l gt" means
+  "solved ap theta l ots gt" means
   - at position ap in the arena TS
   - with the lookup table theta
-  - with n many abstractions
-    if there are n + k many abstractions at ap, then then theta is extended by k many free variables
   - l is the total number of prior abstractions 
+  - with optional arguments ots
   the game represented by gt is well-formed
 *)
 
@@ -617,27 +606,30 @@ Definition compute_const (theta : lookup_contents) (l x : nat) : option nat :=
   end.
 
 (* TS[0] is solution TS[1..] are arguments *)
-Fixpoint construct_game_tree (depth : nat) (ap : aposition) (theta ts : lookup_contents) (l : nat) : game_tree :=
+Fixpoint construct_game_tree (depth : nat) (ap : aposition) (theta : lookup_contents) (l : nat) (ots : option lookup_contents): game_tree :=
   match depth with
   | 0 => node (ap, theta) []
   | S depth =>
     match get_arena_subterm TS ap with
     | Some (tm m x args) =>
-      let k := m - length ts in
-      match lookup_var (map inr (seq l k) ++ ts ++ theta) x with
-      | Some (ap', lk theta') => (* bound variable case, see solved_var *)
-          node (ap, map inr (seq l k) ++ ts ++ theta)
-            [construct_game_tree depth ap' theta' (map (add_lk ap (map inr (seq l k) ++ ts ++ theta)) (seq 0 (length args))) (k+l)]
-      | None => (* constant case, see solved_const *)
-          node (ap, map inr (seq l k) ++ ts ++ theta)
-            (map (fun j => construct_game_tree depth (extend_ap ap [j]) (map inr (seq l k) ++ ts ++ theta) [] (k+l)) (seq 0 (length args)))
+      match ots with
+      | Some ts =>
+        match lookup_var (ts ++ theta) x with
+        | Some (ap', lk theta') => (* bound variable case, see solved_var *)
+            node (ap, ts ++ theta)
+              [construct_game_tree depth ap' theta' l (Some (map (add_lk ap (ts ++ theta)) (seq 0 (length args))))]
+        | None => (* constant case, see solved_const *)
+            node (ap, ts ++ theta)
+              (map (fun j => construct_game_tree depth (extend_ap ap [j]) (ts ++ theta) l None) (seq 0 (length args)))
+        end
+      | None => construct_game_tree depth ap theta (m+l) (Some (map inr (seq l m)))
       end
     | None => node (ap, theta) []
     end
   end.
 
-(* "is_rhs n gt r" means that the term "r" is the unique rhs corresponding to the game tree "gt"
-   the argument "n" specifies whether "r" has abstractions *)
+(* "is_rhs l gt on r" means that the term "r" is the unique rhs corresponding to the game tree "gt"
+   the argument "on" specifies whether "r" has abstractions *)
 
 Inductive is_rhs (l : nat): rose_tree (aposition * lookup_contents) -> option nat -> term -> Prop :=
   | is_rhs_abs ap theta gs k x args y rs:
@@ -706,35 +698,15 @@ Proof.
 Qed.
 
 (*
-  eval ap theta n l r means that
+  eval ap theta l ots r means that
   the game starting at position ap with lookup table theta,
-  n many abstractions and l many prior abstractions
+  l many prior abstractions
+  with ots arguments
   evaluates to the term r
 
   eval does not include the game tree
 *)
-(*
-Inductive eval (ap : aposition) (theta : lookup_contents) (n l : nat):
-  term -> Prop :=
-    | eval_var k x args ap' theta' y rs:
-      get_arena_subterm TS ap = Some (tm (n + k) x args) -> (* get subarena at position ap *)
-      n * k = 0 -> (* there is no partial application *)
-      lookup_var (map inr (seq l k) ++ theta) x = Some (ap', lk theta') -> (* get interpretation of x *)
-      eval ap' ((map (add_lk ap (map inr (seq l k) ++ theta)) (seq 0 (length args))) ++ theta') (length args) (k+l) (tm 0 y rs) ->
-      eval ap theta n l (tm k y rs)
 
-    | eval_const k x args y rs:
-      get_arena_subterm TS ap = Some (tm (n + k) x args) ->
-      n * k = 0 -> (* there is no partial application *)
-      compute_const (map inr (seq l k) ++ theta) l x = Some y ->
-      length rs = length args ->
-      (forall j r, nth_error rs j = Some r -> eval (extend_ap ap [j]) (map inr (seq l k) ++ theta) 0 (k+l) r) ->
-      eval ap theta n l (tm k y rs).
-*)
-
-(* try out alternative eval 
-   eval_abs keeps track of fresh abstractions
-*)
 Inductive eval (ap : aposition) (theta : lookup_contents) (l : nat):
   option lookup_contents -> term -> Prop :=
     | eval_abs k x args y rs:
@@ -755,32 +727,6 @@ Inductive eval (ap : aposition) (theta : lookup_contents) (l : nat):
       (forall j r, nth_error rs j = Some r -> eval (extend_ap ap [j]) (ts ++ theta) l None r) ->
       eval ap theta l (Some ts) (tm 0 y rs).
 
-(*
-Problem: tm n x []
-theta[x] ~ tm 1 y []
-~> number of arguments mismatch, one abstraction is added
-
-(length ts) * k = 0 not enough to check that the number of arguments is correct
-*)
-(*
-Inductive eval (ap : aposition) (theta : lookup_contents) (ts : lookup_contents) (l : nat):
-  term -> Prop :=
-    | eval_var k x args ap' theta' y rs:
-      get_arena_subterm TS ap = Some (tm (length ts + k) x args) -> (* get subarena at position ap *)
-      (length ts) * k = 0 -> (* there is no partial application *)
-      lookup_var (map inr (seq l k) ++ ts ++ theta) x = Some (ap', lk theta') -> (* get interpretation of x *)
-      eval ap' theta' ((map (add_lk ap (map inr (seq l k) ++ ts ++ theta)) (seq 0 (length args)))) (k+l) (tm 0 y rs) ->
-      eval ap theta ts l (tm k y rs)
-
-    | eval_const k x args y rs:
-      get_arena_subterm TS ap = Some (tm (length ts + k) x args) ->
-      (length ts) * k = 0 -> (* there is no partial application *)
-      compute_const (map inr (seq l k) ++ ts ++ theta) l x = Some y ->
-      length rs = length args ->
-      (forall j r, nth_error rs j = Some r -> eval (extend_ap ap [j]) (map inr (seq l k) ++ ts ++ theta) [] (k+l) r) ->
-      eval ap theta ts l (tm k y rs).
-*)
-
 (* experiment:
      shift eval to subterms, maybe less bookkeeping? *)
 Inductive eval' (x : nat) (theta ts : lookup_contents) (l : nat):
@@ -799,14 +745,6 @@ Inductive eval' (x : nat) (theta ts : lookup_contents) (l : nat):
         get_arena_subterm TS ap' = Some (tm k z args) ->
         eval' z theta' (map inr (seq l k)) (k+l) (tm 0 z' args')) ->
       eval' x theta ts l (tm 0 y rs).
-
-Lemma lookup_var_compute_const l theta x:
-  lookup_var theta x <> None <-> compute_const theta l x = None.
-Proof.
-  rewrite /lookup_var /compute_const.
-  case: (nth_error theta x); last done.
-  by case.
-Qed.
 
 Lemma lookup_var_Some_compute_const_None l theta x v:
   lookup_var theta x = Some v ->
@@ -1034,35 +972,35 @@ Definition solved_start g t (ts : list term) :=
 Definition construct_game_tree_start (depth : nat) t (ts : list term) :=
   match t with
   | tm n x us =>
-    construct_game_tree (t :: ts) depth (0, []) [] (map (fun j => inl ((S j, []), lk [])) (rev (seq 0 (length ts)))) 0
+    construct_game_tree (t :: ts) depth (0, []) [] 0 (Some (map (fun j => inl ((S j, []), lk [])) (rev (seq 0 (length ts)))))
   end.
 
 Definition solved_start_full g t (ts : list term) (r : term) :=
   solved_start g t ts /\
   is_rhs (t :: ts) 0 g (Some (length ts)) r.
 
-(*
 (* if the game is solved, its game tree is unique and is constructed by construct_game_tree_start *)
 Lemma construct_game_tree_start_spec g t ts : solved_start g t ts -> exists depth0, forall depth, depth0 <= depth -> g = construct_game_tree_start depth t ts.
 Proof.
   rewrite /solved_start /construct_game_tree_start.
   move: t => [] [? x] args /= [<-].
-  move: (map _ _) => t's.
+  move: (Some (map _ _)) => ot's.
   move: (_ :: _) => TS.
   move: (0, []) => ap.
   move: [] => theta.
   move: (0) => l.
   elim.
-  - move=> > Hap ? Hx _ [depth0] H.
-    exists (S depth0).
-    move=> [|depth] ?; first by lia.
-    by rewrite /= Hap Nat.add_comm Nat.add_sub Hx (H depth); [lia|].
-  - move=> {}ap {}theta {}ts {}l k {}x {}args gs Hap ? Hx Hlen Hgs H'gs.
-    suff: exists depth0, forall depth, depth0 <= depth -> gs = (map (fun j => construct_game_tree TS depth (extend_ap ap [j]) (map inr (seq l k) ++ ts ++ theta) [] (k + l)) (seq 0 (length args))).
+  - move=> > Hap ? [depth0] IH.
+    exists (S depth0) => - [|?] ?; first lia.
+    rewrite /= Hap. apply: IH. lia.
+  - move=> > Hap Hx _ [depth0] IH.
+    exists (S depth0)=> - [|depth] ?; first lia.
+    by rewrite /= Hap Hx (IH depth); first lia.
+  - move=> {}ap {}theta {}l t's {}x {}args gs Hap Hx Hlen Hgs H'gs.
+    suff: exists depth0, forall depth, depth0 <= depth -> gs = (map (fun j => construct_game_tree TS depth (extend_ap ap [j]) (t's ++ theta) l None) (seq 0 (length args))).
     { move=> [depth0] H. exists (S depth0).
       move=> [|depth] ?; first by lia.
-      rewrite /= Hap (H depth); first by lia.
-      by rewrite (Nat.add_comm _ k) Nat.add_sub Hx. }
+      by rewrite /= Hap Hx (H depth); first lia. }
     move: H'gs. rewrite -Hlen.
     elim /rev_ind: gs {Hgs Hlen}.
     + move=> _. by exists 0.
@@ -1081,7 +1019,7 @@ Proof.
       * apply: Hdepth1. lia.
       * congr cons. apply: Hdepth2. lia.
 Qed.
-*)
+
 Inductive same_variable_at_start (ar : arena) (gtr : game_tree) : interval -> interval -> Prop :=
 | svar_case j jend m mend ap1 tht1 chldrn1 n1 x1 ts1 b1 ap2 tht2 chldrn2 n2 x2 ts2 b2:
   has_position gtr j = true ->
@@ -1217,34 +1155,6 @@ Fixpoint ren_term (f: nat -> nat) (t: term) : term :=
 Definition all {X: Type} (P: X -> Prop) (l: list X) : Prop :=
   fold_right (fun x p => and (P x) p) True l.
 
-Fixpoint map2 {A B C: Type} (f: A -> B -> C) (l1: list A) (l2: list B) : list C :=
-  match l1 with
-  | [] => []
-  | x :: xs => match l2 with
-               | [] => []
-               | y :: ys => f x y :: map2 f xs ys
-               end
-  end.
-
-(*
-  structurally compare two lookup_contents
-  P should hold on all ap, lookup pairs
-  Q should should on all n pairs  
-*)
-Inductive Forall2_lookup_contents
-  (P: (aposition * lookup) -> (aposition * lookup) -> Prop)
-  (Q: nat -> nat -> Prop) : lookup_contents -> lookup_contents -> Prop :=
-  | Forall2_lookup_contents_nil : Forall2_lookup_contents P Q [] []
-  | Forall2_lookup_contents_inl_cons ap1 ap2 theta1 theta2 theta theta':
-    P (ap1, lk theta1) (ap2, lk theta2) ->
-    Forall2_lookup_contents P Q theta1 theta2 ->
-    Forall2_lookup_contents P Q theta theta' ->
-    Forall2_lookup_contents P Q (inl (ap1, lk theta1) :: theta) (inl (ap2, lk theta2) :: theta')
-  | Forall2_lookup_contents_inr_cons n1 n2 theta theta':
-    Q n1 n2 ->
-    Forall2_lookup_contents P Q theta theta' ->
-    Forall2_lookup_contents P Q (inr n1 :: theta) (inr n2 :: theta').
-
 (* assert that P holds on all free variables in t *)
 Fixpoint allfv (P: nat -> Prop) (t: term) : Prop :=
   match t with
@@ -1263,17 +1173,6 @@ Inductive up_to_renaming (arena1 arena2: arena) :
     up_to_renaming arena1 arena2 (inl (ap1, lk theta1)) (inl (ap2, lk theta2))
   | up_to_renaming_inr n:
     up_to_renaming arena1 arena2 (inr n) (inr n).
-(*
-Inductive up_to_renaming (arena1 arena2: arena) :
-  (aposition * lookup) -> (aposition * lookup) -> Prop :=
-  | up_to_renaming_inl ap1 ap2 (theta1 theta2 : lookup_contents) f t:
-    get_arena_subterm arena1 ap1 = Some (ren_term f t) ->
-    get_arena_subterm arena2 ap2 = Some t ->
-    (forall x ap1' theta1',  nth_error theta1 (f x) = Some (inl (ap1', lk theta1')) ->
-      exists ap2' theta2', nth_error theta2 x = Some (inl (ap2', lk theta2')) /\
-up_to_renaming arena1 arena2 (ap1', lk theta1') (ap2', lk theta2')) ->
-    up_to_renaming arena1 arena2 (ap1, lk theta1) (ap2, lk theta2).
-*)
 
 Lemma get_arena_subterm_extend_ap ts ap n x rs j:
   get_arena_subterm ts ap = Some (tm n x rs) ->
@@ -1286,32 +1185,8 @@ Proof.
 Qed.
 
 (*
-solved ... gtr
-is_rhs gtr r
-
-p .. p++q end_path
-(p .. p++q) is redundant in gtr
-
-locally remove the last occurrence of (p .. p++q)
-resulting eval r
-rename arena to have something coherent
-*)
-
-(*
-p .. p++[0;0]
-\x1 x2. x1 t
-
-(0, p), (1, p'), (0, p ++ [0]), (2, ..)  (0,p) .. (0, p+[0]) .... (2, ..) (0, p [0;0])
-
- (0,p) .. (0, p+[0]) not end path!
-
-in general: a prefix of an end path is not necessarily end
-  (because below it there are variables pointing to the path)
-*)
-
-(*
   two arenas evaluate similarly if they are quivalent up to renaming of free variables
-*)
+
 Lemma eval_shift arena arena' ap ap' theta theta' ts ts' l r:
   eval arena ap theta ts l r ->
   up_to_renaming arena arena' (inl (ap, lk theta)) (inl (ap', lk theta')) ->
@@ -1425,38 +1300,6 @@ Proof.
 Qed.
 
 Arguments Forall2_cons_iff {A B R x y}.
-
-(*
-(* two game trees which are locally equivalent are globally equivalent
-   this allows us to shift unused variables (after the end path) *)
-Lemma locally_equivalent_solved_more ts ts' ap theta n l gtr gtr':
-  solved ts ap theta n l gtr ->
-  (* missing theta information *)
-  (ap, theta) ~ (ap', theta') ->
-  Forall2 (fun ap ap' => locally_equivalent (get_arena_subterm ts ap) (get_arena_subterm ts' ap')) (get_apositions gtr) (get_apositions gtr') ->
-  solved ts' (fst (get_value gtr')) (WRONG, missing number of bindings snd (get_value gtr')) n l gtr'.
-Proof.
-  move=> H. elim: H ts' gtr'.
-  - move=> {}ap {}theta k {}n {}l x args nap theta' {}gtr.
-    move=> /locally_equivalent_elim Hap Hnk Hx Hgtr IH ts' [[? ?] gtrs'] /=.
-    rewrite app_nil_r.
-    move=> /Forall2_cons_iff [/Hap [?] [H'args H'ap]].
-    move: gtrs'=> [|? [|? gtrs']]. cbn. admit.
-    move=> /=. rewrite app_nil_r.
-    move=> /IH. TODO
-    rewrite H'args. move=> ?. apply: solved_var. eassumption.
-  - move=> {}ap {}theta k {}n {}l x args gs.
-    move=> /[dup] H''ap /locally_equivalent_elim Hap Hnk Hx Hlen IH' IH ts' /=.
-    move=> /Forall_cons_iff [/Hap [ts''] [H'ts'' H'ap]] /Forall_flat_map Hgs.
-    apply: solved_const.
-    + eassumption.
-    + done.
-    + done.
-    + by rewrite -H'ts''.
-    + move=> j g /[dup] /nth_error_In ? Hg. apply: IH; first done.
-      move: Hgs => /Forall_forall. by apply.
-Qed.
-*)
 
 Arguments node {A}.
 
@@ -1590,7 +1433,7 @@ Qed.
 (* is this helpful? Maybe NO
    difficult to adjust whole game tree
    maybe just adjust eval on the basis of the game tree?
-*)
+
 Inductive solved_arena (ap : aposition) (theta ts : lookup_contents) (l : nat):
   rose_tree (arena * aposition * lookup_contents) -> Prop :=
     | solved_arena_var arena k x args ap' theta' g:
@@ -1610,7 +1453,7 @@ Inductive solved_arena (ap : aposition) (theta ts : lookup_contents) (l : nat):
       length gs = length args ->
       (forall j g, nth_error gs j = Some g -> solved_arena (extend_ap ap [j]) (map inr (seq l k) ++ ts ++ theta) [] (k+l) g) ->
       solved_arena ap theta ts l (node (arena, ap, map inr (seq l k) ++ ts ++ theta) gs).
-
+*)
 
 
 (* more experiments *)
@@ -1645,8 +1488,6 @@ Lemma trans_T1_correct t args gtr p t':
   not (In (0, p) (get_apositions gtr)) -> (* p does not occur in gtr *)
   solved_start gtr (trans_T1 t p t') args.
 Proof.
-Admitted.
-(*
   move=> /= [Hargs] /[dup] H''gtr /locally_equivalent_solved Hgtr H'gtr.
   split.
   - rewrite Hargs.
@@ -1679,7 +1520,7 @@ Admitted.
            *** by constructor.
     + move=> ?. by apply: locally_equivalent_refl.
 Qed.
-*)
+
 Lemma test_trans_T1_ex1_0: trans_T1 ex1_0 [] (tm 1 1 []) = ex1_2.
 Proof.
   now compute.
@@ -1699,8 +1540,6 @@ Lemma test_trans_T1_main_solution_3: trans_T1 main_solution [0;0] (tm 0 70 []) =
 Proof.
  now simpl.
 Qed.
-
-
 
 (* end arena position TODO
 
@@ -2174,56 +2013,6 @@ Inductive only_in_interval (t:term) : interval -> Prop :=
   only_internal_vars_to 0 t' to -> (* bindings up to [to] are local *)
   only_in_interval t pi[from, btw :: to].
 
-(* assert that P holds on all free variables in t on the path until position p *)
-(* can be used to assert that a path contains only internally bound variables *)
-Fixpoint allfv_on_path (P: nat -> Prop) (t: term) (p: position) : Prop :=
-  match p with
-  | [] => True
-  | hd :: tl =>
-    match t with
-    | tm n x ts =>
-      (Nat.iter n (scons True) P) x /\
-      match nth_error ts hd with
-      | Some t' => allfv_on_path (Nat.iter n (scons True) P) t' tl
-      | None => False
-      end
-    end
-  end.
-
-(* all variables in the term are bound inside the given interval *)
-
-(* all variables on path to position p are bound inside the path *)
-Inductive closed_path (t: term) (bound: nat) : position -> Prop :=
-| closed_path_nil:
-    closed_path t bound []
-| closed_path_cons n x ts hd tl t':
-    x < bound + n ->
-    nth_error ts hd = Some t' ->
-    closed_path t' (bound + n) tl ->
-    closed_path t bound (hd :: tl).
-
-(* all variables in the term are bound inside the given interval *)
-
-(* all free variables in the term are in the given list *)
-
-(* alternative end_path definition *)
-Inductive end_path_alternative (t:term) : interval -> Prop :=
-  | end_path_alternative_witness from btw to n x ts t' t'':
-    get_subterm_error t from = Some (tm n x ts) ->
-    nth_error ts btw = Some t' ->
-    closed_path t' 0 to ->
-    (* all variables in t' on the path to are bound internally *) 
-    get_subterm_error t' to = Some t'' ->
-    allfv (fun y => y > (get_subterm_bound t' (btw :: to) 0)) t'' ->
-    (* actually, t'' = shift_vars t''' by bound *)
-    (* each free variable in the subterm below the end path is bound prior to the end path *)
-    only_in_interval t pi[from, btw :: to] ->
-    end_path_alternative t pi[from, btw :: to].
-
-(* Checks if all free variables in the term are in the given list *)
-
-
-
 (* end arena position TODO
 
 Stirling:
@@ -2263,13 +2052,6 @@ Fixpoint shift_vars (d: nat) (bound: nat) (t: term) : term :=
   match t with
   | tm m x ts => tm m ((if x <? bound then 0 else d) + x) (map (shift_vars d (m + bound)) ts)
   end.
-
-(* if a variable bound in theta is not used, then it can be removed and  *)
-(* is this just an instance of local equivalence? *)
-Lemma last_end_path t ts ap b theta n l gtr:
-  solved (t :: ts) ap (b :: theta) n l gtr ->
-  get_subterm_error t ap = Some (shift_vars 1 0 t') ->
-  solved (replace_subtree t ap t') ap theta n l (drop first gtr).
 
 (* path that contributes TODO
 
