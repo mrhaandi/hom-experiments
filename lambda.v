@@ -1286,6 +1286,29 @@ Proof.
 Qed.
 
 (*
+solved ... gtr
+is_rhs gtr r
+
+p .. p++q end_path
+(p .. p++q) is redundant in gtr
+
+locally remove the last occurrence of (p .. p++q)
+resulting eval r
+rename arena to have something coherent
+*)
+
+(*
+p .. p++[0;0]
+\x1 x2. x1 t
+
+(0, p), (1, p'), (0, p ++ [0]), (2, ..)  (0,p) .. (0, p+[0]) .... (2, ..) (0, p [0;0])
+
+ (0,p) .. (0, p+[0]) not end path!
+
+in general: a prefix of an end path is not necessarily end
+  (because below it there are variables pointing to the path)
+*)
+
 (*
   two arenas evaluate similarly if they are quivalent up to renaming of free variables
 *)
