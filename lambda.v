@@ -873,6 +873,46 @@ Proof.
         by rewrite Egsrs=> /nth_error_None ->.
 Qed.
 
+Inductive var_path (ap : aposition) (theta ts : lookup_contents) :
+  list (aposition * lookup_contents * lookup_contents) -> Prop :=
+  | var_path_nil x args: (* ap points to a const *)
+    get_arena_subterm TS ap = Some (tm (length ts) x args) ->
+    lookup_var (ts ++ theta) x = None ->
+    var_path ap theta ts []
+  | var_path_cons x args ap' theta' steps: (* ap points to a variable *)
+    get_arena_subterm TS ap = Some (tm (length ts) x args) ->
+    lookup_var (ts ++ theta) x = Some (ap', lk theta') ->
+    var_path ap' theta' (map (add_lk ap (ts ++ theta)) (seq 0 (length args))) steps ->
+    (* does not verify that the number of args matches the number of binders *)
+    var_path ap theta ts ((ap', theta', map (add_lk ap (ts ++ theta)) (seq 0 (length args))) :: steps).
+
+Inductive eval_var_path (ap : aposition) (theta : lookup_contents) (l : nat):
+  option lookup_contents -> term -> Prop :=
+    | eval_var_path_abs k x args y rs:
+      get_arena_subterm TS ap = Some (tm k x args) ->
+      eval_var_path ap theta (k+l) (Some (map inr (seq l k))) (tm 0 y rs) ->
+      eval_var_path ap theta l None (tm k y rs)
+
+    | eval_var_path_var ts steps x args ap' theta' ts' y rs:
+      var_path ap theta ts steps ->
+      last steps (ap, theta, ts) = (ap', theta', ts') ->
+      get_arena_subterm TS ap' = Some (tm (length ts') x args) -> (* get subarena at position ap' *)
+      compute_const (ts' ++ theta') l x = Some y ->
+      length rs = length args ->
+      (forall j r, nth_error rs j = Some r -> eval_var_path (extend_ap ap' [j]) (ts' ++ theta') l None r) ->
+      eval_var_path ap theta l (Some ts) (tm 0 y rs).
+(*
+Lemma var_path_spec :
+  eval ap theta l (Some ts) r ->
+  var_path ap (ts ++ theta) steps ->
+  last steps (ap, ts ++ theta) = (ap', theta') ->
+  get_arena_subterm TS ap' = Some (tm n y args) ->
+  compute_const theta' l y = Some f ->
+  r = tm 0 f rs /\
+  forall j,
+  eval ap'+[j] theta' l None r
+*)
+
 Inductive is_final : position -> game_tree -> Prop :=
 | position_nil_rose_nil v:
   is_final [] (node v [])
@@ -880,6 +920,7 @@ Inductive is_final : position -> game_tree -> Prop :=
   nth_error l hd = Some t' ->
   is_final tl t' ->
   is_final (hd::tl) (node v l).
+
 
   
 (* parent_binder_var: in the game tree TS the game position pi1 is the parent of pi2
@@ -1540,6 +1581,117 @@ Lemma test_trans_T1_main_solution_3: trans_T1 main_solution [0;0] (tm 0 70 []) =
 Proof.
  now simpl.
 Qed.
+
+Inductive sim (ar ar': arena)
+  (R : arena -> aposition -> lookup_contents -> option lookup_contents -> arena -> aposition -> lookup_contents -> option lookup_contents -> Prop) : Prop :=
+  | sim_intro :
+    (forall ap theta ts ap' theta' ts' steps nap ntheta nts,
+      R ar ap theta (Some ts) ar' ap' theta' (Some ts') ->
+      var_path ar ap theta ts steps ->
+      last steps (ap, theta, ts) = (nap, ntheta, nts) ->
+      exists nap' ntheta' nts' steps',
+        var_path ar' ap' theta' ts' steps' /\
+        last steps' (ap', theta', ts') = (nap', ntheta', nts') /\
+        length nts = length nts' /\
+        R ar nap ntheta (Some nts) ar' nap' ntheta' (Some nts')) ->
+    (forall ap theta ts ap' theta' ts' n x args,
+      R ar ap theta (Some ts) ar' ap' theta' (Some ts') ->
+      get_arena_subterm ar ap = Some (tm n x args) ->
+      exists x' args',
+        get_arena_subterm ar' ap' = Some (tm n x' args') /\
+        length args = length args' /\
+        (forall l, compute_const (ts ++ theta) l x = compute_const (ts' ++ theta') l x') /\
+        (forall l y, compute_const (ts ++ theta) l x = Some y ->
+          forall j, j < length args -> R ar (extend_ap ap [j]) (ts ++ theta) None ar' (extend_ap ap' [j]) (ts' ++ theta') None)) ->
+    (forall ap theta ap' theta' k x args,
+      R ar ap theta None ar' ap' theta' None ->
+      get_arena_subterm ar ap = Some (tm k x args) ->
+      (forall l, R ar ap theta (Some (map inr (seq l k))) ar' ap' theta' (Some (map inr (seq l k))))
+      /\ exists x' args', get_arena_subterm ar' ap' = Some (tm k x' args')
+    ) ->
+    sim ar ar' R.
+
+Lemma eval_var_path_simulation R arena arena':
+  sim arena arena' R ->
+  forall ap theta l ots r ap' theta' ots',
+  eval_var_path arena ap theta l ots r ->
+  match ots, ots' with
+  | Some ts, Some ts' =>
+    length ts = length ts' ->
+    R arena ap theta (Some ts) arena' ap' theta' (Some ts') ->
+    eval_var_path arena' ap' theta' l (Some ts') r
+  | None, None =>
+    R arena ap theta None arena' ap' theta' None ->
+    eval_var_path arena' ap' theta' l None r
+  | _, _ => True
+  end.
+Proof.
+  move=> [H1R H2R H3R] ap theta l ots r ap' theta' ots' H.
+  elim: H ap' theta' ots'.
+  - move=> {}ap {}theta {}l k x args y rs Hap ? IH ap' theta' [?|]; first done.
+    move=> /H3R {}H3R. move: (Hap) => /H3R [H31R [? [? H32R]]].
+    apply: eval_var_path_abs.
+    + eassumption.
+    + apply: (IH _ _ (Some _)); first done.
+      apply: H31R; eassumption.
+  - move=> {}ap {}theta {}l ts steps x args nap ntheta nts y rs Hsteps H'steps Hnap Hx Eargs ? IH ap' theta' [ts'|]; last done.
+    move=> Ets' HR.
+    move: (Hsteps) (H'steps) (HR)=> /H1R /[apply] /[apply] - [nap'] [ntheta'] [nts'] [steps'] [? [? [Ents']]].
+    move=> /[dup] /H2R => /(_ _ _ _ Hnap) [x'] [args'] [?] [?] [Ex' Hargs] H'R.
+    apply: eval_var_path_var.
+    + eassumption.
+    + eassumption.
+    + rewrite -Ents'. eassumption.
+    + move: Ex' Hx => ->. by apply.
+    + rewrite Eargs. eassumption.
+    + move=> j r' /[dup] ? /IH => /(_ _ _ None). apply.
+      apply: Hargs; first eassumption.
+      rewrite -Eargs.
+      apply /nth_error_Some. congruence.
+Qed.
+
+(* TODO alternative idea eval as Acc of a step relation?
+   Acc Step (ap, theta, ts) -> exists r, eval ts ap theta ts l r
+ *)
+
+Lemma eval_simulation R arena arena':
+  sim arena arena' R ->
+  forall ap theta l ots r ap' theta' ots',
+  eval arena ap theta l ots r ->
+  match ots, ots' with
+  | Some ts, Some ts' =>
+    length ts = length ts' ->
+    R arena ap theta (Some ts) arena' ap' theta' (Some ts') ->
+    eval arena' ap' theta' l (Some ts') r
+  | None, None =>
+    R arena ap theta None arena' ap' theta' None ->
+    eval arena' ap' theta' l None r
+  | _, _ => True
+  end.
+Proof.
+  move=> [H1R H2R H3R] ap theta l ots r ap' theta' ots' H.
+  elim: H ap' theta' ots'.
+  - move=> {}ap {}theta {}l k x args y rs Hap ? IH ap' theta' [?|]; first done.
+    move=> /H3R {}H3R. move: (Hap) => /H3R [H31R [? [? H32R]]].
+    apply: eval_abs.
+    + eassumption.
+    + apply: (IH _ _ (Some _)); first done.
+      apply: H31R; eassumption.
+  - move=> {}ap {}theta {}l ts x args nap theta' {}r Hap Hx ? IH.
+    admit. (* not provable because of too weak induction principle *)
+  - move=> {}ap {}theta {}l ts x args y rs Hap Hx Eargs ? IH.
+    move=> ap' theta' [ts'|]; last done.
+    move=> Ets' /[dup] /H2R {}H2R.
+    move: (Hap)=> /H2R - [x'] [args'] [Hap' [Eargs' [Ex' Hargs]]] HR.
+    apply: eval_const.
+    + rewrite -Ets'. by eassumption.
+    + rewrite -Ex'. by eassumption.
+    + rewrite -Eargs'. by eassumption.
+    + move=> j r' /[dup] ? /IH => /(_ _ _ None). apply.
+      apply: Hargs; first eassumption.
+      rewrite -Eargs.
+      apply /nth_error_Some. congruence.
+Admitted.
 
 (* end arena position TODO
 
