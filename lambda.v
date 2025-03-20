@@ -1,6 +1,6 @@
-Require Import List ssreflect.
+Require Import List ssreflect ssrfun.
 Import ListNotations.
-Require Import PeanoNat.
+Require Import PeanoNat Wellfounded Relations.
 Require Import Nat Lia.
 
 
@@ -727,6 +727,28 @@ Inductive eval (ap : aposition) (theta : lookup_contents) (l : nat):
       (forall j r, nth_error rs j = Some r -> eval (extend_ap ap [j]) (ts ++ theta) l None r) ->
       eval ap theta l (Some ts) (tm 0 y rs).
 
+Inductive step : (aposition * lookup_contents * nat * option lookup_contents) -> (aposition * lookup_contents * nat * option lookup_contents) -> Prop :=
+  | step_abs ap theta k x args l:
+    get_arena_subterm TS ap = Some (tm k x args) ->
+    step (ap, theta, k+l, Some (map inr (seq l k))) (ap, theta, l, None)
+  | step_var ts ap theta l x args ap' theta':
+    get_arena_subterm TS ap = Some (tm (length ts) x args) ->
+    lookup_var (ts ++ theta) x = Some (ap', lk theta') ->
+    step (ap', theta', l, Some (map (add_lk ap (ts ++ theta)) (seq 0 (length args)))) (ap, theta, l, Some ts)
+  | step_const ts ap theta l x args j:
+    get_arena_subterm TS ap = Some (tm (length ts) x args) ->
+    lookup_var (ts ++ theta) x = None ->
+    j < length args ->
+    step (extend_ap ap [j], ts ++ theta, l, None) (ap, theta, l, Some ts)
+  | step_stuck_ap ap theta l ots:
+    get_arena_subterm TS ap = None ->
+    step (ap, theta, l, ots) (ap, theta, l, ots)
+  | step_stuck_binders ap theta l ts t:
+    get_arena_subterm TS ap = Some t ->
+    get_binders t <> length ts ->
+    step (ap, theta, l, Some ts) (ap, theta, l, Some ts).
+
+
 (* experiment:
      shift eval to subterms, maybe less bookkeeping? *)
 Inductive eval' (x : nat) (theta ts : lookup_contents) (l : nat):
@@ -873,6 +895,111 @@ Proof.
         by rewrite Egsrs=> /nth_error_None ->.
 Qed.
 
+Lemma eval_Acc_step ap theta l ots r : eval ap theta l ots r -> Acc step (ap, theta, l, ots).
+Proof.
+  elim=> *; constructor=> ? H.
+  - admit.
+  - inversion H; subst.
+    + congruence.
+    + congruence.
+    + congruence.
+    + admit.
+  - inversion H; subst.
+    + exfalso. admit.
+    + admit. (* doable *)
+    + admit.
+    + admit.
+Admitted.
+
+Lemma eval_Some_binders ap theta l ts r:
+  eval ap theta l (Some ts) r ->
+  get_binders r = 0.
+Proof.
+  by move=> /eval_spec [?] [_] /is_rhs_Some_binders.
+Qed.
+
+Lemma Forall_exists_exists_Forall2 {A B : Type} (R : A -> B -> Prop) {l1 : list A}:
+  Forall (fun a => exists b, R a b) l1 -> exists l2, Forall2 R l1 l2.
+Proof.
+Admitted.
+
+Lemma Forall2_nth_error {A B : Type} (R : A -> B -> Prop) {l1 l2} : 
+  Forall2 R l1 l2 -> forall i a b, nth_error l1 i = Some a -> nth_error l2 i = Some b -> R a b.
+Proof.
+Admitted.
+
+(* custom induction principle / basically same as eval *)
+Lemma solved_induction (P : aposition -> lookup_contents -> nat -> option lookup_contents -> Prop):
+  (* abs *)
+  (forall ap theta l k x args,
+    get_arena_subterm TS ap = Some (tm k x args) ->
+    P ap theta (k + l) (Some (map inr (seq l k))) ->
+    P ap theta l None) ->
+  (* var *)
+  (forall ap theta l ts x args ap' theta',
+    get_arena_subterm TS ap = Some (tm (length ts) x args) ->
+    lookup_var (ts ++ theta) x = Some (ap', lk theta') ->
+    P ap' theta' l (Some (map (add_lk ap (ts ++ theta)) (seq 0 (length args)))) ->
+    P ap theta l (Some ts)) ->
+  (* const *)
+  (forall ap theta l ts x args,
+    get_arena_subterm TS ap = Some (tm (length ts) x args) ->
+    lookup_var (ts ++ theta) x = None ->
+    Forall (fun j => P (extend_ap ap [j]) (ts ++ theta) l None) (seq 0 (length args)) ->
+    P ap theta l (Some ts)) ->
+  forall ap theta l ots,
+  Acc step (ap, theta, l, ots) ->
+  P ap theta l ots.
+Proof.
+  move=> Habs Hvar Hconst ap theta l ots.
+  move E: (ap, theta, l, ots)=> v H.
+  elim: H ap theta l ots E.
+  move=> ?? IH ap theta l ots ?. subst.
+  case Hap: (get_arena_subterm TS ap) => [[[n x] args]|].
+  - destruct ots as [ts|].
+    + have [|?] : n <> length ts \/ n = length ts by lia.
+      { (* step_stuck_binders *)
+        move: (Hap) => /step_stuck_binders /[apply] H.
+        apply: IH; last done.
+        by apply: H. }
+      subst n.
+      case Hx: (lookup_var (ts ++ theta) x) => [[ap' [theta']]|].
+      * (* step_var *)
+        move: (Hap) (Hx) => /step_var /[apply] => /(_ l).
+        move=> /IH => /(_ _ _ _ _ eq_refl).
+        apply: Hvar; by eassumption.
+      * (* step_const *) 
+        move: (Hap) (Hx) => /step_const /[apply] H.
+        apply: Hconst; [eassumption..|].
+        apply /Forall_forall.
+        move=> ? /in_seq [_] /(H l) /IH. by apply.
+    + (* eval_abs *)
+      move: (Hap) => /step_abs => /(_ theta l) /IH => /(_ _ _ _ _ eq_refl).
+      apply: Habs. by eassumption.
+  - (* step_stuck_ap *)
+    apply: IH; last done.
+    by apply: step_stuck_ap.
+Qed.
+
+(* if (ap, theta, l, ots) is accessible in step, then eval ap theta l ots r for some r *)
+Lemma Acc_step_eval ap theta l ots : Acc step (ap, theta, l, ots) -> exists r, eval ap theta l ots r.
+Proof.
+  elim /solved_induction.
+  - move=> > ? [[[n x] args]] /[dup] /eval_Some_binders /= -> ?.
+    eexists. apply: eval_abs; eassumption.
+  - move=> > ?? [??].
+    eexists. apply: eval_var; eassumption.
+  - move=> {}ap {}theta {}l ts x args ?.
+    move=> /(lookup_var_None_compute_const_Some l) [y] ?.
+    move=> /Forall_exists_exists_Forall2 [rs].
+    move=> /[dup] /Forall2_length.
+    rewrite length_seq=> /esym Eargs /Forall2_nth_error Hrs.
+    exists (tm 0 y rs). apply: eval_const; [eassumption..|].
+    move=> j r Hj. apply: Hrs; last by eassumption.
+    rewrite nth_error_seq -Eargs.
+    by have /nth_error_Some /Nat.ltb_lt ->: nth_error rs j <> None by congruence.
+Qed.
+
 Inductive var_path (ap : aposition) (theta ts : lookup_contents) :
   list (aposition * lookup_contents * lookup_contents) -> Prop :=
   | var_path_nil x args: (* ap points to a const *)
@@ -885,6 +1012,91 @@ Inductive var_path (ap : aposition) (theta ts : lookup_contents) :
     var_path ap' theta' (map (add_lk ap (ts ++ theta)) (seq 0 (length args))) steps ->
     (* does not verify that the number of args matches the number of binders *)
     var_path ap theta ts ((ap', theta', map (add_lk ap (ts ++ theta)) (seq 0 (length args))) :: steps).
+
+(*
+
+    | eval_var_path_var ts steps x args ap' theta' ts' y rs:
+      var_path ap theta ts steps ->
+      last steps (ap, theta, ts) = (ap', theta', ts') ->
+      get_arena_subterm TS ap' = Some (tm (length ts') x args) -> (* get subarena at position ap' *)
+      compute_const (ts' ++ theta') l x = Some y ->
+      length rs = length args ->
+      (forall j r, nth_error rs j = Some r -> eval_var_path (extend_ap ap' [j]) (ts' ++ theta') l None r) ->
+      eval_var_path ap theta l (Some ts) (tm 0 y rs).
+
+*)
+Arguments Acc_clos_trans {A R x}.
+Arguments clos_trans {A}.
+Arguments t_step {A R x y}.
+
+Lemma var_path_intro ap theta ts x args:
+  get_arena_subterm TS ap = Some (tm (length ts) x args) ->
+  exists steps, var_path ap theta ts steps.
+Proof.
+Admitted.
+
+(*
+Lemma var_path_elim:
+
+var_path ap theta ts steps ->
+last steps (ap, theta, ts) = (ap', theta', ts') ->
+*)
+
+Lemma var_path_clos_trans_step {ap theta ts steps ap' theta' ts'}:
+  var_path ap theta ts steps ->
+  last steps (ap, theta, ts) = (ap', theta', ts') ->
+  exists x args,
+    get_arena_subterm TS ap' = Some (tm (length ts') x args) /\
+    lookup_var (ts' ++ theta') x = None /\
+    forall l, Forall (fun j => clos_trans step (extend_ap ap' [j], ts' ++ theta', l, None) (ap, theta, l, Some ts)) (seq 0 (length args)).
+Proof.
+Admitted.
+
+(* custom induction principle / variables nodes are taken via var_path *)
+Lemma solved_var_path_induction (P : aposition -> lookup_contents -> nat -> option lookup_contents -> Prop):
+  (* abs *)
+  (forall ap theta l k x args,
+    get_arena_subterm TS ap = Some (tm k x args) ->
+    P ap theta (k + l) (Some (map inr (seq l k))) ->
+    P ap theta l None) ->
+  (* var_path *)
+  (forall ap theta l ts steps x args ap' theta' ts',
+    var_path ap theta ts steps ->
+    last steps (ap, theta, ts) = (ap', theta', ts') ->
+    get_arena_subterm TS ap' = Some (tm (length ts') x args) ->
+    lookup_var (ts' ++ theta') x = None ->
+    Forall (fun j => P (extend_ap ap' [j]) (ts' ++ theta') l None) (seq 0 (length args)) ->
+    P ap theta l (Some ts)) ->
+  forall ap theta l ots,
+  Acc step (ap, theta, l, ots) ->
+  P ap theta l ots.
+Proof.
+  move=> Habs Hvar_path ap theta l ots /Acc_clos_trans.
+  move E: (ap, theta, l, ots)=> v H.
+  elim: H ap theta l ots E.
+  move=> ? _ IH ap theta l ots ?. subst.
+  case Hap: (get_arena_subterm TS ap) => [[[n x] args]|].
+  - destruct ots as [ts|].
+    + have [|?] : n <> length ts \/ n = length ts by lia.
+      { (* step_stuck_binders *)
+        move: (Hap) => /step_stuck_binders /[apply] H.
+        apply: IH; last done.
+        apply: t_step. by apply: H. }
+      subst n.
+      move: (Hap) => /var_path_intro => /(_ theta) [steps].
+      move E: (last steps (ap, theta, ts)) => [[ap' theta'] ts'] /[dup] ?.
+      (* follow var path then use const step *)
+      move: (E)=> /var_path_clos_trans_step /[apply] - [x'] [args'] [?] [?] Hargs'.
+      apply: Hvar_path; [eassumption..|].
+      apply: Forall_impl (Hargs' l).
+      move=> ? /IH. by apply.
+    + (* eval_abs *)
+      move: (Hap) => /step_abs => /(_ theta l) /t_step /IH => /(_ _ _ _ _ eq_refl).
+      apply: Habs. by eassumption.
+  - (* step_stuck_ap *)
+    apply: IH; last done.
+    apply: t_step. by apply: step_stuck_ap.
+Qed.
 
 Inductive eval_var_path (ap : aposition) (theta : lookup_contents) (l : nat):
   option lookup_contents -> term -> Prop :=
