@@ -1810,33 +1810,6 @@ Inductive solved_arena (ap : aposition) (theta ts : lookup_contents) (l : nat):
       solved_arena ap theta ts l (node (arena, ap, map inr (seq l k) ++ ts ++ theta) gs).
 *)
 
-
-(* more experiments *)
-(*
-Lemma eval_equiv ts ap theta n l r ts' ap' theta':
-  eval ts ap theta n l r ->
-  locally_equivalent (get_arena_subterm ts ap) (get_arena_subterm ts' ap') ->
-  Forall2 (fun ap ap' => locally_equivalent (get_arena_subterm ts ap) (get_arena_subterm ts' ap')) (get_apositions_lk (lk theta)) (get_apositions_lk (lk theta')) ->
-  eval ts' ap' theta' n l r.
-Proof.
-  move=> H. elim: H ts' ap' theta'.
-  - move=> {}ap {}theta {}n {}l k x args ap'' theta'' y rs.
-    move=> Hap ? Hx ? IH ts' ap' theta' E1 E2.
-    move: E1 (Hap)=> /locally_equivalent_elim /[apply] - [args'] [Elen] ?.
-    move: (E2) (Hx)=> /more_local_equivalence /[apply] - [ap'''] [theta'''] [?] [?] ?.
-    apply: eval_var.
-    + by eassumption.
-    + done.
-    + by eassumption.
-    + rewrite -Elen. apply: IH.
-      * done.
-      * rewrite !get_apositions_lk_app.
-        apply: Forall2_app; last done.
-
-       cbn. destruct ap. cbn in *. rewrite map_app. cbn.  
-*)
-
-
 (* application of locally_equivalent_solved *)
 Lemma trans_T1_correct t args gtr p t':
   solved_start gtr t args ->
@@ -1929,6 +1902,92 @@ Qed.
 
 (* R is an arena simulation *)
 Inductive sim (ar ar': arena)
+  (R : aposition -> lookup_contents -> option lookup_contents -> aposition -> lookup_contents -> option lookup_contents -> Prop) : Prop :=
+  | sim_intro :
+    (* sim var_path *)
+    (forall ap theta ts ap' theta' ts' steps nap ntheta nts,
+      R ap theta (Some ts) ap' theta' (Some ts') ->
+      var_path ar ap theta ts steps ->
+      last steps (ap, theta, ts) = (nap, ntheta, nts) ->
+      exists nap' ntheta' nts' steps',
+        var_path ar' ap' theta' ts' steps' /\
+        last steps' (ap', theta', ts') = (nap', ntheta', nts') /\
+        R nap ntheta (Some nts) nap' ntheta' (Some nts')) ->
+    (* sim const *)
+    (forall ap theta ts ap' theta' ts' n x args l y,
+      R ap theta (Some ts) ap' theta' (Some ts') ->
+      get_arena_subterm ar ap = Some (tm n x args) ->
+      compute_const (ts ++ theta) l x = Some y ->
+      exists x' args',
+        get_arena_subterm ar' ap' = Some (tm (length ts') x' args') /\
+        length args = length args' /\
+        compute_const (ts' ++ theta') l x' = Some y /\
+        (forall j, j < length args -> R (extend_ap ap [j]) (ts ++ theta) None (extend_ap ap' [j]) (ts' ++ theta') None)) ->
+    (* sim abs *)
+    (forall ap theta ap' theta' k x args,
+      R ap theta None ap' theta' None ->
+      get_arena_subterm ar ap = Some (tm k x args) ->
+      (forall l, R ap theta (Some (map inr (seq l k))) ap' theta' (Some (map inr (seq l k))))
+      /\ exists x' args', get_arena_subterm ar' ap' = Some (tm k x' args')) ->
+    (* no sim *)
+    (forall ap theta ots ap' theta' ots',
+      R ap theta ots ap' theta' ots' ->
+      (ots = None <-> ots' = None)) ->
+    sim ar ar' R.
+
+(* eval is stable under arena simulation *)
+Lemma eval_var_path_simulation R arena arena':
+  sim arena arena' R ->
+  forall ap theta l ots r ap' theta' ots',
+  Acc (step arena) (ap, theta, l, ots) ->
+  eval arena ap theta l ots r ->
+  R ap theta ots ap' theta' ots' ->
+  eval arena' ap' theta' l ots' r.
+Proof.
+  move=> [H1R H2R H3R H4R] ap theta l ots r ap' theta' ots' H.
+  elim /solved_var_path_induction: H ap' theta' ots' r.
+  - (* abs case *)
+    move=> {}ap {}theta {}l k x args Hap IH ap' theta' [?|] [[??] ?].
+    { by move=> _ /H4R [/(_ eq_refl)]. }
+    move=> Hr /H3R {}H3R. move: (Hap) => /H3R [H31R [? [? H32R]]].
+    move: Hr => /eval_elim [?] [?].
+    rewrite Hap=> - [[<- _ _]] Hr.
+    apply: eval_abs.
+    + by eassumption.
+    + by apply: (IH _ _ (Some _)).
+  - (* var_path case *)
+    move=> {}ap {}theta {}l ts steps nap ntheta nts Hsteps H'steps IH ap' theta' [ts'|]; first last.
+    { by move=> ? _ /H4R [_ /(_ eq_refl)]. }
+    move=> r Hr HR.
+    move: (Hsteps) (H'steps) (HR)=> /H1R /[apply] /[apply] - [nap'] [ntheta'] [nts'] [steps'] [? [? +]].
+    move: (Hsteps) (H'steps) (Hr) => /var_path_spec /[apply] /[apply] /IH /[apply].
+    apply: var_path_spec_reverse; by eassumption.
+  - (* const case *)
+    move=> {}ap {}theta {}l ts x args Hap Hx IH ap' theta' [ts'|]; first last.
+    { by move=> ? _ /H4R [_ /(_ eq_refl)]. }
+    move=> r Hr HR.
+    move: (Hx)=> /(lookup_var_None_compute_const_Some l) [y] H'x.
+    move: (HR) (Hap) (H'x) => /H2R /[apply] /[apply].
+    move=> [x'] [args'] [Hap'] [Eargs'] [Ex'] {}H2R.
+    move: (Hr) => /eval_elim [?] [?].
+    rewrite Hap=> - [[<- <-]].
+    rewrite Hx=> - [?] [?] [?] [?] [Eargs] H. subst r.
+    apply: eval_const.
+    + eassumption.
+    + congruence.
+    + rewrite -Eargs'. eassumption.
+    + move=> j r' /[dup] ? /H.
+      have ?: j < length args.
+      { rewrite -Eargs. apply /nth_error_Some. congruence. }
+      move: IH => /Forall_forall /[apply].
+      move=> /(_ _ _ _ None). apply.
+      * apply /in_seq. by split; first by apply: Nat.le_0_l.
+      * by apply: H2R.
+Qed.
+
+(*
+(* R is an arena simulation *)
+Inductive sim (ar ar': arena)
   (R : arena -> aposition -> lookup_contents -> option lookup_contents -> arena -> aposition -> lookup_contents -> option lookup_contents -> Prop) : Prop :=
   | sim_intro :
     (* sim var_path *)
@@ -2011,9 +2070,86 @@ Proof.
       * apply /in_seq. by split; first by apply: Nat.le_0_l.
       * by apply: H2R.
 Qed.
+*)
+
+(*
+(*
+showcase: instantiate transformation T1 as arena simulation
+*)
+
+Fixpoint get_values {A: Type} (t: rose_tree A) : list A :=
+  match t with
+  | node a children => a :: flat_map get_values children
+  end.
+
+Section T1.
+Context (T T': term).
+Context (TS: arena).
+Context (GTR: game_tree).
+Context (P: position).
+Context (HP: not (In (0, P) (get_apositions GTR))).
+Context (HGTR: solved_start GTR T TS).
+
+(* transformation T1 *)
+
+Inductive R_T1 : aposition -> lookup_contents -> option lookup_contents -> aposition -> lookup_contents -> option lookup_contents -> Prop :=
+  | R_T1_intro_Some ap theta ts:
+      R_T1 ap theta (Some ts) ap theta (Some ts)
+  | R_T1_intro_None ap theta k x args l:
+      get_arena_subterm (T :: TS) ap = Some (tm k x args) ->
+      In (ap, (map inr (seq l k)) ++ theta) (get_values GTR) ->
+      R_T1 ap theta None ap theta None.
+
+Lemma sim_R_T1 : sim (T :: TS) (trans_T1 T P T' :: TS) R_T1.
+Proof.
+  constructor.
+  - admit.
+  - admit.
+  - move=> > H. inversion H. subst.
+    rewrite H0.
+    move=> [???]. subst. split.
+Admitted.
+
+Lemma trans_T1_correct_alternative t':
+  solved_start GTR T TS ->
+  solved_start GTR (trans_T1 T P t') TS.
+Proof.
+  move=> /= [Hargs] /[dup] H''gtr H'gtr.
+  split.
+  - rewrite Hargs.
+    move: (P) (T) {Hargs} H'gtr H''gtr HP => [].
+    + by move=> ? _ /solved_ap_in_get_apositions + H=> /H.
+    + by move=> ?? [[??]?] /=.
+  - apply: Hgtr. apply /Forall_forall=> - [[|i] p'].
+    + move: H''gtr => /solved_start_ap_cone /= /[apply] H''gtr.
+      rewrite app_nil_r in H''gtr.
+      have: forall i, firstn i p' <> p.
+      { move=> i Hp. apply: H'gtr. subst p.
+        apply: H''gtr. apply /Forall_flat_map /Forall_map /Forall_forall=> ? /=.
+        by constructor. }
+      rewrite /trans_T1 /replace_term.
+      elim: p' p t (shift_term _ _) {Hargs H'gtr H''gtr}.
+      * move=> [|i p] [[??] ts] {}t' /=; first by move=> /(_ 0).
+        move=> /= _. rewrite /get_subterm /replace_term /=.
+        constructor. by rewrite length_map_nth.
+      * move=> j' p' IH [|j p] [v ts] {}t' /=; first by move=> /(_ 0).
+        rewrite /get_subterm /=.
+        have [|]: j = j' \/ j <> j' by lia.
+        ** move=> <- Hp. rewrite /=. rewrite nth_error_map_nth_eq.
+           case: (nth_error ts j)=> /=.
+           *** move=> t''. apply: IH.
+               move=> i Hi. apply: (Hp (S i)). cbn. by rewrite Hi.
+           *** by constructor.
+        ** move=> ? _. rewrite nth_error_map_nth_neq; first done.
+           case: (nth_error ts j').
+           *** move=> ?. by apply: locally_equivalent_refl.
+           *** by constructor.
+    + move=> ?. by apply: locally_equivalent_refl.
+
+End T1.
 
 Print Assumptions eval_var_path_simulation.
-
+*)
 
 (* end arena position TODO
 
