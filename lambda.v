@@ -748,26 +748,6 @@ Inductive step : (aposition * lookup_contents * nat * option lookup_contents) ->
     get_binders t <> length ts ->
     step (ap, theta, l, Some ts) (ap, theta, l, Some ts).
 
-
-(* experiment:
-     shift eval to subterms, maybe less bookkeeping? *)
-Inductive eval' (x : nat) (theta ts : lookup_contents) (l : nat):
-  term -> Prop :=
-    | eval'_var args ap' theta' y r:
-      lookup_var theta x = Some (ap', lk theta') -> (* get interpretation of x *)
-      get_arena_subterm TS ap' = Some (tm (length ts) y args) ->
-      eval' y (ts ++ theta') ((map (add_lk ap' (ts ++ theta')) (seq 0 (length args)))) l r ->
-      eval' x theta ts l r
-    | eval'_const y rs k args:
-      compute_const theta l x = Some y ->
-      length ts = length rs ->
-      (forall j ap' theta' z z' args',
-        nth_error ts j = Some (inl (ap', lk theta')) ->
-        nth_error rs j = Some (tm k z' args') ->
-        get_arena_subterm TS ap' = Some (tm k z args) ->
-        eval' z theta' (map inr (seq l k)) (k+l) (tm 0 z' args')) ->
-      eval' x theta ts l (tm 0 y rs).
-
 Lemma lookup_var_Some_compute_const_None l theta x v:
   lookup_var theta x = Some v ->
   compute_const theta l x = None.
@@ -796,6 +776,58 @@ Proof.
     by eexists.
   - by eexists.
 Qed.
+
+Lemma eval_elim ap theta l ots r:
+  eval ap theta l ots r ->
+  match ots with
+  | Some ts => exists x args,
+      get_arena_subterm TS ap = Some (tm (length ts) x args) /\
+      match lookup_var (ts ++ theta) x with
+      | Some (ap', lk theta') =>
+        eval ap' theta' l (Some (map (add_lk ap (ts ++ theta)) (seq 0 (length args)))) r
+      | None => exists y rs,
+          r = tm 0 y rs /\
+          compute_const (ts ++ theta) l x = Some y /\
+          length rs = length args /\
+          (forall j r', nth_error rs j = Some r' -> eval (extend_ap ap [j]) (ts ++ theta) l None r')
+      end
+  | None =>
+    match r with
+    | tm k y rs => exists x args,
+        get_arena_subterm TS ap = Some (tm k x args) /\
+        eval ap theta (k+l) (Some (map inr (seq l k))) (tm 0 y rs)
+    end
+  end.
+Proof.
+  case.
+  - move=> *. do 3 econstructor; eassumption.
+  - move=> > ? Hx ?. do 3 econstructor; first by eassumption.
+    by rewrite Hx.
+  - move=> > ? /[dup] /compute_const_Some_lookup_var_None Hx ???.
+    do 3 econstructor; first by eassumption.
+    rewrite Hx. by do 4 econstructor.
+Qed.
+
+(* experiment:
+     shift eval to subterms, maybe less bookkeeping? *)
+Inductive eval' (x : nat) (theta ts : lookup_contents) (l : nat):
+  term -> Prop :=
+    | eval'_var args ap' theta' y r:
+      lookup_var theta x = Some (ap', lk theta') -> (* get interpretation of x *)
+      get_arena_subterm TS ap' = Some (tm (length ts) y args) ->
+      eval' y (ts ++ theta') ((map (add_lk ap' (ts ++ theta')) (seq 0 (length args)))) l r ->
+      eval' x theta ts l r
+    | eval'_const y rs k args:
+      compute_const theta l x = Some y ->
+      length ts = length rs ->
+      (forall j ap' theta' z z' args',
+        nth_error ts j = Some (inl (ap', lk theta')) ->
+        nth_error rs j = Some (tm k z' args') ->
+        get_arena_subterm TS ap' = Some (tm k z args) ->
+        eval' z theta' (map inr (seq l k)) (k+l) (tm 0 z' args')) ->
+      eval' x theta ts l (tm 0 y rs).
+
+
 
 (* form a list of elements which satisfy a predicate P *)
 Lemma form_list {A B: Type} (P: nat -> A -> B -> Prop) (l: list A):
@@ -1013,34 +1045,91 @@ Inductive var_path (ap : aposition) (theta ts : lookup_contents) :
     (* does not verify that the number of args matches the number of binders *)
     var_path ap theta ts ((ap', theta', map (add_lk ap (ts ++ theta)) (seq 0 (length args))) :: steps).
 
-(*
-
-    | eval_var_path_var ts steps x args ap' theta' ts' y rs:
-      var_path ap theta ts steps ->
-      last steps (ap, theta, ts) = (ap', theta', ts') ->
-      get_arena_subterm TS ap' = Some (tm (length ts') x args) -> (* get subarena at position ap' *)
-      compute_const (ts' ++ theta') l x = Some y ->
-      length rs = length args ->
-      (forall j r, nth_error rs j = Some r -> eval_var_path (extend_ap ap' [j]) (ts' ++ theta') l None r) ->
-      eval_var_path ap theta l (Some ts) (tm 0 y rs).
-
-*)
 Arguments Acc_clos_trans {A R x}.
 Arguments clos_trans {A}.
 Arguments t_step {A R x y}.
 
-Lemma var_path_intro ap theta ts x args:
-  get_arena_subterm TS ap = Some (tm (length ts) x args) ->
+Lemma Acc_step_induction (P : aposition -> lookup_contents -> nat -> option lookup_contents -> Prop):
+  (forall ap theta l ots,
+    (forall ap' theta' l' ots', step (ap', theta', l', ots') (ap, theta, l, ots) -> Acc step (ap', theta', l', ots')) -> 
+    (forall ap' theta' l' ots', step (ap', theta', l', ots') (ap, theta, l, ots) -> P ap' theta' l' ots') -> P ap theta l ots) ->
+  forall ap theta l ots, Acc step (ap, theta, l, ots) -> P ap theta l ots.
+Proof.
+  move=> H ap theta l ots.
+  move E: (ap, theta, l, ots)=> v H'.
+  elim: H' ap theta l ots E.
+  move=> ? IH' IH ap theta l ots ?. subst.
+  apply: H=> >.
+  - by apply: IH'.
+  - move=> /IH. by apply.
+Qed.
+
+(* induction principle for Acc step when there are arguments *)
+Lemma Acc_step_Some_induction (P : aposition -> lookup_contents -> nat -> lookup_contents -> Prop):
+  (forall ap theta l ts,
+    (forall ap' theta' l' ts', step (ap', theta', l', Some ts') (ap, theta, l, Some ts) -> Acc step (ap', theta', l', Some ts')) -> 
+    (forall ap' theta' l' ts', step (ap', theta', l', Some ts') (ap, theta, l, Some ts) -> P ap' theta' l' ts') -> P ap theta l ts) ->
+  forall ap theta l ts, Acc step (ap, theta, l, Some ts) -> P ap theta l ts.
+Proof.
+  move=> H ap theta l ts.
+  move E: (ap, theta, l, Some ts)=> v H'.
+  elim: H' ap theta l ts E.
+  move=> ? IH' IH ap theta l ts ?. subst.
+  apply: H=> >.
+  - by apply: IH'.
+  - move=> /IH. by apply.
+Qed.
+
+Lemma step_stuck_ap_elim ap theta l ots:
+  Acc step (ap, theta, l, ots) ->
+  get_arena_subterm TS ap = None ->
+  False.
+Proof.
+  elim /Acc_step_induction=> > ? IH /[dup] /IH + ?.
+  apply.
+  by apply: step_stuck_ap.
+Qed.
+
+Lemma step_stuck_binders_elim ap theta l ts t:
+  Acc step (ap, theta, l, Some ts) ->
+  get_arena_subterm TS ap = Some t ->
+  get_binders t = length ts.
+Proof.
+  move=> H H'. suff: get_binders t <> length ts -> False by lia.
+  elim /Acc_step_Some_induction: H H'.
+  move=> ??? {}ts ? IH ??.
+  apply: IH; [|eassumption..].
+  apply: step_stuck_binders; by eassumption.
+Qed.
+
+(* construct var_path from Acc step *)
+Lemma var_path_intro ap theta l ts:
+  Acc step (ap, theta, l, Some ts) ->
   exists steps, var_path ap theta ts steps.
 Proof.
-Admitted.
+  elim /Acc_step_Some_induction.
+  move=> {}ap {}theta {}l {}ts IH' IH.
+  case Hap: (get_arena_subterm TS ap) => [[[n x] args]|].
+  - have [?|?]: n <> length ts \/ n = length ts by lia.
+    { apply: IH. apply: step_stuck_binders; by eassumption. }
+    subst n.
+    case Hx: (lookup_var (ts ++ theta) x) => [[ap' [theta']]|].
+    + move: (Hap) (Hx) => /step_var /[apply] => /(_ l).
+      move=> /[dup] /IH' {}IH'.
+      case E': (get_arena_subterm TS ap') => [[[n' x'] args']|].
+      * move=> /IH [steps] ?.
+        eexists (_ :: steps).
+        econstructor; by eassumption.
+      * exfalso. by apply: step_stuck_ap_elim; [eassumption..|].
+    + exists []. econstructor; by eassumption.
+  - apply: IH. by apply: step_stuck_ap.
+Qed.
 
-(*
-Lemma var_path_elim:
-
-var_path ap theta ts steps ->
-last steps (ap, theta, ts) = (ap', theta', ts') ->
-*)
+Lemma last_cons {A : Type} (d : A) {l : list A} {a} : last (a :: l) d = last l a.
+Proof.
+  elim /rev_ind: l; first done.
+  move=> ? l _ /=. rewrite !last_last. by case: l.
+Qed.
 
 Lemma var_path_clos_trans_step {ap theta ts steps ap' theta' ts'}:
   var_path ap theta ts steps ->
@@ -1050,7 +1139,22 @@ Lemma var_path_clos_trans_step {ap theta ts steps ap' theta' ts'}:
     lookup_var (ts' ++ theta') x = None /\
     forall l, Forall (fun j => clos_trans step (extend_ap ap' [j], ts' ++ theta', l, None) (ap, theta, l, Some ts)) (seq 0 (length args)).
 Proof.
-Admitted.
+  have [v _]: exists v, v = (ap, theta, ts) by eexists.
+  rewrite -(last_cons v). elim.
+  - move=> > Hap Hx /= [<- <- <-].
+    do 3 econstructor; first by eassumption.
+    split; first done.
+    move=> l. apply /Forall_forall=> j /in_seq /= [_ ?].
+    apply: t_step.
+    by apply: step_const; [eassumption..|lia].
+  - move=> > Hap Hx ? IH /IH [?] [?] [Hap'] [Hx'] {}IH.
+    do 3 econstructor; first by eassumption.
+    split; first done.
+    move=> l. apply: Forall_impl (IH l) => ? {}IH.
+    apply: t_trans; first by eassumption.
+    apply: t_step.
+    by apply: step_var; [eassumption..|].
+Qed.
 
 (* custom induction principle / variables nodes are taken via var_path *)
 Lemma solved_var_path_induction (P : aposition -> lookup_contents -> nat -> option lookup_contents -> Prop):
@@ -1060,21 +1164,25 @@ Lemma solved_var_path_induction (P : aposition -> lookup_contents -> nat -> opti
     P ap theta (k + l) (Some (map inr (seq l k))) ->
     P ap theta l None) ->
   (* var_path *)
-  (forall ap theta l ts steps x args ap' theta' ts',
+  (forall ap theta l ts steps ap' theta' ts',
     var_path ap theta ts steps ->
     last steps (ap, theta, ts) = (ap', theta', ts') ->
-    get_arena_subterm TS ap' = Some (tm (length ts') x args) ->
-    lookup_var (ts' ++ theta') x = None ->
-    Forall (fun j => P (extend_ap ap' [j]) (ts' ++ theta') l None) (seq 0 (length args)) ->
+    P ap' theta' l (Some ts') ->
+    P ap theta l (Some ts)) ->
+  (* const *)
+  (forall ap theta l ts x args,
+    get_arena_subterm TS ap = Some (tm (length ts) x args) ->
+    lookup_var (ts ++ theta) x = None ->
+    Forall (fun j => P (extend_ap ap [j]) (ts ++ theta) l None) (seq 0 (length args)) ->
     P ap theta l (Some ts)) ->
   forall ap theta l ots,
   Acc step (ap, theta, l, ots) ->
   P ap theta l ots.
 Proof.
-  move=> Habs Hvar_path ap theta l ots /Acc_clos_trans.
+  move=> Habs Hvar_path Hconst ap theta l ots /Acc_clos_trans.
   move E: (ap, theta, l, ots)=> v H.
   elim: H ap theta l ots E.
-  move=> ? _ IH ap theta l ots ?. subst.
+  move=> ? IH' IH ap theta l ots ?. subst.
   case Hap: (get_arena_subterm TS ap) => [[[n x] args]|].
   - destruct ots as [ts|].
     + have [|?] : n <> length ts \/ n = length ts by lia.
@@ -1083,11 +1191,15 @@ Proof.
         apply: IH; last done.
         apply: t_step. by apply: H. }
       subst n.
-      move: (Hap) => /var_path_intro => /(_ theta) [steps].
+      have /var_path_intro [steps]: Acc step (ap, theta, l, Some ts).
+      { constructor.
+        move=> ? /t_step /IH'.
+        by apply /Acc_incl /incl_clos_trans. }
       move E: (last steps (ap, theta, ts)) => [[ap' theta'] ts'] /[dup] ?.
       (* follow var path then use const step *)
       move: (E)=> /var_path_clos_trans_step /[apply] - [x'] [args'] [?] [?] Hargs'.
       apply: Hvar_path; [eassumption..|].
+      apply: Hconst; [eassumption..|].
       apply: Forall_impl (Hargs' l).
       move=> ? /IH. by apply.
     + (* eval_abs *)
@@ -1098,6 +1210,7 @@ Proof.
     apply: t_step. by apply: step_stuck_ap.
 Qed.
 
+(* obsolete use solved_var_path_induction *)
 Inductive eval_var_path (ap : aposition) (theta : lookup_contents) (l : nat):
   option lookup_contents -> term -> Prop :=
     | eval_var_path_abs k x args y rs:
@@ -1113,17 +1226,6 @@ Inductive eval_var_path (ap : aposition) (theta : lookup_contents) (l : nat):
       length rs = length args ->
       (forall j r, nth_error rs j = Some r -> eval_var_path (extend_ap ap' [j]) (ts' ++ theta') l None r) ->
       eval_var_path ap theta l (Some ts) (tm 0 y rs).
-(*
-Lemma var_path_spec :
-  eval ap theta l (Some ts) r ->
-  var_path ap (ts ++ theta) steps ->
-  last steps (ap, ts ++ theta) = (ap', theta') ->
-  get_arena_subterm TS ap' = Some (tm n y args) ->
-  compute_const theta' l y = Some f ->
-  r = tm 0 f rs /\
-  forall j,
-  eval ap'+[j] theta' l None r
-*)
 
 Inductive is_final : position -> game_tree -> Prop :=
 | position_nil_rose_nil v:
@@ -1797,6 +1899,7 @@ Qed.
 Inductive sim (ar ar': arena)
   (R : arena -> aposition -> lookup_contents -> option lookup_contents -> arena -> aposition -> lookup_contents -> option lookup_contents -> Prop) : Prop :=
   | sim_intro :
+    (* sim var_path *)
     (forall ap theta ts ap' theta' ts' steps nap ntheta nts,
       R ar ap theta (Some ts) ar' ap' theta' (Some ts') ->
       var_path ar ap theta ts steps ->
@@ -1806,6 +1909,7 @@ Inductive sim (ar ar': arena)
         last steps' (ap', theta', ts') = (nap', ntheta', nts') /\
         length nts = length nts' /\
         R ar nap ntheta (Some nts) ar' nap' ntheta' (Some nts')) ->
+    (* sim const *)
     (forall ap theta ts ap' theta' ts' n x args,
       R ar ap theta (Some ts) ar' ap' theta' (Some ts') ->
       get_arena_subterm ar ap = Some (tm n x args) ->
@@ -1815,6 +1919,7 @@ Inductive sim (ar ar': arena)
         (forall l, compute_const (ts ++ theta) l x = compute_const (ts' ++ theta') l x') /\
         (forall l y, compute_const (ts ++ theta) l x = Some y ->
           forall j, j < length args -> R ar (extend_ap ap [j]) (ts ++ theta) None ar' (extend_ap ap' [j]) (ts' ++ theta') None)) ->
+    (* sim abs *)
     (forall ap theta ap' theta' k x args,
       R ar ap theta None ar' ap' theta' None ->
       get_arena_subterm ar ap = Some (tm k x args) ->
@@ -1823,52 +1928,41 @@ Inductive sim (ar ar': arena)
     ) ->
     sim ar ar' R.
 
+Lemma var_path_spec ar ap theta ts l r steps ap' theta' ts':
+  var_path ar ap theta ts steps ->
+  last steps (ap, theta, ts) = (ap', theta', ts') ->
+  eval ar ap theta l (Some ts) r ->
+  eval ar ap' theta' l (Some ts') r.
+Proof.
+  have [v _]: exists v, v = (ap, theta, ts) by eexists.
+  rewrite -(last_cons v). elim.
+  - by move=> > ?? /= [<- <- <-].
+  - move=> > Hap Hx _ IH /= /IH {}IH /eval_elim [?] [?].
+    rewrite Hap => - [[<- <-]].
+    by rewrite Hx => /IH.
+Qed.
+
+Lemma var_path_spec_reverse ar ap theta ts l r steps ap' theta' ts':
+  var_path ar ap theta ts steps ->
+  last steps (ap, theta, ts) = (ap', theta', ts') ->
+  eval ar ap' theta' l (Some ts') r ->
+  eval ar ap theta l (Some ts) r.
+Proof.
+  move=> H H'.
+  have [v _]: exists v, v = (ap, theta, ts) by eexists.
+  have {}H': last ((ap, theta, ts) :: steps) v = (ap', theta', ts').
+  { elim /rev_ind: (steps) H' => [|? [|??]]; [done..|].
+    by rewrite /= !last_last. }
+  elim: H H'.
+  - by move=> > ?? /= [<- <- <-].
+  - move=> > Hap Hx _ IH /= /IH /[apply].
+    apply: eval_var; by eassumption.
+Qed.
+
 Lemma eval_var_path_simulation R arena arena':
   sim arena arena' R ->
   forall ap theta l ots r ap' theta' ots',
-  eval_var_path arena ap theta l ots r ->
-  match ots, ots' with
-  | Some ts, Some ts' =>
-    length ts = length ts' ->
-    R arena ap theta (Some ts) arena' ap' theta' (Some ts') ->
-    eval_var_path arena' ap' theta' l (Some ts') r
-  | None, None =>
-    R arena ap theta None arena' ap' theta' None ->
-    eval_var_path arena' ap' theta' l None r
-  | _, _ => True
-  end.
-Proof.
-  move=> [H1R H2R H3R] ap theta l ots r ap' theta' ots' H.
-  elim: H ap' theta' ots'.
-  - move=> {}ap {}theta {}l k x args y rs Hap ? IH ap' theta' [?|]; first done.
-    move=> /H3R {}H3R. move: (Hap) => /H3R [H31R [? [? H32R]]].
-    apply: eval_var_path_abs.
-    + eassumption.
-    + apply: (IH _ _ (Some _)); first done.
-      apply: H31R; eassumption.
-  - move=> {}ap {}theta {}l ts steps x args nap ntheta nts y rs Hsteps H'steps Hnap Hx Eargs ? IH ap' theta' [ts'|]; last done.
-    move=> Ets' HR.
-    move: (Hsteps) (H'steps) (HR)=> /H1R /[apply] /[apply] - [nap'] [ntheta'] [nts'] [steps'] [? [? [Ents']]].
-    move=> /[dup] /H2R => /(_ _ _ _ Hnap) [x'] [args'] [?] [?] [Ex' Hargs] H'R.
-    apply: eval_var_path_var.
-    + eassumption.
-    + eassumption.
-    + rewrite -Ents'. eassumption.
-    + move: Ex' Hx => ->. by apply.
-    + rewrite Eargs. eassumption.
-    + move=> j r' /[dup] ? /IH => /(_ _ _ None). apply.
-      apply: Hargs; first eassumption.
-      rewrite -Eargs.
-      apply /nth_error_Some. congruence.
-Qed.
-
-(* TODO alternative idea eval as Acc of a step relation?
-   Acc Step (ap, theta, ts) -> exists r, eval ts ap theta ts l r
- *)
-
-Lemma eval_simulation R arena arena':
-  sim arena arena' R ->
-  forall ap theta l ots r ap' theta' ots',
+  Acc (step arena) (ap, theta, l, ots) ->
   eval arena ap theta l ots r ->
   match ots, ots' with
   | Some ts, Some ts' =>
@@ -1882,28 +1976,47 @@ Lemma eval_simulation R arena arena':
   end.
 Proof.
   move=> [H1R H2R H3R] ap theta l ots r ap' theta' ots' H.
-  elim: H ap' theta' ots'.
-  - move=> {}ap {}theta {}l k x args y rs Hap ? IH ap' theta' [?|]; first done.
+  elim /solved_var_path_induction: H ap' theta' ots' r.
+  - (* abs case *)
+    move=> {}ap {}theta {}l k x args Hap IH ap' theta' [?|] [[??] ?]; first done.
+    move=> Hr.
     move=> /H3R {}H3R. move: (Hap) => /H3R [H31R [? [? H32R]]].
+    move: Hr => /eval_elim [?] [?].
+    rewrite Hap=> - [[<- _ _]] Hr.
     apply: eval_abs.
-    + eassumption.
-    + apply: (IH _ _ (Some _)); first done.
-      apply: H31R; eassumption.
-  - move=> {}ap {}theta {}l ts x args nap theta' {}r Hap Hx ? IH.
-    admit. (* not provable because of too weak induction principle *)
-  - move=> {}ap {}theta {}l ts x args y rs Hap Hx Eargs ? IH.
-    move=> ap' theta' [ts'|]; last done.
-    move=> Ets' /[dup] /H2R {}H2R.
-    move: (Hap)=> /H2R - [x'] [args'] [Hap' [Eargs' [Ex' Hargs]]] HR.
+    + by eassumption.
+    + by apply: (IH _ _ (Some _) _ Hr).
+  - (* var_path case *)
+    move=> {}ap {}theta {}l ts steps nap ntheta nts Hsteps H'steps IH ap' theta' [ts'|]; last done.
+    move=> r Hr Hts' HR.
+    move: (Hsteps) (H'steps) (HR)=> /H1R /[apply] /[apply] - [nap'] [ntheta'] [nts'] [steps'] [? [? [Ents']]].
+    move: (Hsteps) (H'steps) (Hr) (Ents') => /var_path_spec /[apply] /[apply] /IH.
+    move=> /(_ _ _ (Some _)) /[apply] /[apply].
+    apply: var_path_spec_reverse; by eassumption.
+  - (* const case *)
+    move=> {}ap {}theta {}l ts x args Hap Hx IH ap' theta' [ts'|]; last done.
+    move=> r Hr Hts' HR.
+    move: (HR) => /H2R => /(_ _ _ _ Hap) [x'] [args'] [Hap'] [Eargs'] [Ex'] {}H2R.
+    move: (Hr) => /eval_elim [?] [?].
+    rewrite Hap=> - [[<- <-]].
+    rewrite Hx=> - [?] [?] [?] [?] [Eargs] H. subst r.
     apply: eval_const.
-    + rewrite -Ets'. by eassumption.
-    + rewrite -Ex'. by eassumption.
-    + rewrite -Eargs'. by eassumption.
-    + move=> j r' /[dup] ? /IH => /(_ _ _ None). apply.
-      apply: Hargs; first eassumption.
-      rewrite -Eargs.
-      apply /nth_error_Some. congruence.
-Admitted.
+    + rewrite -Hts'. eassumption.
+    + rewrite -Ex'. eassumption.
+    + rewrite -Eargs'. eassumption.
+    + move=> j r' /[dup] ? /H.
+      move: IH => /Forall_forall /[apply].
+      move=> /(_ _ _ _ None). apply.
+      * apply /in_seq. split; first by apply: Nat.le_0_l.
+        rewrite -Eargs.
+        apply /nth_error_Some. congruence.
+      * apply: H2R; first by eassumption.
+        rewrite -Eargs.
+        apply /nth_error_Some. congruence.
+Qed.
+
+Print Assumptions eval_var_path_simulation.
+
 
 (* end arena position TODO
 
