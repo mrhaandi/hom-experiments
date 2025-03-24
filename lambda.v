@@ -268,6 +268,12 @@ Notation "'pi[' a ',' b ']'" := (intvl a b) (at level 2).
 (* [3; 4] is a continuation of [1; 2] *)
 Check (pi[[1; 2], [3; 4]]).
 
+Definition in_interval (a:position) (int:interval): Prop :=
+let loceq := fun '(x, y) => x = y in
+match int with
+| pi[from, to] => Forall loceq (combine from a) /\ Forall loceq (combine a (from ++ to))
+end.
+
 
 (* ap is a prefix of ap' *)
 Definition prefix (ap:aposition) (ap':aposition) :=
@@ -1610,7 +1616,8 @@ Inductive redundant_path_interval (a : arena) (gtr : game_tree) : interval -> in
   redundant_path_interval a gtr pi[from_t, to_t] pi[posend, to_g] -> (* (c) *)
   redundant_path_interval a gtr pi[from_t, to_t] pi[from_g, to_g]
 | redundant_no_first_case  from_t to_t from_g to_g:
-  find_position_in_game_tree_int gtr from_g to_g from_t = None -> (* (0) TODO: does not contain any node *)
+  (forall pos, in_interval pos pi[from_t, to_t] -> 
+   find_position_in_game_tree_int gtr from_g to_g from_t = None) -> (* (0) *)
   redundant_path_interval a gtr pi[from_t, to_t] pi[from_g, to_g].
 
 
