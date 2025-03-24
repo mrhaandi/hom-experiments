@@ -526,7 +526,7 @@ Inductive descendant_of (x : nat) :
   term -> position -> Prop :=
 | descendant_term_use_binding n t p m args m' z:
   nth_error args n = Some t ->
-  z < m' -> (* z is bound in the binder of (tm m' y' args') *)
+  z < m' -> (* z is bound in the binder of (tm m y' args') *)
   descendant_of z t p  ->
   descendant_of x (tm m (x+m) args) (n::p)
                 
@@ -863,6 +863,7 @@ Example game_tree_ex_two :=
 
 Example game_tree_ex_after_T3 :=
   construct_game_tree [main_solution''_after_T3; arg1; arg2] 6 (0, []) (map (fun j => ((S j, []), lk [])) (rev (seq 0 2))).
+
 
 Compute get_final_nodes game_tree_ex1_0_1.
 Compute get_final_nodes game_tree_ex_two.
@@ -1407,7 +1408,7 @@ or below m2p in t.
 Here: in our represenation conditions 1 and 2 are for free since paths always point to a
 subterm of the form \ xs.y[...]
  *)
-Inductive end_path (t:term)  : interval -> Prop :=
+Inductive end_path (t:term) : interval -> Prop :=
 | end_path_witness from btw to bf bt:
   has_position t (from ++ btw :: to) = true ->
   bf = get_subterm_bound t (from ++ [btw]) 0%nat ->
@@ -1609,11 +1610,7 @@ Inductive redundant_path_interval (a : arena) (gtr : game_tree) : interval -> in
   redundant_path_interval a gtr pi[from_t, to_t] pi[posend, to_g] -> (* (c) *)
   redundant_path_interval a gtr pi[from_t, to_t] pi[from_g, to_g]
 | redundant_no_first_case  from_t to_t from_g to_g:
-  find_position_in_game_tree_int gtr from_g to_g from_t = None -> (* (0) *)
-  redundant_path_interval a gtr pi[from_t, to_t] pi[from_g, to_g]
-| redundant_no_second_case  from_t to_t from_g to_g pos:
-  find_position_in_game_tree_int gtr from_g to_g from_t = Some pos -> (* (0) *)
-  find_position_in_game_tree_int gtr pos to_g (from_t ++ to_t) = None -> (* (a) *)
+  find_position_in_game_tree_int gtr from_g to_g from_t = None -> (* (0) TODO: does not contain any node *)
   redundant_path_interval a gtr pi[from_t, to_t] pi[from_g, to_g].
 
 
