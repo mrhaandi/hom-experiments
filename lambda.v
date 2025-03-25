@@ -1555,11 +1555,13 @@ Qed.
 Assume π ∈ G(t, E) and n_j is a lambda node. The interval π[i, j] contributes if [r_i] ≠ [r_j].
  *) 
 Inductive non_contributes : arena -> game_tree -> interval -> Prop :=
-| contributes_helper_case a ap1 theta1 ap2 theta2 gtr gtrs1 gtrs2 from to (r:nat) (l:nat):
+| contributes_helper_case a ap1 theta1 ap2 theta2 gtr gtrs1 gtrs2 from to (lf:nat) (lt:nat) r:
   get_subtree gtr from = (node (ap1, theta1) gtrs1) ->
   get_subtree gtr to = (node (ap2, theta2) gtrs2) ->
-(*  solved a ap1 theta1 l (node (ap1, theta1) gtrs1) r -> TODO
-  solved a ap2 theta2 l (node (ap2, theta2) gtrs2) r -> *)
+  get_arena_subterm_bound a ap1 = Some lf ->
+  get_arena_subterm_bound a ap2 = Some lt ->
+  eval a ap1 theta1 lf None r ->
+  eval a ap2 theta2 lt None r ->
   non_contributes a gtr pi[from, to].
 
 (* get all prefixes of the given list *)
