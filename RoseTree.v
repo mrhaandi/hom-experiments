@@ -87,21 +87,28 @@ Fixpoint get_subtree {A : Type} (tr : rose_tree A) (p : position) : rose_tree A 
     end
   end.
 
+(* The subtree of tr at legal position p. *)
+Fixpoint get_subtree_error {A : Type} (tr : rose_tree A) (p : position) : option (rose_tree A) :=
+  match p with
+  | [] => Some tr
+  | hd :: tl =>
+    match nth_error (get_children tr) hd with
+    | Some tr' => get_subtree_error tr' tl
+    | None => None
+    end
+  end.
+
 (* Give a list of node values along a path to a position *)
 (* this can be computed simpler ad hoc, but I wanted to test dependent lemmas *)
 Definition get_branch {A : Type} (tr : rose_tree A) (p : position) : list A :=
   get_value (get_subtree (map_tree_dependent (fun l v => l) tr) p).
 
 (* map only the nth element of a list *)
-Fixpoint map_nth {A : Type} (f : A -> A) (n : nat) (l : list A) : list A :=
-  match l with
-  | [] => []
-  | hd :: tl =>
-    match n with
-    | 0 => f hd :: tl
-    | S n' => hd :: map_nth f n' tl
-    end
-  end.
+Definition map_nth {A : Type} (f : A -> A) (n : nat) (l : list A) : list A :=
+  firstn n l ++ match skipn n l with
+                | [] => []
+                | hd :: tl => f hd :: tl
+                end.
 
 (* Replace the subtree of tr at position p with tr'. *)
 Fixpoint replace_subtree {A : Type} (tr' : rose_tree A) (p : position) (tr : rose_tree A) :=
@@ -111,6 +118,24 @@ Fixpoint replace_subtree {A : Type} (tr' : rose_tree A) (p : position) (tr : ros
     let 'node v children := tr in
     node v (map_nth (replace_subtree tr' tl) hd children)
   end.
+
+Lemma get_subtree_app {A : Type} (t : rose_tree A) p p' :
+  has_position t p = true ->
+  get_subtree t (p ++ p') = get_subtree (get_subtree t p) p'.
+Proof.
+  elim: p t; first done.
+  move=> ?? IH [??] /=.
+  by case: (nth_error _ _).
+Qed.
+
+Lemma get_subtree_error_app {A : Type} (t : rose_tree A) p p' :
+  get_subtree_error t (p ++ p') =
+    match get_subtree_error t p with Some t' => get_subtree_error t' p' | None => None end.
+Proof.
+  elim: p t; first done.
+  move=> ?? IH [??] /=.
+  by case: (nth_error _ _).
+Qed.
 
 Lemma replace_subtree_nil:
   forall (A:Type) (tr : rose_tree A) tr',
@@ -126,6 +151,23 @@ Proof.
   - by case.
   - move=> ?? IH [|n]; first done.
     by apply: IH.
+Qed.
+
+Lemma nth_error_map_nth_neq {A : Type} (l : list A) n n' f :
+  n <> n' ->
+  nth_error (map_nth f n l) n' = nth_error l n'.
+Proof.
+  elim: l n n'.
+  - by case.
+  - move=> ?? IH [|n] [|n'] /=; [done..|].
+    move=> ?. apply: IH. lia.
+Qed.
+
+Lemma length_map_nth {A : Type} (l : list A) n f :
+  length (map_nth f n l) = length l.
+Proof.
+  rewrite /map_nth -[in RHS](firstn_skipn n l) !length_app.
+  by case: (skipn n l).
 Qed.
 
 Lemma replace_get_subtree {A : Type} p (tr : rose_tree A) tr' tr'' :
