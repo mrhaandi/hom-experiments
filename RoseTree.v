@@ -31,8 +31,111 @@ Qed.
 (* Positions in a tree or term are lists of natural numbers. *)
 Definition position := list nat.
 
+
+Definition check_one := (fun bb '(a, b) =>
+                           match bb with
+                           | Some true => Some true
+                           | Some false => Some false
+                           | None => if (a =? b)
+                                     then None
+                                     else if (a <? b)
+                                          then Some true
+                                          else Some false
+                           end).
+
+Definition leb := fun p1 p2 => let r := fold_left check_one (combine p1 p2) None in
+                               match r with
+                               | Some true => true
+                               | Some false => false
+                               | None => true
+                               end.
+
+Lemma leb_eq_head:
+  forall a p q,
+    leb p q = true ->
+    leb (a::p) (a::q) = true.
+Proof.
+  induction p, q;
+    unfold leb;
+    simpl;
+    now rewrite Nat.eqb_refl.
+Qed.
+  
+Lemma leb_total:
+  forall (p:position) (q:position), leb p q = true \/ leb q p = true.
+Proof.
+  induction p, q; try (cbv;tauto).
+  assert (forall l,fold_left check_one l (Some true) = Some true) as Ftrue. {
+    induction l.
+    * now simpl.
+    * simpl. destruct a0. auto.
+  }
+  * destruct (Compare_dec.le_lt_dec a n).
+    apply Compare_dec.le_lt_eq_dec in l.
+    destruct l.
+    ** left.
+       unfold leb. 
+       unfold combine.
+       fold (combine p q).
+       simpl.
+       generalize l;intro.
+       apply Nat.lt_neq in l.
+       apply Nat.eqb_neq in l.
+       rewrite l.
+       apply Nat.ltb_lt in l0.
+       rewrite l0.
+       now rewrite Ftrue.
+    ** subst n.
+       destruct (IHp q).
+       *** left; auto using leb_eq_head.
+       *** right; auto using leb_eq_head.
+    ** right.
+       unfold leb. 
+       unfold combine.
+       fold (combine q p).
+       simpl.
+       generalize l;intro.
+       apply Nat.lt_neq in l.
+       apply Nat.eqb_neq in l.
+       rewrite l.
+       apply Nat.ltb_lt in l0.
+       rewrite l0.
+       now rewrite Ftrue.
+Qed.
+
+
+Inductive pos_prefix : position -> position -> Prop :=
+| pos_prefix_nil q:
+  pos_prefix [] q
+| pos_prefix_cons a p q:
+  pos_prefix p q ->
+  pos_prefix (a::p) (a::q).
+
+Fixpoint pos_prefix_bool p q :=
+  match p, q with
+  | [], _ => true
+  | _ :: _ , [] => false
+  | hd :: tl, hd' :: tl' => if hd =? hd'
+                            then pos_prefix_bool tl tl'
+                            else false
+  end.
+
+
+Fixpoint lminus p p' :=
+  match p, p' with
+  | [], q => []
+  | q, [] => q
+  | hd :: tl, hd' :: tl' => if hd =? hd'
+                            then lminus tl tl'
+                            else hd :: tl
+  end.
+
+
+Compute (lminus [0;3;4] [0;3]).
+Compute (lminus [0;3;4] [0;3;5;6]).
+
 (* fold a tree with the function f taking
-    the nodes on the path the the current node,
+    the nodes on the path to the current node,
     the value of the current node,
     and the results of the children *)
 (* TODO: should the order be reversed? (fun l => f (l ++ [v])) *)

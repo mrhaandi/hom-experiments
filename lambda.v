@@ -1871,8 +1871,276 @@ Fixpoint trans_T2 (t:term) (intv : interval) (b:nat) : term :=
 
   Main Theorem:
 
-  Each subterm in t under the reduction of t ts normalizes to a fragment.
+  Each subterm in [t] under the reduction of [t] [ts] normalizes to a fragment.
  *)
+Inductive fragment :=
+| Nil
+| PropFgm (p:position) (t:term).
+
+
+(*
+Inductive is_term_fragment (t:term) : fragment -> Prop :=
+| is_term_fragment_nil :
+  is_term_fragment t Nil
+| is_term_fragment_ok p plb:
+  has_position t p = true ->
+  Forall (fun '(plp, b) => has_position t (p++plp) = true) plb ->
+  list_max (snd (split plb)) < length plb ->
+  is_term_fragment t (PropFgm p plb). *)
+
+Require Import List Setoid Permutation Sorted Orders Mergesort.
+
+Module NatSort <: Orders.TotalLeBool.
+
+  Definition t : Set := nat.
+
+  Definition leb (p1:t) (p2:t) := p1 <=? p2.
+
+  Lemma leb_total:
+    forall x y : t, leb x y = true \/ leb y x = true.
+  Proof.
+    move=> x y.
+    destruct (Compare_dec.le_ge_dec x y).
+    * apply Compare_dec.leb_correct in l.
+      tauto.
+    * assert (y<=x) by lia.
+      apply Compare_dec.leb_correct in H.
+      tauto.
+  Qed.
+  
+End NatSort.
+  
+Module Import MergeSortNat := Sort NatSort.
+
+
+
+
+(* from a sorted list generates a list of unique elements *)
+Fixpoint unique ns :=
+  match ns with
+  | [] => []
+  | [hd] => [hd]
+  | hd :: tl => match unique tl with
+                | [] => [hd]
+                | hd' :: tl' => if hd =? hd'
+                                then hd' :: tl'
+                                else hd :: hd' :: tl'
+                end
+  end.
+
+Lemma test_unique:
+  unique [3;3;4;2;2;2] = [3;4;2].
+Proof.
+  now compute.
+Qed.
+  
+Definition get_one_mapping_option l1 (l2:list nat) x :=
+  fold_left (fun acc '(y, z) =>
+               match acc with
+               | Some x => Some x
+               | None => if y =? x
+                         then Some z
+                         else None
+               end) (combine l1 l2) None.
+
+Fixpoint get_mapping l1 l2 :=
+  fun x => match get_one_mapping_option l1 l2 x with
+           | Some x => x
+           | None => 0
+           end.
+
+Lemma test_get_mapping:
+  forall f,
+    f = get_mapping [3;4] [4;3] ->
+    f 3 = 4 /\ f 4 = 3 /\ f 1 = 0.
+Proof.
+  intros.
+  repeat split;subst f; now compute.
+Qed.
+
+
+Module SortPairs <: Orders.TotalLeBool.
+
+  Definition t : Set := nat * position.
+
+  Definition leb (p1:t) (p2:t) :=
+    match p1, p2 with
+    | (n1, p1), (n2, p2) => n1 <=? n2
+    end.
+
+  Lemma leb_total:
+    forall x y : t, leb x y = true \/ leb y x = true.
+  Proof.
+    move=> x y.
+    destruct x, y.
+    destruct (Compare_dec.le_ge_dec n n0).
+    * apply Compare_dec.leb_correct in l.
+      tauto.
+    * assert (n0 <= n) by lia.
+      apply Compare_dec.leb_correct in H.
+      tauto.
+  Qed.
+  
+End SortPairs.
+  
+Module MergeSortPairs := Sort SortPairs.
+
+(* from a sorted list generates a list of unique elements *)
+Fixpoint np_unique (ns:list (nat*position)) :=
+  match ns with
+  | [] => []
+  | [hd] => [hd]
+  | (n, p) :: tl => match np_unique tl with
+                | [] => [(n,p)]
+                | (n',p') :: tl' => if n =? n'
+                                    then (n, p) :: tl'
+                                    else (n, p) :: (n', p') :: tl'
+                end
+  end.
+
+Lemma test_npunique:
+  np_unique [(3,[1]);(3,[1;2]);(4,[4;2;3]);(2,[3]);(2,[1;2]);(2,[1;2;3])] =
+    [(3,[1]);(4,[4;2;3]);(2,[3])].
+Proof.
+ now compute.
+Qed.
+
+(* gives the list of free variable names in the term [t] *)
+Definition get_free_var_names (t:term) :=
+  fold_tree_dependent (fun nds '(n, x) flists =>
+                         let bound := n + (fold_left (fun acc '(n, x) => acc+n) nds 0) in
+                         let cfvars := flat_map (fun lst => map (fun el => el - n) lst) flists in
+                         if bound <=? x
+                         then (x-n) :: cfvars
+                         else cfvars)
+ t.
+
+Lemma test1_get_free_var_names:
+  get_free_var_names ex1_2 = [0].
+Proof.
+  now compute.
+Qed.
+
+Lemma test2_get_free_var_names:
+  get_free_var_names ex1_0 = [].
+Proof.
+ now compute.
+Qed.
+
+Lemma test3_get_free_var_names:
+  get_free_var_names main_solution = [2].
+Proof.
+  now compute.
+Qed.
+
+
+(* get the list of free variable names *)
+Definition get_free_var_pos (t:term) : list position :=
+  fold_tree_dependent (fun nds '(n, x) (flists : list (list position)) =>
+                         let bound := n + (fold_left (fun acc '(n, x) => acc+n) nds 0) in
+                         let comb := combine (seq 0 (length flists)) flists in
+                         let addpos := map (fun '(n, lst) => map (fun el => n :: el) lst) comb in
+                         let pfvars := flat_map id addpos in
+                         if bound <=? x
+                         then [] :: pfvars
+                         else pfvars)
+ t.
+
+Lemma test1_get_free_var_pos:
+  get_free_var_pos ex1_2 = [[]].
+Proof.
+  now compute.
+Qed.
+
+Lemma test2_get_free_var_pos:
+  get_free_var_pos ex1_0 = [].
+Proof.
+ now compute.
+Qed.
+
+Lemma test3_get_free_var_pos:
+  get_free_var_pos main_solution = [[0;0;1]].
+Proof.
+ now compute.
+Qed.
+
+Fixpoint fgm_normalize (f:fragment) : fragment :=
+  match f with
+  | Nil => Nil
+  | PropFgm p t =>
+      let nms := sort (get_free_var_names t) in
+      let unms := unique nms in
+      let nnms := seq 0 (length unms) in
+      let nt := ren_term (get_mapping unms nnms) t in
+      PropFgm p nt
+  end.
+
+(* result is a list of assignments from numbers of free vars to terms *)
+Fixpoint compute_extension (f1:fragment) (f2:fragment) :=
+  match f1, f2 with
+  | Nil, _ => []
+  | _, Nil => []
+  | PropFgm p t, PropFgm p' t' =>
+      if pos_prefix_bool p p'
+      then
+        let fvars := get_free_var_names t' in
+        let fvarsp := get_free_var_pos t' in
+        let top' := lminus p p' in
+        let tfvarsp := map (fun el => top' ++ el) fvarsp in
+        let varpos := np_unique (MergeSortPairs.sort (combine fvars tfvarsp)) in
+        map (fun '(n, pos) =>
+               let st := get_subterm t pos in
+               let bd := get_subterm_bound t pos 0 in
+               if has_position t pos
+               then (n, slide_term bd st) (* Is that right? *)
+               else (n, tm 0 0 [])) varpos
+      else
+      []
+  end.
+
+
+Fixpoint apply_extension ext t :=
+  let fvars := get_free_var_names t in
+  let fvarsp := get_free_var_pos t in
+  fold_left (fun acc '(n, t') =>
+               let posn := filter (fun '(m,p) => m =? n) (combine fvars fvarsp) in
+               fold_left (fun nacc '(n, pos) => replace_term t' pos nacc) posn acc) ext t.
+
+Inductive fgm_lt : fragment -> fragment -> Prop :=
+| fgm_lt_nil f :
+  fgm_lt Nil f
+| fgm_lt_prop_a f f' p t p' t' ext:
+  fgm_normalize f = PropFgm p t ->
+  fgm_normalize f' = PropFgm p' t' ->
+  (p <> p' \/ t <> t') ->
+  pos_prefix p p' ->
+  compute_extension (PropFgm p t) (PropFgm p' t') = ext ->
+  apply_extension ext t' = get_subterm t (lminus p p') ->
+  fgm_lt f f'.
+
+(* TODO:
+   fragment_at
+
+
+Theorem fragments_decrease:
+forall p p' a@[t t1...tn] r f f',
+   prefix p p' ->
+   has_position t p' ->
+   f = fragment_at [t t1...tn = r] p ->
+   f' = fragment_at [t t1...tn = r] p' ->
+   f = f' \/ fgm_lt f f'.
+
+
+Theorem constant_fragments_trans_T2:
+forall p p' a@[t t1...tn] r f f',
+   prefix p p' ->
+   has_position t p' ->
+   p <> p' ->
+   fragment_at [t t1...tn = r] p = fragment_at [t t1...tn = r] p' ->
+   one can apply trans_T2 at p
+
+*)
+
 
 (*
 Notation "'pi[' a ',' b ']_' TS " := (intvl TS a b) (at level 20).
