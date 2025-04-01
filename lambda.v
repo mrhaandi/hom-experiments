@@ -2098,6 +2098,8 @@ Fixpoint compute_extension (f1:fragment) (f2:fragment) :=
       []
   end.
 
+Definition listeqb (l1:list nat) l2 :=
+  (length l1 =? length l2) && fold_left (fun (acc:bool) '(a1, a2) => acc && (a1 =? a2)) (combine l1 l2) true.
 
 Fixpoint apply_extension ext t :=
   let fvars := get_free_var_names t in
@@ -2118,29 +2120,59 @@ Inductive fgm_lt : fragment -> fragment -> Prop :=
   apply_extension ext t' = get_subterm t (lminus p p') ->
   fgm_lt f f'.
 
-(* TODO:
-   fragment_at
+Definition find_pos_in_game_tree (gtr:game_tree) (apos:aposition) :=
+  let (n, pos) := apos in
+  fold_tree_dependent (fun nds '((n', pos'), th) lb =>
+                         if (n =? n') && (listeqb pos pos')
+                         then Some ([], th)
+                         else fold_left
+                                (fun acc b =>
+                                   match b with
+                                   | (n, Some (p, th)) => Some (n::p, th)
+                                   | (n, None) => acc
+                                     end) (combine (seq 0 (length lb)) lb) None) gtr.
+
+Definition get_env (p:position) (t:term) := lk []. (* TODO *)
+
+Inductive is_fragment_at t ts pos : fragment -> Prop :=
+| is_fragment_at_cons gtr sdepth gtrpos theta res fres fuel env env' p':
+  gtr = construct_game_tree_start sdepth t ts ->
+  gtr = construct_game_tree_start (sdepth+1) t ts ->
+  find_pos_in_game_tree gtr (0, pos) = Some (gtrpos, theta) ->
+  eval (t :: ts) (0, []) [] fuel (Some env) res ->
+  eval (t :: ts) (0, []) [] (fuel+1) (Some env) res ->
+  eval (t :: ts) (0, pos) theta fuel (Some env') fres ->
+  has_position res p' = true ->
+  get_env p' res = lk env' ->
+  is_fragment_at t ts pos (PropFgm p' fres). (* is it really fres?, rather its closure *)
 
 
 Theorem fragments_decrease:
-forall p p' a@[t t1...tn] r f f',
-   prefix p p' ->
-   has_position t p' ->
-   f = fragment_at [t t1...tn = r] p ->
-   f' = fragment_at [t t1...tn = r] p' ->
-   f = f' \/ fgm_lt f f'.
+    forall p (p':position) t ts f f',
+      prefix (0,p) (0,p') ->
+      has_position t p' = true ->
+      is_fragment_at t ts p f ->
+      is_fragment_at t ts p' f' ->
+      f = f' \/ fgm_lt f f'.
+Proof.
+Admitted.
 
-
+Definition applicable_T2 t ts p p' :=
+  forall fuel gtr,
+    gtr = construct_game_tree_start fuel t ts ->
+    gtr = construct_game_tree_start (fuel+1) t ts ->
+    redundant_path (t::ts) gtr t pi[p, p'].
+       
 Theorem constant_fragments_trans_T2:
-forall p p' a@[t t1...tn] r f f',
-   prefix p p' ->
-   has_position t p' ->
-   p <> p' ->
-   fragment_at [t t1...tn = r] p = fragment_at [t t1...tn = r] p' ->
-   one can apply trans_T2 at p
-
-*)
-
+  forall p p' t ts f a,
+    prefix (0,p) (0,p') ->
+    prefix (0,p++[a]) (0,p') ->
+    has_position t p' = true ->
+    is_fragment_at t ts p f ->
+    is_fragment_at t ts p' f ->
+    applicable_T2 t ts p (p++[a]).
+Proof.
+Admitted.
 
 (*
 Notation "'pi[' a ',' b ']_' TS " := (intvl TS a b) (at level 20).
