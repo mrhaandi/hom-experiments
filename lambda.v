@@ -2108,6 +2108,7 @@ Fixpoint apply_extension ext t :=
                let posn := filter (fun '(m,p) => m =? n) (combine fvars fvarsp) in
                fold_left (fun nacc '(n, pos) => replace_term t' pos nacc) posn acc) ext t.
 
+(* comparison of fragments *)
 Inductive fgm_lt : fragment -> fragment -> Prop :=
 | fgm_lt_nil f :
   fgm_lt Nil f
@@ -2120,6 +2121,9 @@ Inductive fgm_lt : fragment -> fragment -> Prop :=
   apply_extension ext t' = get_subterm t (lminus p p') ->
   fgm_lt f f'.
 
+
+(* returns [Some (pos', theta)] such that pos' is (the first) position in the game tree [gtr]
+   with apos in the first coordinate the actual node there is (apos, theta) *)
 Definition find_pos_in_game_tree (gtr:game_tree) (apos:aposition) :=
   let (n, pos) := apos in
   fold_tree_dependent (fun nds '((n', pos'), th) lb =>
@@ -2132,44 +2136,61 @@ Definition find_pos_in_game_tree (gtr:game_tree) (apos:aposition) :=
                                    | (n, None) => acc
                                      end) (combine (seq 0 (length lb)) lb) None) gtr.
 
-Definition get_env (p:position) (t:term) := lk []. (* TODO *)
+Definition get_env (gtr:game_tree) (p:position) (t:term) := lk []. (* TODO *)
 
-Inductive is_fragment_at t ts pos : fragment -> Prop :=
-| is_fragment_at_cons gtr sdepth gtrpos theta res fres fuel env env' p':
-  gtr = construct_game_tree_start sdepth t ts ->
-  gtr = construct_game_tree_start (sdepth+1) t ts ->
+(* checks if the fragment is the fragment that results from reduction of
+   the subterm of [t] at the position [pos], when reduction is in the arena [t]::[ts] *)
+Inductive is_fragment_at t ts pos res : fragment -> Prop :=
+| is_fragment_at_cons gtr gtrpos theta fres  env' p' fuel:
+  solved_start gtr t ts ->
   find_pos_in_game_tree gtr (0, pos) = Some (gtrpos, theta) ->
-  eval (t :: ts) (0, []) [] fuel (Some env) res ->
-  eval (t :: ts) (0, []) [] (fuel+1) (Some env) res ->
+  (* is_right_hand_side *)
   eval (t :: ts) (0, pos) theta fuel (Some env') fres ->
+  eval (t :: ts) (0, pos) theta (fuel+1) (Some env') fres ->
   has_position res p' = true ->
-  get_env p' res = lk env' ->
-  is_fragment_at t ts pos (PropFgm p' fres). (* is it really fres?, rather its closure *)
-
+  get_env gtr p' res = lk env' ->
+  is_fragment_at t ts pos res (PropFgm p' fres) (* is it really fres?, rather its closure *)
+| is_fragment_at_nil gtr gtrpos theta fres env' p' fuel: (* for disequalities *)
+  solved_start gtr t ts ->
+  find_pos_in_game_tree gtr (0, pos) = Some (gtrpos, theta) ->
+  (* is_right_hand_side *)
+  eval (t :: ts) (0, pos) theta fuel (Some env') fres ->
+  eval (t :: ts) (0, pos) theta (fuel+1) (Some env') fres ->
+  (* some condition that holds when fres does not fit to the right_hand side res *)
+  get_env gtr p' res = lk env' ->
+  is_fragment_at t ts pos res Nil. (* is it really fres?, rather its closure *)
+ 
+  
 
 Theorem fragments_decrease:
-    forall p (p':position) t ts f f',
+    forall p (p':position) t ts f f' fuel env res,
       prefix (0,p) (0,p') ->
       has_position t p' = true ->
-      is_fragment_at t ts p f ->
-      is_fragment_at t ts p' f' ->
+      eval (t :: ts) (0, []) [] fuel (Some env) res ->
+      eval (t :: ts) (0, []) [] (fuel+1) (Some env) res ->
+      is_fragment_at t ts p res f ->
+      is_fragment_at t ts p' res f' ->
       f = f' \/ fgm_lt f f'.
 Proof.
 Admitted.
 
+(* checks if T2 is applicable in [t] when used in arena [t]::[ts] so
+   that T2 contracts the interval pi[p, p'] *)
 Definition applicable_T2 t ts p p' :=
-  forall fuel gtr,
-    gtr = construct_game_tree_start fuel t ts ->
-    gtr = construct_game_tree_start (fuel+1) t ts ->
-    redundant_path (t::ts) gtr t pi[p, p'].
+  forall gtr,
+    solved_start gtr t ts ->
+    (end_path t pi[p, p'] /\
+       redundant_path (t::ts) gtr t pi[p, p']).
        
 Theorem constant_fragments_trans_T2:
-  forall p p' t ts f a,
+  forall p p' t ts f a fuel env res,
     prefix (0,p) (0,p') ->
     prefix (0,p++[a]) (0,p') ->
     has_position t p' = true ->
-    is_fragment_at t ts p f ->
-    is_fragment_at t ts p' f ->
+    eval (t :: ts) (0, []) [] fuel (Some env) res -> 
+    eval (t :: ts) (0, []) [] (fuel+1) (Some env) res ->
+    is_fragment_at t ts p res f ->
+    is_fragment_at t ts p' res f ->
     applicable_T2 t ts p (p++[a]).
 Proof.
 Admitted.
