@@ -7,4 +7,5 @@
 *.vos
 /.Makefile.coq.d
 .emacs.desktop
-
+.emacs.desktop.lock
+.lia.cache
