@@ -1857,22 +1857,123 @@ Fixpoint trans_T2 (t:term) (intv : interval) (b:nat) : term :=
   let ts'' := map (slide_term bound) ts' in
   replace_term (tm n (y-bound) ts'') m1 t.
 
-(* let r be the rhs of
-   t ts = r
+(*
+  Stirling:
+  Proposition 32 (page 45):
 
-  fragment is a term
-
-  \x1...xn.r'
-
-  where x1,...,xn are of base type,
-  such that there are positions p0,p1,...,pn
-  such that
-  get_subtree r p0 = r'[x1 := get_subtree r p1,...,xn := get_subtree r pn]
-
-  Main Theorem:
-
-  Each subterm in t under the reduction of t ts normalizes to a fragment.
+Assume t is a [smallest solution] [T1 and T2 cannot be applied] to E whose goal is u,
+m1,..., mp are
++ both embedded and
++ end nodes (Definitions 35 and 36) of t
++ labelled with the same variable
++ bound by a binder at a node n.
++ the node mi+1 occurs below mi for each i : 1 ≤ i ≤ p.then p ≤ depth(u).
  *)
+
+
+(*
+p - order of the instance
+q - (maximal) arity of types in the instance
+u - right-hand side of equation
+N_i - number of nodes on level i
+ENE_i - number of embedded non-end nodes of level i
+
+=======================================
+In 4th-order matching we have nodes of:
+=======================================
+
+---------- LEVEL 1
+
+- non-embedded nodes of level 1 (of order 3 at most)
+  --> bounded by q
+      : each variable bound on the top of the
+      : solution t contributes at most 1 to the number of
+      : non-embedded nodes of level 1 and no other
+      : source contributes to them.
+
+- embedded non-end nodes of level 1 that contribute (of order 3 at most)
+  --> bounded by |u|
+
+- embedded non-end nodes of level 1 that do not contribute (of order 3 at most)
+  --> bounded by ENE_1 = 0?
+      : Each time we have two embedded non-end nodes n0 above n1
+      : that do not contribute (i.e. they do not start a segment that contributes)
+      : such that below n1 there is no ther embedded non-end node
+      : if there is an occurence n2 of some variable bound at the successor of n0
+      : that occurs under n1 then unfold n0 to all variables it binds.
+      : in that way the path to n2 after applying T2 will get fewer occurrences of main
+      : variables. For all other paths to active variables the number remains the same.
+
+- embedded end nodes of level 1 that do not contribute (of order 3 at most)
+  --> bounded by q * depth(u)
+      : by Proposition 32
+
+- N_1 <= q + |u| + ENE_1 + q * depth(u)
+
+---------- LEVEL 2
+
+- these are only leaves so N_2 <= 1
+
+
+
+
+=======================================
+In 5th-order matching we have nodes of:
+=======================================
+
+---------- LEVEL 1
+
+- non-embedded nodes of level 1 (of order 4 at most)
+  --> bounded by q
+      : each variable bound on the top of the
+      : solution t contributes at most 1 to the number of
+      : non-embedded nodes of level 1 and no other
+      : source contributes to them.
+
+- embedded non-end nodes of level 1 that contribute (of order 4 at most)
+  --> bounded by |u|
+
+- embedded non-end nodes of level 1 that do not contribute (of order 4 at most)
+  --> bounded by ENE_1 = 1
+      : Each time we have two embedded non-end nodes n0 above n1
+      : that do not contribute (i.e. they do not start a segment that contributes)
+      : such that below n1 there is no ther embedded non-end node
+      : if there is an occurence n2 of some variable bound at the successor of n0
+      : that occurs under n1 then unfold n0 to all variables it binds.
+      : in that way the path to n2 after applying T2 will get fewer occurrences of main
+      : variables. For all other paths to active variables the number remains the same.
+
+- embedded end nodes of level 1 (of order 4 at most)
+  --> bounded by q * depth(u)
+      : by Proposition 32
+
+- N_1 <= q + |u| + ENE_1 + q * depth(u)
+
+---------- LEVEL 2
+
+- non-embedded nodes of level 2 (of order 2 at most)
+  --> bounded by q * q * N_1
+      : each node on level 1 has at most q arguments,
+      : every of the q arguments contributes at most
+      : q bound variables, each of the bindings
+      : contributes at most 1 to non-embedded nodes
+
+- embedded non-end nodes of level 2 that contribute (of order 2 at most)
+  --> bounded by |u|
+
+- embedded non-end nodes of level 2 that do not contribute (of order 2 at most)
+  --> bounded by ENE_2 = 0
+      : each node of order 2 is an end node, because it has
+      : no descendant under binding
+
+- embedded end nodes of level 2 (of order 2 at most)
+  --> q*q*N_1 * depth(u)
+      : by Proposition 32
+
+- N_2 <= q*q*N_1 + |u| + 0 + q*q*N_1 * depth(u)
+
+*)
+
 
 (*
 Notation "'pi[' a ',' b ']_' TS " := (intvl TS a b) (at level 20).
