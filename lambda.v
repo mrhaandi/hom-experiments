@@ -918,6 +918,17 @@ Inductive parent_binder_var (pi1 : position) (pi2 : position) :
   parent_binder_var pi1 pi2 gtr.
 
 
+Inductive parent_binder_var_path (pi1 : nat) (pi2 : nat) :
+  (list (aposition * lookup_contents)) -> Prop  :=
+| parent_at_binder_path nlist ap ap' theta theta' bound: 
+  descendant_under_binding ap ap' ->
+  nth_error nlist pi1 = Some (ap, theta) ->
+  nth_error nlist (pi1+pi2) = Some (ap', theta') ->
+  get_arena_subterm_bound TS ap = Some bound ->
+  theta = skipn ((length theta') - bound) theta' ->
+  parent_binder_var_path pi1 pi2 nlist.
+
+
 (* parent_var_binder
 
 Assume π ∈ G(t, E) and nj is a lambda node. We define πi the parent
@@ -940,6 +951,20 @@ Inductive parent_var_binder (pi1 : position) (pi2 : position) :
   has_position gtr pi1' = true ->
   get_game_subtree gtr pi1' = node (ap1', theta1') further1' ->
   pi2 = pi1' ++ [0] -> (* var nodes have only one successor *)
+  parent_var_binder pi1 pi2 gtr.
+
+
+Inductive parent_var_binder_path (pi1 : nat) (pi2 : nat) :
+  (list (aposition * lookup_contents)) -> Prop  :=
+| parent_at_var_path gtr ap ap1 ap1' theta theta1 theta1' further further1 further1' n x args bound pi1':
+  nth_error nlist pi1 = Some (ap, theta) ->
+  get_arena_subterm TS ap = Some (tm n x args) -> (* take var x at ap *)
+  get_arena_subterm_bound TS ap = Some bound -> (* take var x at ap *)
+  x < bound + n -> (* check that x at ap is not a constant *)
+  nth_error nlist (pi1+1) = Some (ap1, theta1) -> (* take the successor *)
+  parent_binder_var (pi1+1) (pi1+pi2-1) nlist -> (* find relevant child at pi1' *)
+  pi2 > 2 -> (* ? *)
+  length nlist > pi1+pi2 ->
   parent_var_binder pi1 pi2 gtr.
 
 
@@ -1866,10 +1891,9 @@ Definition is_variable : arena -> aposition -> Prop := fun ar ap => True.
 
 
 Inductive is_staged_game_tree : arena -> (* where the game takes place *)
-                                game_tree -> (* the original game tree in which stages are generated *)
+                                game_tree -> (* the original game tree in which stages are generated, TODO: remove *)
                                 nat -> (* the number of the current stage *)
-                                position -> (* the current postion in gtr *)
-                                option nat -> (* the number of the currently considered child *)
+                                position -> (* the current postion in gtr, TODO: remove? *)
                                 option position -> (* the start of the current stage, None if we're just changing the stage *)
                                 option position -> (* the start of the current chain pair, None if not applicable *)
                                 list position  -> (* so far collected chain *)
@@ -1878,71 +1902,52 @@ Inductive is_staged_game_tree : arena -> (* where the game takes place *)
                                 Prop :=
 
 (* handling constant node, entering the stage *)
-| is_staged_game_tree_const ar igtr p n pos theta hd chldrn hds schldrn :
+| is_staged_game_tree_const ar igtr p n pos theta chldrn schldrn :
   is_constant ar (0,p) ->
-  is_staged_game_tree ar igtr (n+1) (0::pos) None         None None [] hd hds -> (* note that we immediately finish the stage n *)
-  is_staged_game_tree ar igtr n     pos      (Some 0)     None None [] (node ((0,p), theta) chldrn)       (node (n, (0,p), theta) schldrn) ->
-  is_staged_game_tree ar igtr n     pos      None         None None [] (node ((0,p), theta) (hd::chldrn)) (node (n, (0,p), theta) (hds::schldrn))
+  (forall gtr' sgtr' m, nth_error chldrn m = Some gtr' -> nth_error schldrn m = Some sgtr' ->
+                        is_staged_game_tree ar igtr n    (m::pos)    None None [] gtr' sgtr') ->
+  is_staged_game_tree ar igtr n     pos      None None [] (node ((0,p), theta) chldrn) (node (n, (0,p), theta) schldrn)
 
-| is_staged_game_tree_const_nil ar igtr p n pos theta v:
-  is_constant ar (0,p) ->
-  is_staged_game_tree ar igtr n pos v None None [] (node ((0,p), theta) []) (node (n, (0,p), theta) [])
-
-| is_staged_game_tree_const_cons ar igtr p n pos m theta hd chldrn hds schldrn :
-  is_constant ar (0,p) ->
-  is_staged_game_tree ar igtr (n+1) (m::pos) None         None None [] hd hds ->
-  is_staged_game_tree ar igtr n     pos      (Some (m+1)) None None [] (node ((0,p), theta) chldrn)       (node (n, (0,p), theta) schldrn) ->
-  is_staged_game_tree ar igtr n     pos      (Some m)     None None [] (node ((0,p), theta) (hd::chldrn)) (node (n, (0,p), theta) (hds::schldrn))
-
+                      
 
 (* handling of a variable node, entering the stage *)                      
 | is_staged_game_tree_var ar igtr p n pos theta hd hds:
   is_variable ar (0,p) ->
-  is_staged_game_tree ar igtr (n+1)  (0::pos) None (Some pos) None [] hd                          hds ->
-  is_staged_game_tree ar igtr n      pos      None None       None [] (node ((0,p), theta) [hd]) (node (n+1, (0,p), theta) [hds])
+  is_staged_game_tree ar igtr (n+1)  (0::pos) (Some pos) None [] hd                          hds ->
+  is_staged_game_tree ar igtr n      pos      None       None [] (node ((0,p), theta) [hd]) (node (n+1, (0,p), theta) [hds])
 
 (* handling of a variable node in chain traversal *)
 | is_staged_game_tree_var_chn_var ar igtr n theta pos spos hd hds ap chn:
-  ~ parent_var_binder ar spos pos igtr ->
+  ~ parent_var_binder ar spos pos igtr -> (* change to functional argument *)
   is_variable ar ap ->
-  is_staged_game_tree ar igtr n (0::pos) None (Some spos) (Some pos) chn hd                      hds -> 
-  is_staged_game_tree ar igtr n pos      None (Some spos) None       chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
+  is_staged_game_tree ar igtr n (0::pos) (Some spos) (Some pos) chn hd                      hds -> 
+  is_staged_game_tree ar igtr n pos      (Some spos) None       chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
 
 | is_staged_game_tree_var_chn_cont_var_exit ar igtr n theta pos spos hd hds ap chn w:
   is_variable ar ap ->
   parent_var_binder ar spos pos igtr ->
-  is_staged_game_tree ar igtr n pos      None w None        (spos :: chn) (node (ap, theta) [hd]) (node (n, ap, theta) [hds]) ->
-  is_staged_game_tree ar igtr n pos      None w (Some spos) chn           (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
+  is_staged_game_tree ar igtr n pos      w None        (spos :: chn) (node (ap, theta) [hd]) (node (n, ap, theta) [hds]) ->
+  is_staged_game_tree ar igtr n pos      w (Some spos) chn           (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
                       
 | is_staged_game_tree_var_chn_cont_var ar igtr n theta pos spos hd hds ap chn w:
   is_variable ar ap ->
   ~ parent_var_binder ar spos pos igtr ->
-  is_staged_game_tree ar igtr n (0::pos) None w (Some spos) chn hd hds ->  (* ? *)
-  is_staged_game_tree ar igtr n pos      None w (Some spos) chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
+  is_staged_game_tree ar igtr n (0::pos) w (Some spos) chn hd hds ->  (* ? *)
+  is_staged_game_tree ar igtr n pos      w (Some spos) chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
 
 | is_staged_game_tree_var_chn_cont_const ar igtr n theta pos spos ap chn w chldrn schldrn:
   is_constant ar ap ->
   ~ parent_var_binder ar spos pos igtr ->
-  is_staged_game_tree ar igtr n pos (Some 0) w (Some spos) chn (node (ap, theta) chldrn) (node (n, ap, theta) schldrn) ->
-  is_staged_game_tree ar igtr n pos None     w (Some spos) chn (node (ap, theta) chldrn) (node (n, ap, theta) schldrn)
+  (forall gtr' sgtr' m, nth_error chldrn m = Some gtr' -> nth_error schldrn m = Some sgtr' ->
+                        is_staged_game_tree ar igtr n pos w (Some spos) chn gtr' sgtr') ->
+  is_staged_game_tree ar igtr n pos w (Some spos) chn (node (ap, theta) chldrn) (node (n, ap, theta) schldrn)
                       
-| is_staged_game_tree_var_chn_cont_const_nil ar igtr n theta pos spos ap chn v w:
-  is_constant ar ap ->
-  ~ parent_var_binder ar spos pos igtr ->
-  is_staged_game_tree ar igtr n pos      v    w (Some spos) chn (node (ap, theta) []) (node (n, ap, theta) [])
 
-| is_staged_game_tree_var_chn_cont_const_cons ar igtr n m theta pos spos hd hds ap chn w chldrn schldrn:
-  is_constant ar ap ->
-  ~ parent_var_binder ar spos pos igtr ->
-  is_staged_game_tree ar igtr n (m::pos) None         w (Some spos) chn hd                              hds ->
-  is_staged_game_tree ar igtr n pos      (Some (m+1)) w (Some spos) chn (node (ap, theta) chldrn)       (node (n, ap, theta) schldrn) ->
-  is_staged_game_tree ar igtr n pos      (Some m)     w (Some spos) chn (node (ap, theta) (hd::chldrn)) (node (n, ap, theta) (hds::schldrn))
-
-| is_staged_game_tree_var_end ar igtr  n theta pos spos hd hds ap chn v:
+| is_staged_game_tree_var_end ar igtr  n theta pos spos hd hds ap chn:
   parent_var_binder ar spos pos igtr ->
-  is_staged_game_tree ar igtr n (0::pos) v None        None []  hd                      hds ->
-  recurrence_property ar igtr (rev chn) ->
-  is_staged_game_tree ar igtr n pos      v (Some spos) None chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds]).
+  is_staged_game_tree ar igtr n (0::pos) None        None []  hd                      hds ->
+  recurrence_property ar igtr (rev chn) -> (* TODO: reformulate recurrence_property so that it uses only path in gtr *)
+  is_staged_game_tree ar igtr n pos      (Some spos) None chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds]).
 
 
 
