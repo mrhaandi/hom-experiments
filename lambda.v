@@ -305,6 +305,16 @@ Inductive corresponding (gtr:game_tree) (intv1:interval) (intv2:interval) :=
   passthrough_nodes gtr intv2 nds2 ->  
   nds1 = nds2 -> corresponding gtr intv1 intv2.
 
+Inductive corresponding_path
+  (nlist:list (aposition * lookup_contents)) :
+  (nat*nat)%type ->
+  (nat*nat)%type -> Prop :=
+  | corr_path_case n1 n2 m1 m2:
+    map fst (firstn n2 (skipn n1 nlist)) =
+      map fst (firstn m2 (skipn m1 nlist)) ->
+  corresponding_path nlist (n1, n2) (m1, m2). 
+
+
 
 Inductive is_variable_node (ar:arena) (gtr:game_tree) (p:position) :=
 | is_var_case ap cont rest n x args b:
@@ -314,6 +324,26 @@ Inductive is_variable_node (ar:arena) (gtr:game_tree) (p:position) :=
   get_arena_subterm_bound ar ap = Some b ->
   x < b ->
   is_variable_node ar gtr p.
+
+
+Inductive is_constant_variable : arena -> aposition -> Prop := 
+| is_constant_variable_case ar ap:
+  is_constant_variable ar ap. (* TODO *)
+
+Inductive is_variable : arena -> aposition -> Prop :=
+| is_variable_case ar ap n x args b:
+  get_arena_subterm ar ap = Some (tm n x args) ->
+  get_arena_subterm_bound ar ap = Some b ->
+  x < b ->
+  is_variable ar ap.
+
+Inductive is_constant : arena -> aposition -> Prop :=
+| is_constant_case ar ap n x args b:
+  get_arena_subterm ar ap = Some (tm n x args) ->
+  get_arena_subterm_bound ar ap = Some b ->
+  x >= b ->
+  is_constant ar ap.
+  
 
 Section Arenas.
 
@@ -889,6 +919,16 @@ Inductive is_final : position -> game_tree -> Prop :=
   is_final tl t' ->
   is_final (hd::tl) (node v l).
 
+(* Holds when the position is final in the game tree, but based only on arena and a position therein.
+   A position in the game may be final only when it is a constant or a constant variable with no
+   further arguments  *)
+Inductive is_final_p : arena -> aposition -> Prop :=
+| position_p ar ap k x:
+  get_arena_subterm ar ap = Some (tm k x []) ->
+  is_constant_variable ar ap ->
+  is_final_p ar ap.
+
+
   
 (* parent_binder_var: in the game tree TS the game position pi1 is the parent of pi2
    when
@@ -917,7 +957,10 @@ Inductive parent_binder_var (pi1 : position) (pi2 : position) :
   theta = skipn ((length theta') - bound) theta' ->
   parent_binder_var pi1 pi2 gtr.
 
-
+(*
+   Nodes close to the root of the game tree are close to the head
+   of the nlist.
+*)
 Inductive parent_binder_var_path (pi1 : nat) (pi2 : nat) :
   (list (aposition * lookup_contents)) -> Prop  :=
 | parent_at_binder_path nlist ap ap' theta theta' bound: 
@@ -926,7 +969,7 @@ Inductive parent_binder_var_path (pi1 : nat) (pi2 : nat) :
   nth_error nlist (pi1+pi2) = Some (ap', theta') ->
   get_arena_subterm_bound TS ap = Some bound ->
   theta = skipn ((length theta') - bound) theta' ->
-  parent_binder_var_path pi1 pi2 nlist.
+  parent_binder_var_path pi1 pi2 nlist. 
 
 
 (* parent_var_binder
@@ -953,19 +996,22 @@ Inductive parent_var_binder (pi1 : position) (pi2 : position) :
   pi2 = pi1' ++ [0] -> (* var nodes have only one successor *)
   parent_var_binder pi1 pi2 gtr.
 
-
+(* Note that pi2 should be added to pi1 to get a position in nlist.
+   Nodes close to the root of the game tree are close to the head
+   of the nlist.
+ *)
 Inductive parent_var_binder_path (pi1 : nat) (pi2 : nat) :
   (list (aposition * lookup_contents)) -> Prop  :=
-| parent_at_var_path gtr ap ap1 ap1' theta theta1 theta1' further further1 further1' n x args bound pi1':
+| parent_at_var_path nlist ap ap1 theta theta1 n x args bound:
   nth_error nlist pi1 = Some (ap, theta) ->
   get_arena_subterm TS ap = Some (tm n x args) -> (* take var x at ap *)
   get_arena_subterm_bound TS ap = Some bound -> (* take var x at ap *)
   x < bound + n -> (* check that x at ap is not a constant *)
   nth_error nlist (pi1+1) = Some (ap1, theta1) -> (* take the successor *)
-  parent_binder_var (pi1+1) (pi1+pi2-1) nlist -> (* find relevant child at pi1' *)
+  parent_binder_var_path (pi1+1) (pi1+pi2-1) nlist -> (* find relevant child at pi1' *)
   pi2 > 2 -> (* ? *)
   length nlist > pi1+pi2 ->
-  parent_var_binder pi1 pi2 gtr.
+  parent_var_binder_path pi1 pi2 nlist. 
 
 
 
@@ -978,6 +1024,22 @@ Inductive chain_condition (gtr: game_tree) : (position * position) * nat -> Prop
   Nat.Even n ->
   pi = firstn (length pi) pi' ->
   chain_condition gtr ((pi, pi'), n).
+
+(*
+   Nodes close to the root of the game tree are close to the head
+   of the nlist.
+
+   DISCUSS:
+*)
+Inductive chain_condition_path (nlist: list (aposition * lookup_contents)) : (nat * nat) * nat -> Prop :=
+| chain_path_case_odd pi pi' n:
+  Nat.Odd n ->
+  parent_var_binder_path pi pi' nlist -> 
+  chain_condition_path nlist ((pi, pi'), n)
+| chain_path_case_even pi pi' n:
+  Nat.Even n ->
+  pi <= pi' ->
+  chain_condition_path nlist ((pi, pi'), n). 
 
 
 (* chain
@@ -994,6 +1056,10 @@ Inductive chain_condition (gtr: game_tree) : (position * position) * nat -> Prop
  *)
 Definition chain (gtr : game_tree) (l : list position)  :=
   Forall (chain_condition gtr) (combine (combine l (skipn 1 l)) (seq 0 (length l))).
+
+
+Definition chain_path (nlist : list (aposition * lookup_contents)) (chn : list nat)  :=
+  Forall (chain_condition_path nlist) (combine (combine chn (skipn 1 chn)) (seq 0 (length chn))). 
 
 End Arenas.
 
@@ -1053,18 +1119,50 @@ Proof.
       * congr cons. apply: Hdepth2. lia.
 Qed.
 
+Inductive same_variable_at_poss (ar : arena) (gtr : game_tree) : position -> position -> Prop :=
+| svar_case j m ap1 tht1 chldrn1 n1 x1 ts1 b1 ap2 tht2 chldrn2 n2 x2 ts2 b2:
+  has_position gtr j = true ->
+  has_position gtr m = true ->
+  get_game_subtree gtr j = node (ap1, tht1) chldrn1 ->
+  get_game_subtree gtr m = node (ap2, tht2) chldrn2 ->
+  (* ap1 <> ap2 -> *)
+  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_arena_subterm_bound ar ap1 = Some b1 ->
+  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
+  get_arena_subterm_bound ar ap2 = Some b2 ->
+  b1 + n2 = b2 + n1 -> (* n1 and n2 are the same variables *)
+  same_variable_at_poss ar gtr j m.
+
+(*
 Inductive same_variable_at_start (ar : arena) (gtr : game_tree) : interval -> interval -> Prop :=
 | svar_case j jend m mend ap1 tht1 chldrn1 n1 x1 ts1 b1 ap2 tht2 chldrn2 n2 x2 ts2 b2:
   has_position gtr j = true ->
   has_position gtr m = true ->
   get_game_subtree gtr j = node (ap1, tht1) chldrn1 ->
   get_game_subtree gtr m = node (ap2, tht2) chldrn2 ->
+  (* ap1 <> ap2 -> *)
   get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
   get_arena_subterm_bound ar ap1 = Some b1 ->
   get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
   get_arena_subterm_bound ar ap2 = Some b2 ->
   b1 + n2 = b2 + n1 -> (* n1 and n2 are the same variables *)
   same_variable_at_start ar gtr  pi[j, jend] pi[m, mend].
+*)
+
+Inductive same_variable_at_poss_path (ar : arena) (nlist : list (aposition * lookup_contents))
+  : nat -> nat -> Prop :=
+| svar_path_case j m ap1 tht1 n1 x1 ts1 b1 ap2 tht2 n2 x2 ts2 b2:
+  nth_error nlist j = Some (ap1, tht1) ->
+  nth_error nlist m = Some (ap2, tht2) ->
+  (* ap1 <> ap2 -> *)
+  get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
+  get_arena_subterm_bound ar ap1 = Some b1 ->
+  get_arena_subterm ar ap2 = Some (tm n2 x2 ts2)  ->
+  get_arena_subterm_bound ar ap2 = Some b2 ->
+  b1 + n2 = b2 + n1 -> (* n1 and n2 are the same variables *)
+  same_variable_at_poss_path ar nlist  j m. 
+
+
 
 Definition last_step gtr pos := get_game_subtree gtr pos.
             
@@ -1095,7 +1193,7 @@ to be π[j, j + k + 1] and π[m, m + k + 1] in the notation above.
 *)
 Inductive complementary (ar : arena) (gtr : game_tree) : interval -> interval -> Prop :=
 | compl_var j jpke jpkp1r m mpke mpkp1r:
-  same_variable_at_start ar gtr pi[j, (jpke :: jpkp1r)] pi[m, mpke :: mpkp1r] ->
+  same_variable_at_poss ar gtr j m ->
   corresponding gtr pi[j ++ [jpke], removelast jpkp1r] pi[m ++ [mpke], removelast mpkp1r] ->
   (* intervals correspond *)
   parent_var_binder ar j (j++(jpke :: jpkp1r)) gtr ->
@@ -1119,16 +1217,78 @@ Inductive complementary (ar : arena) (gtr : game_tree) : interval -> interval ->
   (b1 + n2 = b2 + n1 -> is_final (m++(removelast mpkp1)) gtr) ->
   complementary ar gtr  pi[j, jpkp1] pi[m, mpkp1].
 
+(*
+  - nlist is a list of node values on the path leading to pos in the game tree
+    elements close to the head of the list are close to the root of the game tree
+  - pos is the position in the game tree to the last element of nlist
+  - (j, jpkp1) - first path to check complementarity for (we add j+jpkp1 to get a position in nlist)
+  - (m, mpkp1) - second path to check complementarity for (we add m+mpkp1 to get a position in nlist)
+ *)
+Inductive complementary_path
+  (ar : arena)
+  (nlist : list (aposition * lookup_contents) )
+  (pos : position)
+  : (nat*nat)%type -> (nat*nat)%type -> Prop :=
+| compl_path_var j jpkp1 m mpkp1 p:
+  same_variable_at_poss_path ar nlist j m ->
+  (* nj, nm  are both labelled with the same variable; note that check for nj <> nm is not necessary *)
+  corresponding_path nlist (j+1, jpkp1-1) (m+1, mpkp1-1) ->
+  (* intervals correspond *) 
+  parent_var_binder_path ar j jpkp1 nlist ->
+  (* π_j is the parent of π_j+k+1 *)
+  parent_var_binder_path ar m mpkp1 nlist ->
+  (* π_m is the parent of π_m+k+1 *)
+  nth_error pos (j+jpkp1) = Some p -> nth_error pos (m+mpkp1) = Some p ->
+  (* last step is the same successor *)
+  complementary_path ar nlist pos (j, jpkp1) (m, mpkp1)
+                     
+| compl_path_const_final j jpkp1 m mpkp1
+    ap1 tht1 n1 b1 x1 ts1
+    ap2 tht2 
+    ap3 tht3 n3 b3 x3 ts3:
+    
+    same_variable_at_poss_path ar nlist j m ->
+    
+    nth_error nlist (j+jpkp1-1) = Some (ap1, tht1) ->
+    is_constant ar ap1 ->
+    get_arena_subterm ar ap1 = Some (tm n1 x1 ts1)  ->
+    get_arena_subterm_bound ar ap1 = Some b1 ->
+
+    nth_error nlist (j+jpkp1) = Some (ap2, tht2) ->
+
+    nth_error nlist (j+mpkp1) = Some (ap3, tht3) ->
+    get_arena_subterm ar ap2 = Some (tm n3 x3 ts3)  ->
+    get_arena_subterm_bound ar ap3 = Some b3 ->
+    
+    (b1 + n3 = b3 + n1 -> is_final_p ar ap2) ->
+    complementary_path ar nlist pos (j,jpkp1) (m, mpkp1).
+
+
+
 
 (* if n_{j_2i−1} is a variable node then there is a
    j < j_2i−1 and a k such that π[j + 1, j + k] and π[m + 1, m + k] are complementary where m = j_2i−1
    and j_2i = m + k + 1. *)
-Inductive recurrence_for_pos ar gtr pos : Prop :=
+Inductive recurrence_for_pos (ar:arena) (gtr:game_tree) (pos:position) : Prop :=
 | rec_pos_case:
   is_variable_node ar gtr pos ->
   (exists pos' lend, pos' <> pos /\ firstn (length pos') pos = pos' /\ complementary ar gtr pi[pos', lend] pi[pos, lend]) ->
   recurrence_for_pos ar gtr pos.
-    
+
+(*
+  - nlist is a list of node values on the path leading to pos in the game tree
+    elements close to the head of the list are close to the root of the game tree
+  - pos is the position in the game tree to the last element of nlist
+  - n - index of element in nlist to check recurrence property for (element of chain)
+ *)
+Inductive recurrence_for_pos_path (ar:arena) (nlist:list (aposition * lookup_contents)) (pos:position) (n:nat) : Prop :=
+| rec_pos_path_case ap theta:
+  nth_error nlist n = Some (ap, theta) ->
+  is_variable ar ap ->
+  (exists n' lend, n' < n /\  complementary_path ar nlist pos (n', lend) (n, lend)) -> 
+  recurrence_for_pos_path ar nlist pos n.
+
+
 (* recurrence property
 
 Assume π ∈ G(t, E). The chain π_j1,..., π_j2p for πj has the recurrence
@@ -1142,6 +1302,21 @@ Inductive recurrence_property ar gtr lpos :=
   chain ar gtr lpos ->
   Forall  (recurrence_for_pos ar gtr) lpos ->
   recurrence_property ar gtr lpos.
+
+(*
+  - nlist is a list of node values on the path leading to pos in the game tree
+    elements close to the head of the list are close to the root of the game tree
+  - chn indicates which positions in nlist form the chain
+  - pos is the position in the game tree to the last element of nlist
+ *)
+Inductive recurrence_property_path
+  (ar:arena) (nlist:list (aposition * lookup_contents)) (pos:position) (chn:list nat) :=
+| rec_case_path:
+  chain_path ar nlist chn -> 
+  Forall (recurrence_for_pos_path ar nlist pos) chn -> 
+  recurrence_property_path ar nlist pos chn.
+
+
 
 (* transformation T1
 
@@ -1885,69 +2060,64 @@ Fixpoint trans_T2 (t:term) (intv : interval) (b:nat) : term :=
 
 Definition staged_game_tree := rose_tree (nat * aposition * lookup_contents).
 
-Definition is_constant : arena -> aposition -> Prop := fun ar ap => True.
-Definition is_variable : arena -> aposition -> Prop := fun ar ap => True.
 
 
-
-Inductive is_staged_game_tree : arena -> (* where the game takes place *)
-                                game_tree -> (* the original game tree in which stages are generated, TODO: remove *)
-                                nat -> (* the number of the current stage *)
-                                position -> (* the current postion in gtr, TODO: remove? *)
-                                option position -> (* the start of the current stage, None if we're just changing the stage *)
-                                option position -> (* the start of the current chain pair, None if not applicable *)
-                                list position  -> (* so far collected chain *)
-                                game_tree -> (* the current node in the game tree in which stages are generated *)
+Inductive is_staged_game_tree : arena ->      (* where the game takes place *)
+                                (list (aposition * lookup_contents)) -> (* the nodes in the game tree that lead to the current position *)
+                                position ->   (* the path in the game tree that leads to the current position *)
+                                nat ->        (* the number of the current stage *)
+                                option nat -> (* the start of the current stage, None if we're just changing the stage *)
+                                option nat -> (* the start of the current chain pair, None if not applicable *)
+                                list nat  ->  (* list of positions that form the so far collected chain *)
+                                game_tree ->  (* the current node in the game tree in which stages are generated *)
                                 staged_game_tree -> (* the game tree annotated with stages *)
                                 Prop :=
 
 (* handling constant node, entering the stage *)
-| is_staged_game_tree_const ar igtr p n pos theta chldrn schldrn :
+| is_staged_game_tree_const ar nlist p n theta chldrn schldrn pos:
   is_constant ar (0,p) ->
   (forall gtr' sgtr' m, nth_error chldrn m = Some gtr' -> nth_error schldrn m = Some sgtr' ->
-                        is_staged_game_tree ar igtr n    (m::pos)    None None [] gtr' sgtr') ->
-  is_staged_game_tree ar igtr n     pos      None None [] (node ((0,p), theta) chldrn) (node (n, (0,p), theta) schldrn)
-
-                      
+                        is_staged_game_tree ar (((0,p), theta) :: nlist) (m::pos) n   None None [] gtr' sgtr') ->
+  is_staged_game_tree ar nlist pos n     None None [] (node ((0,p), theta) chldrn) (node (n, (0,p), theta) schldrn)
 
 (* handling of a variable node, entering the stage *)                      
-| is_staged_game_tree_var ar igtr p n pos theta hd hds:
+| is_staged_game_tree_var ar nlist p n pos theta hd hds:
   is_variable ar (0,p) ->
-  is_staged_game_tree ar igtr (n+1)  (0::pos) (Some pos) None [] hd                          hds ->
-  is_staged_game_tree ar igtr n      pos      None       None [] (node ((0,p), theta) [hd]) (node (n+1, (0,p), theta) [hds])
+  is_staged_game_tree ar (((0,p), theta) :: nlist) (0::pos) (n+1)  (Some (length pos)) None [] hd                          hds ->
+  is_staged_game_tree ar nlist                     pos      n      None                None [] (node ((0,p), theta) [hd]) (node (n+1, (0,p), theta) [hds])
 
 (* handling of a variable node in chain traversal *)
-| is_staged_game_tree_var_chn_var ar igtr n theta pos spos hd hds ap chn:
-  ~ parent_var_binder ar spos pos igtr -> (* change to functional argument *)
+| is_staged_game_tree_var_chn_var ar nlist n theta pos spos hd hds ap chn:
+  ~ parent_var_binder_path ar spos ((length pos)-spos) (rev nlist) -> 
   is_variable ar ap ->
-  is_staged_game_tree ar igtr n (0::pos) (Some spos) (Some pos) chn hd                      hds -> 
-  is_staged_game_tree ar igtr n pos      (Some spos) None       chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
+  is_staged_game_tree ar ((ap, theta) :: nlist) (0::pos) n (Some spos) (Some (length pos)) chn hd                      hds -> 
+  is_staged_game_tree ar nlist                  pos      n (Some spos) None                chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
 
-| is_staged_game_tree_var_chn_cont_var_exit ar igtr n theta pos spos hd hds ap chn w:
+| is_staged_game_tree_var_chn_cont_var_exit ar nlist n theta pos spos hd hds ap chn w:
   is_variable ar ap ->
-  parent_var_binder ar spos pos igtr ->
-  is_staged_game_tree ar igtr n pos      w None        (spos :: chn) (node (ap, theta) [hd]) (node (n, ap, theta) [hds]) ->
-  is_staged_game_tree ar igtr n pos      w (Some spos) chn           (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
+  parent_var_binder_path ar spos ((length pos)-spos) (rev nlist) -> (* DISCUSS: is chn properly collected *)
+  is_staged_game_tree ar nlist pos n w None        (spos :: chn) (node (ap, theta) [hd]) (node (n, ap, theta) [hds]) ->
+  is_staged_game_tree ar nlist pos n w (Some spos) chn           (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
                       
-| is_staged_game_tree_var_chn_cont_var ar igtr n theta pos spos hd hds ap chn w:
+| is_staged_game_tree_var_chn_cont_var ar nlist n theta pos spos hd hds ap chn w:
   is_variable ar ap ->
-  ~ parent_var_binder ar spos pos igtr ->
-  is_staged_game_tree ar igtr n (0::pos) w (Some spos) chn hd hds ->  (* ? *)
-  is_staged_game_tree ar igtr n pos      w (Some spos) chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
+  ~ parent_var_binder_path ar spos ((length pos)-spos) (rev nlist) ->
+  is_staged_game_tree ar ((ap, theta) :: nlist) (0::pos) n w (Some spos) chn hd hds ->  (* ? *)
+  is_staged_game_tree ar nlist                  pos      n w (Some spos) chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
 
-| is_staged_game_tree_var_chn_cont_const ar igtr n theta pos spos ap chn w chldrn schldrn:
+| is_staged_game_tree_var_chn_cont_const ar nlist n theta pos spos ap chn w chldrn schldrn:
   is_constant ar ap ->
-  ~ parent_var_binder ar spos pos igtr ->
+  ~ parent_var_binder_path ar spos ((length pos)-spos) (rev nlist) ->
   (forall gtr' sgtr' m, nth_error chldrn m = Some gtr' -> nth_error schldrn m = Some sgtr' ->
-                        is_staged_game_tree ar igtr n pos w (Some spos) chn gtr' sgtr') ->
-  is_staged_game_tree ar igtr n pos w (Some spos) chn (node (ap, theta) chldrn) (node (n, ap, theta) schldrn)
+                        is_staged_game_tree ar ((ap, theta)::nlist) (m::pos) n w (Some spos) chn gtr' sgtr') ->
+  is_staged_game_tree ar nlist pos n w (Some spos) chn (node (ap, theta) chldrn) (node (n, ap, theta) schldrn)
                       
 
-| is_staged_game_tree_var_end ar igtr  n theta pos spos hd hds ap chn:
-  parent_var_binder ar spos pos igtr ->
-  is_staged_game_tree ar igtr n (0::pos) None        None []  hd                      hds ->
-  recurrence_property ar igtr (rev chn) -> (* TODO: reformulate recurrence_property so that it uses only path in gtr *)
-  is_staged_game_tree ar igtr n pos      (Some spos) None chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds]).
+| is_staged_game_tree_var_end ar nlist  n theta pos spos hd hds ap chn:
+  parent_var_binder_path ar spos ((length pos)-spos) (rev nlist) ->
+  is_staged_game_tree ar ((ap, theta) :: nlist) (0::pos) n None        None []  hd                      hds ->
+  recurrence_property_path ar (rev nlist) (rev pos) (rev chn) ->
+  is_staged_game_tree ar nlist                  pos      n (Some spos) None chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds]).
 
 
 
