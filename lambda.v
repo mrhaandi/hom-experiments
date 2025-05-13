@@ -334,7 +334,7 @@ Inductive is_variable : arena -> aposition -> Prop :=
 | is_variable_case ar ap n x args b:
   get_arena_subterm ar ap = Some (tm n x args) ->
   get_arena_subterm_bound ar ap = Some b ->
-  x < b ->
+  x <= b ->
   is_variable ar ap.
 
 Inductive is_constant : arena -> aposition -> Prop :=
@@ -564,7 +564,9 @@ Inductive descendant_under_binding :
     has_position t p = true ->
     get_subterm t p = tm n x args -> (* we take variable at p *)
     descendant_of x (tm n x args) (p ++ p') ->
-    descendant_under_binding (i, p) (i, p ++ p').
+    descendant_under_binding (i, p) (i, p ++ p')
+  | descendant_same i p:
+    descendant_under_binding (i, p) (i, p).
 
 
 
@@ -947,14 +949,15 @@ Inductive is_final_p : arena -> aposition -> Prop :=
 
 Inductive parent_binder_var (pi1 : position) (pi2 : position) :
   (rose_tree (aposition * lookup_contents)) -> Prop  :=
-| parent_at_binder gtr ap ap' theta theta' further further' bound: 
+| parent_at_binder gtr ap ap' theta theta' further further' bound bound': 
   descendant_under_binding ap ap' ->
   has_position gtr pi1 = true ->
   has_position gtr pi2 = true ->
   get_game_subtree gtr pi1 = node (ap, theta) further ->
   get_game_subtree gtr pi2 = node (ap', theta') further' ->
   get_arena_subterm_bound TS ap = Some bound ->
-  theta = skipn ((length theta') - bound) theta' ->
+  get_arena_subterm_bound TS ap' = Some bound' ->
+  theta = skipn (bound' - bound) theta ->
   parent_binder_var pi1 pi2 gtr.
 
 (*
@@ -963,12 +966,13 @@ Inductive parent_binder_var (pi1 : position) (pi2 : position) :
 *)
 Inductive parent_binder_var_path (pi1 : nat) (pi2 : nat) :
   (list (aposition * lookup_contents)) -> Prop  :=
-| parent_at_binder_path nlist ap ap' theta theta' bound: 
+| parent_at_binder_path nlist ap ap' theta theta' bound bound': 
   descendant_under_binding ap ap' ->
   nth_error nlist pi1 = Some (ap, theta) ->
   nth_error nlist (pi1+pi2) = Some (ap', theta') ->
   get_arena_subterm_bound TS ap = Some bound ->
-  theta = skipn ((length theta') - bound) theta' ->
+  get_arena_subterm_bound TS ap' = Some bound' ->
+  theta = skipn (bound' - bound) theta' ->
   parent_binder_var_path pi1 pi2 nlist. 
 
 
@@ -1008,21 +1012,16 @@ Inductive parent_var_binder_path (pi1 : nat) (pi2 : nat) :
   get_arena_subterm_bound TS ap = Some bound -> (* take var x at ap *)
   x < bound + n -> (* check that x at ap is not a constant *)
   nth_error nlist (pi1+1) = Some (ap1, theta1) -> (* take the successor *)
-  parent_binder_var_path (pi1+1) (pi1+pi2-1) nlist -> (* find relevant child at pi1' *)
-  pi2 > 2 -> (* ? *)
+  parent_binder_var_path (pi1+1) (pi2-1) nlist -> (* find relevant child at pi1' *)
+  pi2 > 0 -> (* ? *)
   length nlist > pi1+pi2 ->
   parent_var_binder_path pi1 pi2 nlist. 
 
 
 
 Inductive chain_condition (gtr: game_tree) : (position * position) * nat -> Prop :=
-| chain_case_odd pi pi' n:
-  Nat.Odd n ->
+| chain_case pi pi' n:
   parent_var_binder pi pi' gtr ->
-  chain_condition gtr ((pi, pi'), n)
-| chain_case_even pi pi' n:
-  Nat.Even n ->
-  pi = firstn (length pi) pi' ->
   chain_condition gtr ((pi, pi'), n).
 
 (*
@@ -1033,13 +1032,8 @@ Inductive chain_condition (gtr: game_tree) : (position * position) * nat -> Prop
 *)
 Inductive chain_condition_path (nlist: list (aposition * lookup_contents)) : (nat * nat) * nat -> Prop :=
 | chain_path_case_odd pi pi' n:
-  Nat.Odd n ->
   parent_var_binder_path pi pi' nlist -> 
-  chain_condition_path nlist ((pi, pi'), n)
-| chain_path_case_even pi pi' n:
-  Nat.Even n ->
-  pi <= pi' ->
-  chain_condition_path nlist ((pi, pi'), n). 
+  chain_condition_path nlist ((pi, pi'), n).
 
 
 (* chain
@@ -2083,42 +2077,329 @@ Inductive is_staged_game_tree : arena ->      (* where the game takes place *)
 (* handling of a variable node, entering the stage *)                      
 | is_staged_game_tree_var ar nlist p n pos theta hd hds:
   is_variable ar (0,p) ->
-  is_staged_game_tree ar (((0,p), theta) :: nlist) (0::pos) (n+1)  (Some (length pos)) None [] hd                          hds ->
-  is_staged_game_tree ar nlist                     pos      n      None                None [] (node ((0,p), theta) [hd]) (node (n+1, (0,p), theta) [hds])
+  is_staged_game_tree ar (((0,p), theta) :: nlist) (0::pos) n  (Some ((length pos)-1)) None [] hd                          hds ->
+  is_staged_game_tree ar nlist                     pos      n      None                None [] (node ((0,p), theta) [hd]) (node (n, (0,p), theta) [hds])
 
 (* handling of a variable node in chain traversal *)
 | is_staged_game_tree_var_chn_var ar nlist n theta pos spos hd hds ap chn:
-  ~ parent_var_binder_path ar spos ((length pos)-spos) (rev nlist) -> 
+  ~ parent_var_binder_path ar spos ((length pos)-spos-1) (rev nlist) -> 
   is_variable ar ap ->
-  is_staged_game_tree ar ((ap, theta) :: nlist) (0::pos) n (Some spos) (Some (length pos)) chn hd                      hds -> 
+  is_staged_game_tree ar ((ap, theta) :: nlist) (0::pos) n (Some spos) (Some ((length pos)-1)) chn hd                      hds -> 
   is_staged_game_tree ar nlist                  pos      n (Some spos) None                chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
 
+(* handling of a variable node in argument at the beginning of chain traversal *)
+| is_staged_game_tree_var_chn_arg_var ar nlist n theta pos spos hd hds m p chn:
+  m <> 0 ->
+  is_variable ar (m,p) ->
+  is_staged_game_tree ar (((m,p), theta) :: nlist) (0::pos) n (Some spos) (Some ((length pos)-1)) chn hd                      hds -> 
+  is_staged_game_tree ar nlist                  pos      n (Some spos) None                chn (node ((m,p), theta) [hd]) (node (n, (m,p), theta) [hds])
+
+(* non-trivial chain *)   
 | is_staged_game_tree_var_chn_cont_var_exit ar nlist n theta pos spos hd hds ap chn w:
   is_variable ar ap ->
-  parent_var_binder_path ar spos ((length pos)-spos) (rev nlist) -> (* DISCUSS: is chn properly collected *)
+  parent_var_binder_path ar spos ((length pos)-spos-1) (rev ((ap, theta) :: nlist)) -> (* DISCUSS: is chn properly collected *)
   is_staged_game_tree ar nlist pos n w None        (spos :: chn) (node (ap, theta) [hd]) (node (n, ap, theta) [hds]) ->
   is_staged_game_tree ar nlist pos n w (Some spos) chn           (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
-                      
+
+(* non-trivial chain *)   
 | is_staged_game_tree_var_chn_cont_var ar nlist n theta pos spos hd hds ap chn w:
   is_variable ar ap ->
-  ~ parent_var_binder_path ar spos ((length pos)-spos) (rev nlist) ->
+  ~ parent_var_binder_path ar spos ((length pos)-spos-1) (rev ((ap, theta) :: nlist)) ->
   is_staged_game_tree ar ((ap, theta) :: nlist) (0::pos) n w (Some spos) chn hd hds ->  (* ? *)
   is_staged_game_tree ar nlist                  pos      n w (Some spos) chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds])
 
+(* non-trivial chain *)   
 | is_staged_game_tree_var_chn_cont_const ar nlist n theta pos spos ap chn w chldrn schldrn:
   is_constant ar ap ->
-  ~ parent_var_binder_path ar spos ((length pos)-spos) (rev nlist) ->
+  ~ parent_var_binder_path ar spos ((length pos)-spos-1) (rev ((ap, theta) :: nlist)) ->
   (forall gtr' sgtr' m, nth_error chldrn m = Some gtr' -> nth_error schldrn m = Some sgtr' ->
                         is_staged_game_tree ar ((ap, theta)::nlist) (m::pos) n w (Some spos) chn gtr' sgtr') ->
   is_staged_game_tree ar nlist pos n w (Some spos) chn (node (ap, theta) chldrn) (node (n, ap, theta) schldrn)
                       
+(* end of chain *)   
+| is_staged_game_tree_var_end ar nlist  n theta pos spos tpos hd hds ap chn:
+  parent_var_binder_path ar spos ((length pos)-spos-1) (rev ((ap, theta) :: nlist)) ->
+  is_staged_game_tree ar ((ap, theta) :: nlist) (0::pos) (n+1) (Some (length pos)) None []  hd                      hds ->
+  recurrence_property_path ar (rev ((ap, theta) :: nlist)) (rev pos) (rev chn) ->
+  is_staged_game_tree ar nlist                  pos      n     (Some spos)             (Some tpos) chn (node (ap, theta) [hd]) (node (n+1, ap, theta) [hds])
 
-| is_staged_game_tree_var_end ar nlist  n theta pos spos hd hds ap chn:
-  parent_var_binder_path ar spos ((length pos)-spos) (rev nlist) ->
-  is_staged_game_tree ar ((ap, theta) :: nlist) (0::pos) n None        None []  hd                      hds ->
-  recurrence_property_path ar (rev nlist) (rev pos) (rev chn) ->
-  is_staged_game_tree ar nlist                  pos      n (Some spos) None chn (node (ap, theta) [hd]) (node (n, ap, theta) [hds]).
+(* end of the game *)   
+| is_staged_game_tree_final ar nlist  n theta pos spos tpos ap chn:
+  parent_var_binder_path ar spos ((length pos)-spos-1) (rev ((ap, theta) :: nlist)) ->
+  recurrence_property_path ar (rev ((ap, theta) :: nlist)) (rev pos) (rev chn) ->
+  is_staged_game_tree ar nlist                  pos      n     (Some spos)             (Some tpos) chn (node (ap, theta) []) (node (n+1, ap, theta) []).
 
+
+
+(* Fourth order example:
+   solution:
+   ex6_1 = \x x1 x2. x (\u1 u2. u1) (\u1 u2.u2) x1 x2
+ *)
+Definition ex6_1 := tm 4 0 [tm 2 0 []; tm 2 1 []; tm 0 2 []; tm 0 3 []].
+
+(* argument
+   ex6_2 = \f1 f2 x1 x2. f1 (f2 x1 (f1 x1 x2)) x2
+ *)
+Definition ex6_2 := tm 4 0 [tm 0 1 [tm 0 2 []; tm 0 0 [tm 0 2 []; tm 0 2 []]]; tm 0 3 []].
+
+Definition ex6_gtr := construct_game_tree_start 100 ex6_1 [ex6_2].
+
+Definition theta0_el : (aposition * lookup) + nat := inl (1, [], lk []).
+
+Definition theta0 : lookup_contents := [theta0_el].
+
+Definition theta1 : lookup_contents :=
+  [inl (0, [0], lk theta0); inl (0, [1], lk theta0);
+   inl (0, [2], lk theta0); inl (0, [3], lk theta0)].
+
+Definition theta2: lookup_contents :=
+  [inl (1, [0], lk theta1);
+   inl (1, [1], lk theta1);
+   theta0_el].
+
+Definition theta3 : list ((aposition * lookup) + nat) :=
+  [inl (1, [0; 0], lk theta1);
+   inl (1, [0; 1], lk theta1);
+   theta0_el].
+
+Definition theta4 : lookup_contents :=
+  [inl (1, [0; 1; 0], lk theta1);
+   inl (1, [0; 1; 1], lk theta1); 
+   theta0_el].
+
+(* enter the third argument of the main variable in t=ex6_1 *)
+Definition ex6_gtr_f1 := tm (0, [2]) theta0 [].
+Definition ex6_gtrs_f1 := tm (4, (0, [2])) theta0 [].
+
+(* enter the first argument of the second occurrence of f1 in n=ex6_2 *)
+Definition ex6_gtr_f2 := tm (1, [0; 1; 0])  theta1 [ex6_gtr_f1].  
+Definition ex6_gtrs_f2 := tm (3, (1, [0; 1; 0]))  theta1 [ex6_gtrs_f1].  
+
+(* enter the first argument of the main variable in t=ex6_1 *)
+Definition ex6_gtr_f3 := tm (0, [0])  theta4 [ex6_gtr_f2].  
+Definition ex6_gtrs_f3 := tm (3, (0, [0]))  theta4 [ex6_gtrs_f2].  
+
+(* enter the second argument of f2 in n=ex6_2 *)
+Definition ex6_gtr_f4 := tm (1, [0; 1]) theta1 [ex6_gtr_f3].
+Definition ex6_gtrs_f4 := tm (2, (1, [0; 1])) theta1 [ex6_gtrs_f3].
+
+(* enter the second argument of the main variable in t=ex6_1 *)
+Definition ex6_gtr_f5 := tm (0, [1]) theta3 [ex6_gtr_f4].
+Definition ex6_gtrs_f5 := tm (2, (0, [1])) theta3 [ex6_gtrs_f4].
+
+(* enter the first argument of f1 in n=ex6_2 *)
+Definition ex6_gtr_f6 := tm (1, [0]) theta1 [ex6_gtr_f5].
+Definition ex6_gtrs_f6 := tm (1, (1, [0])) theta1 [ex6_gtrs_f5].
+
+(* enter the first argument of the main variable in t=ex6_1 *)
+Definition ex6_gtr_f7 := tm (0, [0]) theta2 [ex6_gtr_f6].
+Definition ex6_gtrs_f7 := tm (1, (0, [0])) theta2 [ex6_gtrs_f6].
+
+(* enter the root of n=ex6_2 *)
+Definition ex6_gtr_f8 := tm (1, []) theta1 [ex6_gtr_f7].
+Definition ex6_gtrs_f8 := tm (0, (1, [])) theta1 [ex6_gtrs_f7].
+
+(* start in the root of t=ex6_1 *)
+Definition ex6_gtr_f9 := tm (0, []) theta0 [ex6_gtr_f8].
+Definition ex6_gtrs_f9 :staged_game_tree := tm (0, (0, [])) theta0 [ex6_gtrs_f8].
+
+
+
+Lemma ex6_fgm_eq_gtr:
+  ex6_gtr = ex6_gtr_f9.
+Proof.
+  now compute.
+Qed.
+
+(* staged_game_tree = rose_tree (nat * aposition * lookup_contents) *)
+(* Notation "'tm' n x ts" := (node (n, x) ts) (at level 10, n at next level, x at next level). *)
+(* game_tree = rose_tree (aposition * lookup_contents) *)
+
+
+Lemma ex6_sgtr:
+  is_staged_game_tree [ex6_1; ex6_2] (* arena *)
+    [] (* list (aposition * lookup_contents) *)
+    [] (* position *)
+    0  (*  nat  *)
+    None
+    None
+    []
+    ex6_gtr_f9
+    ex6_gtrs_f9.
+Proof.
+  (* ex6_gtrs_f9 *)
+  unfold ex6_gtrs_f9.
+  unfold ex6_gtr_f9.
+  constructor 2.
+  * econstructor. 
+    ** unfold ex6_1.
+       simpl.
+       eauto 1.
+    ** now compute.
+    ** auto.
+  * { (* ex6_gtrs_f8 *)
+      simpl.
+      unfold ex6_gtrs_f8.
+      unfold ex6_gtr_f8.
+      econstructor 4.
+      * lia.
+      * econstructor.
+        ** now compute.
+        ** now compute.
+        ** lia.
+      * { (* ex6_gtrs_f7 *)  
+          simpl.
+          unfold ex6_gtrs_f7.
+          unfold ex6_gtr_f7.
+          replace 1  with (0+1) at 3 by lia.
+          econstructor 8.
+          * econstructor.
+            ** now simpl.
+            ** now compute.
+            ** now compute.
+            ** lia.
+            ** now compute.
+            ** { econstructor.
+                 all: swap 0 3.
+                 + now compute.
+                 + now compute.
+                 + constructor 2.
+                 + now compute.
+                 + now compute.
+                 + now simpl.
+               }
+            ** simpl;lia.
+            ** simpl;lia.
+          * { (* ex6_gtrs_f6 *)
+              simpl.
+              unfold ex6_gtrs_f6.
+              unfold ex6_gtr_f6.
+              econstructor 4.
+              * lia.
+              * econstructor.
+                ** now simpl.
+                ** now simpl.
+                ** compute;lia.
+              * { (* ex5_gtrs_f5 *)
+                  simpl.
+                  unfold ex6_gtrs_f5.
+                  unfold ex6_gtr_f5.
+                  econstructor 8.
+                  * econstructor.
+                    ** now simpl.
+                    ** now compute.
+                    ** now compute.
+                    ** lia.
+                    ** now compute.
+                    ** { econstructor.
+                         all: swap 0 3.
+                         + now compute.
+                         + now compute.
+                         + constructor 2.
+                         + now compute.
+                         + now compute.
+                         + now simpl.
+                       }
+                    ** simpl;lia.
+                    ** simpl;lia.
+                  *{ (* ex5_gtrs_f4 *)
+                      simpl.
+                      unfold ex6_gtrs_f4.
+                      unfold ex6_gtr_f4.
+                      econstructor 4.
+                      * lia.
+                      * econstructor.
+                        ** now simpl.
+                        ** now simpl.
+                        ** compute;lia.
+                      * { (* ex5_gtrs_f3 *)
+                          simpl.
+                          unfold ex6_gtrs_f3.
+                          unfold ex6_gtr_f3.
+                          econstructor 8.
+                          * econstructor.
+                            ** now simpl.
+                            ** now compute.
+                            ** now compute.
+                            ** lia.
+                            ** now compute.
+                            ** { econstructor.
+                                 all: swap 0 3.
+                                 + now compute.
+                                 + now compute.
+                                 + constructor 2.
+                                 + now compute.
+                                 + now compute.
+                                 + now simpl.
+                               }
+                            ** simpl;lia.
+                            ** simpl;lia.
+                          * { (* ex5_gtrs_f2 *)
+                              simpl.
+                              unfold ex6_gtrs_f2.
+                              unfold ex6_gtr_f2.
+                              econstructor 4.
+                              * lia.
+                              * econstructor.
+                                ** now simpl.
+                                ** now simpl.
+                                ** compute;lia.
+                              * { (* ex5_gtrs_f1 *)
+                                  simpl.
+                                  unfold ex6_gtrs_f1.
+                                  unfold ex6_gtr_f1.
+                                  econstructor 9.
+                                  * econstructor.
+                                    ** now simpl.
+                                    ** now compute.
+                                    ** now compute.
+                                    ** lia.
+                                    ** now compute.
+                                    ** { econstructor.
+                                         all: swap 0 3.
+                                         + now compute.
+                                         + now compute.
+                                         + constructor 2.
+                                         + now compute.
+                                         + now compute.
+                                         + now simpl.
+                                       }
+                                    ** simpl;lia.
+                                    ** simpl;lia.
+                                  * simpl.
+                                    constructor.
+                                    ** constructor.
+                                    ** apply Forall_nil.
+                                }
+                            }
+                          * simpl.
+                            constructor.
+                            ** constructor.
+                            ** apply Forall_nil.
+                        }
+                    }
+                  * simpl.
+                    constructor.
+                    ** constructor.
+                    ** apply Forall_nil.
+                }
+            }
+          * simpl.
+            constructor.
+            ** constructor.
+            ** apply Forall_nil.
+        }
+    }
+Qed.
+
+(*
+The stages in unfolding
+* belong to the same family,
+* do not contribute and
+* have distinct combs and paths
+*)
+
+Fixpoint unfolding : arena -> list position -> staged_game_tree -> 
 
 
 (*
