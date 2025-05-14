@@ -2133,16 +2133,16 @@ Inductive is_staged_game_tree : arena ->      (* where the game takes place *)
 
 (* Fourth order example:
    solution:
-   ex6_1 = \x x1 x2. x (\u1 u2. u1) (\u1 u2.u2) x1 x2
+   ex6_t = \x x1 x2. x (\z1 z2. z1) (\z1 z2. z2) x1 x2
  *)
-Definition ex6_1 := tm 4 0 [tm 2 0 []; tm 2 1 []; tm 0 2 []; tm 0 3 []].
+Definition ex6_t := tm 4 0 [tm 2 0 []; tm 2 1 []; tm 0 2 []; tm 0 3 []].
 
 (* argument
-   ex6_2 = \f1 f2 x1 x2. f1 (f2 x1 (f1 x1 x2)) x2
+   ex6_u = \y1 y2 y3 y4. y1 (y2 y3 (y1 y3 y4)) y4
  *)
-Definition ex6_2 := tm 4 0 [tm 0 1 [tm 0 2 []; tm 0 0 [tm 0 2 []; tm 0 2 []]]; tm 0 3 []].
+Definition ex6_u := tm 4 0 [tm 0 1 [tm 0 2 []; tm 0 0 [tm 0 2 []; tm 0 2 []]]; tm 0 3 []].
 
-Definition ex6_gtr := construct_game_tree_start 100 ex6_1 [ex6_2].
+Definition ex6_gtr := construct_game_tree_start 100 ex6_t [ex6_u].
 
 Definition theta0_el : (aposition * lookup) + nat := inl (1, [], lk []).
 
@@ -2208,7 +2208,7 @@ Definition ex6_gtrs_f9 :staged_game_tree := tm (0, (0, [])) theta0 [ex6_gtrs_f8]
 Lemma ex6_fgm_eq_gtr:
   ex6_gtr = ex6_gtr_f9.
 Proof.
-  now compute.
+  reflexivity.
 Qed.
 
 (* staged_game_tree = rose_tree (nat * aposition * lookup_contents) *)
@@ -2217,7 +2217,7 @@ Qed.
 
 
 Lemma ex6_sgtr:
-  is_staged_game_tree [ex6_1; ex6_2] (* arena *)
+  is_staged_game_tree [ex6_t; ex6_u] (* arena *)
     [] (* list (aposition * lookup_contents) *)
     [] (* position *)
     0  (*  nat  *)
@@ -2228,166 +2228,62 @@ Lemma ex6_sgtr:
     ex6_gtrs_f9.
 Proof.
   (* ex6_gtrs_f9 *)
-  unfold ex6_gtrs_f9.
-  unfold ex6_gtr_f9.
   constructor 2.
-  * econstructor. 
-    ** unfold ex6_1.
-       simpl.
-       eauto 1.
-    ** now compute.
-    ** auto.
+  * econstructor; try now compute.
   * { (* ex6_gtrs_f8 *)
       simpl.
-      unfold ex6_gtrs_f8.
-      unfold ex6_gtr_f8.
-      econstructor 4.
-      * lia.
-      * econstructor.
-        ** now compute.
-        ** now compute.
-        ** lia.
+      econstructor 4; try lia.
+      * econstructor;try reflexivity; try (simpl;lia).
       * { (* ex6_gtrs_f7 *)  
           simpl.
-          unfold ex6_gtrs_f7.
-          unfold ex6_gtr_f7.
           replace 1  with (0+1) at 3 by lia.
           econstructor 8.
-          * econstructor.
-            ** now simpl.
-            ** now compute.
-            ** now compute.
-            ** lia.
-            ** now compute.
-            ** { econstructor.
-                 all: swap 0 3.
-                 + now compute.
-                 + now compute.
-                 + constructor 2.
-                 + now compute.
-                 + now compute.
-                 + now simpl.
-               }
-            ** simpl;lia.
-            ** simpl;lia.
+          * econstructor; try reflexivity; try (simpl;lia).
+            econstructor; try reflexivity.
+            constructor 2; try reflexivity.
           * { (* ex6_gtrs_f6 *)
               simpl.
-              unfold ex6_gtrs_f6.
-              unfold ex6_gtr_f6.
-              econstructor 4.
-              * lia.
-              * econstructor.
-                ** now simpl.
-                ** now simpl.
-                ** compute;lia.
+              econstructor 4; try lia.
+              * econstructor; try reflexivity; try (compute;lia).
               * { (* ex5_gtrs_f5 *)
                   simpl.
-                  unfold ex6_gtrs_f5.
-                  unfold ex6_gtr_f5.
                   econstructor 8.
-                  * econstructor.
-                    ** now simpl.
-                    ** now compute.
-                    ** now compute.
-                    ** lia.
-                    ** now compute.
-                    ** { econstructor.
-                         all: swap 0 3.
-                         + now compute.
-                         + now compute.
-                         + constructor 2.
-                         + now compute.
-                         + now compute.
-                         + now simpl.
-                       }
-                    ** simpl;lia.
-                    ** simpl;lia.
+                  * econstructor; try reflexivity; try (compute;lia).
+                    econstructor; try reflexivity.
+                    constructor 2; reflexivity.
                   *{ (* ex5_gtrs_f4 *)
                       simpl.
-                      unfold ex6_gtrs_f4.
-                      unfold ex6_gtr_f4.
-                      econstructor 4.
-                      * lia.
-                      * econstructor.
-                        ** now simpl.
-                        ** now simpl.
-                        ** compute;lia.
+                      econstructor 4; try lia.
+                      * econstructor; try reflexivity; try (compute;lia).
                       * { (* ex5_gtrs_f3 *)
                           simpl.
-                          unfold ex6_gtrs_f3.
-                          unfold ex6_gtr_f3.
                           econstructor 8.
-                          * econstructor.
-                            ** now simpl.
-                            ** now compute.
-                            ** now compute.
-                            ** lia.
-                            ** now compute.
-                            ** { econstructor.
-                                 all: swap 0 3.
-                                 + now compute.
-                                 + now compute.
-                                 + constructor 2.
-                                 + now compute.
-                                 + now compute.
-                                 + now simpl.
-                               }
-                            ** simpl;lia.
-                            ** simpl;lia.
+                          * econstructor; try reflexivity; try (compute;lia).
+                            econstructor; try reflexivity.
+                            constructor 2; reflexivity.
                           * { (* ex5_gtrs_f2 *)
                               simpl.
-                              unfold ex6_gtrs_f2.
-                              unfold ex6_gtr_f2.
-                              econstructor 4.
-                              * lia.
-                              * econstructor.
-                                ** now simpl.
-                                ** now simpl.
-                                ** compute;lia.
+                              econstructor 4; try lia.
+                              * econstructor; try reflexivity; try (compute;lia).
                               * { (* ex5_gtrs_f1 *)
                                   simpl.
-                                  unfold ex6_gtrs_f1.
-                                  unfold ex6_gtr_f1.
                                   econstructor 9.
-                                  * econstructor.
-                                    ** now simpl.
-                                    ** now compute.
-                                    ** now compute.
-                                    ** lia.
-                                    ** now compute.
-                                    ** { econstructor.
-                                         all: swap 0 3.
-                                         + now compute.
-                                         + now compute.
-                                         + constructor 2.
-                                         + now compute.
-                                         + now compute.
-                                         + now simpl.
-                                       }
-                                    ** simpl;lia.
-                                    ** simpl;lia.
+                                  * econstructor; try reflexivity; try (simpl;lia).
+                                    econstructor; try reflexivity.
+                                    constructor 2; reflexivity.
                                   * simpl.
                                     constructor.
                                     ** constructor.
                                     ** apply Forall_nil.
                                 }
                             }
-                          * simpl.
-                            constructor.
-                            ** constructor.
-                            ** apply Forall_nil.
+                          * simpl; constructor; constructor.
                         }
                     }
-                  * simpl.
-                    constructor.
-                    ** constructor.
-                    ** apply Forall_nil.
+                  * simpl; constructor;constructor.
                 }
             }
-          * simpl.
-            constructor.
-            ** constructor.
-            ** apply Forall_nil.
+          * simpl; constructor;constructor.
         }
     }
 Qed.
