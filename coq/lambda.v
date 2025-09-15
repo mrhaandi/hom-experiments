@@ -262,6 +262,14 @@ Qed.
 Inductive lookup : Type :=
   | lk : list ((aposition * lookup) + nat) -> lookup.
 
+
+(* possibly change to 
+ "lk : list (list ((aposition * lookup) + nat)) -> lookup".
+ to account for introduction of values in chunks.
+This could simplify computing of states.
+Then, the information for the variable can be extended to the full binder.
+*) 
+
 Notation lookup_contents := (list ((aposition * lookup) + nat)).
 
 Definition add_lk (ap: aposition) (theta: lookup_contents) (j: nat) : (aposition * lookup) + nat :=
