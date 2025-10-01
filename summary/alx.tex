@@ -1,0 +1,154 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[english]{babel}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{bussproofs}
+\usepackage{graphicx}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{csquotes}
+\usepackage{xcolor}
+\usepackage{hyperref}
+
+\usepackage[style=alphabetic,backend=bibtex]{biblatex}
+\addbibresource{bibliography.bib}
+
+\theoremstyle{plain}% default
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{problem}[theorem]{Problem}
+\newtheorem{example}[theorem]{Example}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{remark}[theorem]{Remark}
+
+\title{Notes on Higher-Order Matching}
+\author{Andrej Dudenhefner \and Aleksy Schubert}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Bounded Parallel Intersection Type System}
+
+We denote \emph{intersection types} by $A, B$, finite sets of intersection types by $\sigma, \tau$, and \emph{type atoms} by $a, b$.
+
+\begin{definition}[Intersection Types]
+\label{def:itypes}
+$\begin{array}{rcl}
+A, B &::=& a \mid \sigma \to A\\
+\sigma, \tau &::=& \{A_1, \ldots, A_n\} \text{ where } n \geq 0
+\end{array}$
+\end{definition}
+
+An \emph{environment}, denoted by $\Gamma$, is a finite set of \emph{type assumptions} having the shape $x : \sigma$ for distinct term variables.
+\begin{definition}[Environment]
+$\Gamma ::=\{x_1 : \sigma_1, \ldots, x_n : \sigma_n\}$ where $x_i \neq x_j$ for $i \neq j$.
+\end{definition}
+We may extend an environment $\Gamma$ by an additional assumption $x : \sigma$, written $\Gamma, x : \sigma$, where $x$ does not appear in any assumption in $\Gamma$.
+
+We denote vectors of types and sets of types by $\bar{A}$ and $\bar{\sigma}$ respectively.
+If $\bar{\sigma} = (\sigma_1, \ldots, \sigma_n)$ and $\bar{A} = (A_1, \ldots, A_n)$, then $\sigma \Rightarrow A = (\sigma_1 \to A_1, \ldots, \sigma_n \to A_n)$.
+
+Extending notation~\cite{DudenhefnerU21} from surjective functions to binary relations we define type vector transformations as follows.
+
+\begin{definition}[Type Vector Transformation]
+Let $R \subseteq \{1, \ldots, n\} \times \{1, \ldots, m\}$ be a left-total and right-total binary relation.
+\begin{itemize}
+\item $R(A_1, \ldots, A_n) := (\tau_1, \ldots, \tau_m)$ where $\tau_i = \{A_j \mid j \, R\, i\}$
+\item $R(\sigma_1, \ldots, \sigma_n) := (\tau_1, \ldots, \tau_m)$ where $\tau_i = \bigcup \{\sigma_j \mid j \, R\, i\}$
+\item $R(\{x_1 : \sigma_1, \ldots, x_l : \sigma_l\}) := \{x_1 : R(\sigma_1), \ldots, x_l : R(\sigma_l)\}$
+\end{itemize}
+\end{definition}
+
+\begin{example}
+For $R = \{(1, 1), (1, 3), (2, 1), (3, 2), (3, 3)\}$ we have \[R(a, b, c) = (\{a, b\}, \{c\}, \{a, c\})\]
+\end{example}
+
+\begin{definition}[Parallel Intersection Type System]
+\label{def:type-system}
+~\\
+
+\begin{minipage}{\textwidth}
+\centering
+\begin{tabular}{l}
+{\RightLabel{\textnormal{(Ax)}}
+\AxiomC{}
+\UnaryInfC{$\{x : \bar{A}\} \vdash x : \bar{A}$}
+\DisplayProof} \quad
+{\RightLabel{\textnormal{($\omega$)}}
+\AxiomC{}
+\UnaryInfC{$\emptyset \vdash t : ()$}
+\DisplayProof}\\\\
+{\RightLabel{\textnormal{($\Rightarrow$I)}}
+\AxiomC{$\Gamma, x: \bar{\sigma} \vdash t : \vec{A}$}
+\UnaryInfC{$\Gamma \vdash \lambda x.t : \bar{\sigma} \Rightarrow \bar{A}$}
+\DisplayProof}\quad
+{\RightLabel{\textnormal{($\Rightarrow$E)}}
+\AxiomC{$\Gamma \vdash t : R(\bar{A}) \Rightarrow \bar{B}$}
+\AxiomC{$\Delta \vdash u : \bar{A}$}
+\BinaryInfC{$\Gamma \cup R(\Delta) \vdash t \; u : \bar{B}$}
+\DisplayProof}
+\end{tabular}
+\end{minipage}
+\end{definition}
+
+\begin{example}~\\
+Let 
+\begin{itemize}
+\item $\Gamma_1 = \{x : (\{b, c\} \to a)\}$
+\item $\Gamma_2 = \{y : (a \to b, a \to c), z : (a, a)\}$
+\item $R_1 = \{(1,1), (2,1)\}$
+\item $R_2 = \{(1,1), (1,2)\}$
+\end{itemize}
+We have the following derivation
+
+
+\AxiomC{$\Gamma_1 \vdash x : R_1(b, c) \Rightarrow (a)$}
+\AxiomC{$\{y : (a \to b, a \to c)\} \vdash y : R_2(a) \Rightarrow (b, c)$}
+\AxiomC{$\{z : (a)\} \vdash z : (a)$}
+\BinaryInfC{$\Gamma_2 \vdash y\,z : (b, c)$}
+\BinaryInfC{$\Gamma_1 \cup R_1(\Gamma_2) \vdash x\,(y\,z) : (a)$}
+\DisplayProof
+\end{example}
+
+
+\begin{definition}[Dimensional Restriction]
+$\Gamma \vdash_k t : \bar{A}$ means that the length of vectors in some derivation of $\Gamma \vdash t : \bar{A}$ is at most $k$.
+\end{definition}
+
+\begin{theorem}
+$\Gamma \vdash_{\textnormal{CDV}} t : A$ iff for some $k$ we have $\Gamma \vdash_k t : (A)$.
+\end{theorem}
+
+\begin{proposition}
+Given $\Gamma$, $\bar{A}$, and $k$ it is decidable whether $\Gamma \vdash_k t : \bar{A}$ holds for some $t$.
+\end{proposition}
+
+\begin{proof}[(Proof Idea)]
+In order to decide whether $\Gamma \vdash_k t : \bar{A}$ holds for some $t$, it suffices to consider $t$ in $\beta$-normal form.
+For an \textsf{ASPACE} decision algorithm we need to limit the effective number of variables in type environments.
+Assume $x : \bar{\sigma}$ occurs in some environment for an inhabitant in $\beta$-normal form.
+Then each type $B$ which occurs in each set in each component of $\bar{\sigma}$ is a subformula of some type occurring in $\Gamma$ or $A$.
+Therefore, there is finitely many distinct $\bar{\sigma}$.
+By the pigeonhole principle, if there are more variables in a type environment, some must have identical types and thus a redundant copy can be removed.
+Therefore, there are finitely many environements and types to consider throughout the cesition procedure.
+\end{proof}
+
+\begin{remark}
+For fourth order matching $k$ is the product for the number of fragments of the right-hand sides.
+However, intersection types in $\Gamma$ come from subject expansion of an intersection typing for an arbitrary candidate solution.
+Therefore, not a sufficient restriction (at first glance).
+However, one can try to relate types in $\Gamma$ to given simple types in the given fourth-order matching problem, possibly obtaining a finite bound of occurring types.
+\end{remark}
+
+\newpage
+
+\printbibliography
+\end{document}
