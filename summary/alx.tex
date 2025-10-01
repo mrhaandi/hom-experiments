@@ -148,6 +148,42 @@ Therefore, not a sufficient restriction (at first glance).
 However, one can try to relate types in $\Gamma$ to given simple types in the given fourth-order matching problem, possibly obtaining a finite bound of occurring types.
 \end{remark}
 
+\begin{definition}[Refinement]
+An intersection type $A$ refines a simple type $\varphi$, written $A \prec \varphi$ if
+\begin{itemize}
+\item $A$ is a constant and $\varphi = \bullet$
+\item $A = \sigma \to B$ and $\varphi = \varphi_1 \to \varphi_2$ and $B \prec \varphi_2$ and for all $A_1 \in \sigma$ we have $A_1 \prec \varphi_1$ 
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Shift]
+We consider type atoms as words of natural numbers.
+\begin{itemize}
+\item ${\downarrow_i}w = wi$
+\item ${\downarrow_i}(\{A_1, \ldots, A_n\} \to A) = (\{{\downarrow_i}A_1, \ldots, {\downarrow_i}A_n\} \to {\downarrow_i}A)$
+\end{itemize}
+\end{definition}
+
+For example ${\downarrow_2}(\{12, 3\} \to \varepsilon) = \{122, 32\} \to 2$.
+
+\begin{lemma}
+If $r$ is in $\beta$-normal form and $\Phi \vdash_{\textnormal{STLC}} r : \varphi$ is a $\eta$-long derivation, then there exists $\Gamma$, $A$ such that
+\begin{enumerate}
+\item $\Gamma \prec \Phi$ and $A \prec \varphi$
+\item $\Gamma \vdash r : A$
+\item for all $t$ such that $\Phi \vdash_{\textnormal{STLC}} t : \varphi$ is an $\eta$-long derivation (not necessarily $\beta$-normal) and $\Gamma \vdash t : A$, then $t \twoheadrightarrow_\beta r$
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}[(Proof Sketch)]
+First we focus on $\beta$-normal forms.
+The crucial step application.
+Consider the example term $x\,r_1\,r_2$. By inversion we have $(x : \varphi_1 \to \varphi_2 \to \bullet) \in \Phi$ and $\Phi \vdash_{\textnormal{STLC}} r_i : \varphi_i$.
+By induction hypothesis there are $\Gamma_1, A_1, \Gamma_2, A_2$ satisfying the above conditions.
+We set $\Gamma = (x : {\downarrow_1} A_1 \to {\downarrow_2} A_2 \to \varepsilon) \cup {\downarrow_1}\Gamma_1 \cup {\downarrow_2}\Gamma_2$
+and $A = \varepsilon$.
+\end{proof}
+
 \newpage
 
 \printbibliography
