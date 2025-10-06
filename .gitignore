@@ -6,3 +6,4 @@
 *.run.xml
 *.synctex.gz
 *-blx.bib
+/summary/summary.pdf
