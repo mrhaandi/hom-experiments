@@ -166,7 +166,7 @@ We consider type atoms as words of natural numbers.
 
 For example ${\downarrow_2}(\{12, 3\} \to \varepsilon) = \{122, 32\} \to 2$.
 
-\begin{lemma}
+\begin{lemma}[Equality Characterization]
 If $r$ is in $\beta$-normal form and $\Phi \vdash_{\textnormal{STLC}} r : \varphi$ is a $\eta$-long derivation, then there exists $\Gamma$, $A$ such that
 \begin{enumerate}
 \item $\Gamma \prec \Phi$ and $A \prec \varphi$
@@ -175,14 +175,72 @@ If $r$ is in $\beta$-normal form and $\Phi \vdash_{\textnormal{STLC}} r : \varph
 \end{enumerate}
 \end{lemma}
 
-\begin{proof}[(Proof Sketch)]
+\begin{proof}[(Proof Idea)]
 First we focus on $\beta$-normal forms.
 The crucial step application.
-Consider the example term $x\,r_1\,r_2$. By inversion we have $(x : \varphi_1 \to \varphi_2 \to \bullet) \in \Phi$ and $\Phi \vdash_{\textnormal{STLC}} r_i : \varphi_i$.
+Consider the example term $r = x\,r_1\,r_2$. By inversion we have $(x : \varphi_1 \to \varphi_2 \to \bullet) \in \Phi$ and $\Phi \vdash_{\textnormal{STLC}} r_i : \varphi_i$.
 By induction hypothesis there are $\Gamma_1, A_1, \Gamma_2, A_2$ satisfying the above conditions.
 We set $\Gamma = (x : {\downarrow_1} A_1 \to {\downarrow_2} A_2 \to \varepsilon) \cup {\downarrow_1}\Gamma_1 \cup {\downarrow_2}\Gamma_2$
 and $A = \varepsilon$.
 \end{proof}
+
+\begin{lemma}[Disequality Characterization]
+If $r$ is in $\beta$-normal form and $\Phi \vdash_{\textnormal{STLC}} r : \varphi$ is a $\eta$-long derivation, then there exists $\Gamma$, $A$ such that
+\begin{enumerate}
+\item $\Gamma \prec \Phi$ and $A \prec \varphi$
+\item $\Gamma \vdash r : A$
+\item for all $t$ such that $\Phi \vdash_{\textnormal{STLC}} t : \varphi$ is an $\eta$-long derivation (not necessarily $\beta$-normal) and $\Gamma \vdash t : A$, then $t \not\twoheadrightarrow_\beta r$
+\end{enumerate}
+\end{lemma}
+
+\begin{example}
+Consider $\Phi = \{g : \bullet \to \bullet \to \bullet, y : \bullet\}$ and $r = g\,y\,y$.
+Terms $t$ in $\beta$-normal form with an $\eta$-long derivation of $\Phi \vdash t : \bullet$ such that $t \neq r$ are
+\begin{enumerate}
+\item $y$\\
+This can be characterized by $\{y : \{\varepsilon\}\} \vdash y : \varepsilon$
+\item $g\,t'\,t''$ such that $t' \neq y$, which means $t = g\,t_1\,t_2$.\\
+This can be characterized by $\{g : \{{\downarrow_1}\{\varepsilon\} \to \{\} \to \varepsilon\}, \{\} \to \{\} \to {\downarrow_1}\{\varepsilon\} \} \vdash g\,t'\,t'' : \varepsilon$
+\item $g\,t''\,t'$ such that $t' \neq y$, which means $t = g\,t_1\,t_2$.\\
+This can be characterized by $\{g : \{\{\} \to {\downarrow_2}\{\varepsilon\} \to \varepsilon\}, \{\} \to \{\} \to {\downarrow_2}\{\varepsilon\} \} \vdash g\,t''\,t' : \varepsilon$
+\end{enumerate}
+Putting it all together we can take $\Gamma = \{y : \{\varepsilon\}, g : \{{\downarrow_1}\{\varepsilon\} \to \{\} \to \varepsilon, \{\} \to \{\} \to {\downarrow_1}\{\varepsilon\}, \{\} \to {\downarrow_2}\{\varepsilon\} \to \varepsilon\}, \{\} \to \{\} \to {\downarrow_2}\{\varepsilon\}\}$ and $A = \varepsilon$ such that $\Gamma \vdash t : A$.
+\end{example}
+
+\begin{example}
+Consider $\Phi = \{f : (\bullet \to \bullet) \to \bullet, g : \bullet \to \bullet \to \bullet, y : \bullet\}$ and $r = f\,(\lambda x.g\,x\,y)$.
+This extends the previos example.
+Terms $t$ in $\beta$-normal form with an $\eta$-long derivation of $\Phi \vdash t : \bullet$ are
+\begin{enumerate}
+\item $y$\\
+This can be characterized by $\{y : \{\varepsilon\}\} \vdash y : \varepsilon$
+\item $g\,t_1\,t_2$\\
+This can be characterized by $\{g : \{\} \to \{\} \to \varepsilon \} \vdash g\,t_1\,t_2 : \varepsilon$
+\item $f\,(\lambda x.t')$ such that $t' \neq g\,x\,y$\\
+Here we have $\Phi, x : \bullet : g\,x\,y : \bullet$ and can derive $\Gamma'$, $A' = \varepsilon$ as characterization for any $\beta$-normal $\eta$-long typed term different from $g\,x\,y$.
+Let $\Gamma'' = \Gamma' \setminus \{x\}$
+Overall we can take $\Gamma = \Gamma'' \cup \{y : \{\varepsilon\}, g : \{\} \to \{\} \to \varepsilon, f : \Gamma'(x) \to \varepsilon\}$ and $A = \varepsilon$.
+\end{enumerate}
+\end{example}
+
+\begin{lemma}
+\label{lem:transform}
+If $\Gamma \vdash t : \bar{A}$ and $R$ is right-unique, then $R(\Gamma) \vdash t : R(\bar{A})$.
+\end{lemma}
+
+\begin{lemma}
+If in a derivation of the judgment $\Gamma \vdash_k t : \bar{A}$ there occurs $\Delta \vdash_k u : \bar{B}$ such that for some distinct $i, j$
+$B_i = B_j$ and $\forall x.\Delta(x)_i = \Delta(x)$, then there is a derivation of $\Gamma \vdash_k t : \bar{A}$ that has no such property (TODO rephrase).
+\end{lemma}
+
+\begin{proof}
+Use Lemma~\ref{lem:transform} to collapse redundant entries and idempotence of intersection.
+\end{proof}
+
+\newpage
+
+\section{Application to Fourth-order Matching}
+
 
 \newpage
 
