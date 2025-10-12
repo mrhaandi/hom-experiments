@@ -99,6 +99,34 @@ For $R = \{(1, 1), (1, 3), (2, 1), (3, 2), (3, 3)\}$ we have \[R(a, b, c) = (\{a
 \end{minipage}
 \end{definition}
 
+Similar systems:
+\begin{itemize}
+\item The system $\lambda^{\mbox{CIL}}$ by Wells et al
+  \cite{WellsDMT02} (see \cite{WellsH02} for a simplified version of
+  the system) is a system in Church style with explicit type
+  annotations in $\lambda$-biders where different derivations for the
+  same subterm are managed by means of records. A record of types with
+  labels from $I$ is derived here by a record of terms of
+  corresponding labels from $I$.
+\item The proof system ISL presented by Pimentel, Ronchi Della Rocca
+  and Roversi \cite{PimentelRR12} features independent derivations in
+  tuples led according to the same proof rules. Effectively this works
+  like an intersection type system with vectors. However, the system
+  does not have proof terms. A version of the proof system formulated
+  in terms of a sequent calculus is presented in \cite{RoccaSSV10}.
+\end{itemize}
+
+Dissimilar systems:
+\begin{itemize}
+\item The system by Luigi Liquori and Simona Ronchi della Rocca
+  \cite{LiquoriR07} is a system with explicit annotations at
+  $\lambda$-binders. It introduces  terms in which variables in
+  binders are annotadet with indices. Then these indices serve as
+  pointers to binders in derivations, and the binders in derivations
+  contain types.
+\end{itemize}
+
+
 \begin{example}~\\
 Let 
 \begin{itemize}
@@ -265,3 +293,7 @@ Use Lemma~\ref{lem:transform} to collapse redundant entries and idempotence of i
 
 \printbibliography
 \end{document}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
