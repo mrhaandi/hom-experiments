@@ -13,6 +13,8 @@
 \usepackage{csquotes}
 \usepackage{xcolor}
 \usepackage{hyperref}
+\usepackage{stmaryrd}
+\usepackage{xspace}
 
 \usepackage[style=alphabetic,backend=bibtex]{biblatex}
 \addbibresource{bibliography.bib}
@@ -264,6 +266,163 @@ $B_i = B_j$ and $\forall x.\Delta(x)_i = \Delta(x)$, then there is a derivation 
 \begin{proof}
 Use Lemma~\ref{lem:transform} to collapse redundant entries and idempotence of intersection.
 \end{proof}
+
+\newpage
+
+%Inductive solved (ap : aposition) (theta : lookup_contents) (l : nat):
+%  option lookup_contents -> rose_tree (aposition * lookup_contents) -> Prop :=
+%    | solved_abs k x args g:
+%      get_arena_subterm TS ap = Some (tm k x args) ->
+%      solved ap theta (k+l) (Some (map inr (seq l k))) g ->
+%      solved ap theta l None g
+%
+%    | solved_var ts x args ap' theta' g:
+%      get_arena_subterm TS ap = Some (tm (length ts) x args) -> (* get subarena at position ap *)
+%      lookup_var (ts ++ theta) x = Some (ap', lk theta') -> (* get interpretation of x *)
+%      solved ap' theta' l (Some (map (add_lk ap (ts ++ theta)) (seq 0 (length args)))) g ->
+%      solved ap theta l (Some ts) (node (ap, ts ++ theta) [g])
+%
+%    | solved_const ts x args gs:
+%      get_arena_subterm TS ap = Some (tm (length ts) x args) ->
+%      lookup_var (ts ++ theta) x = None ->
+%      length gs = length args ->
+%      (forall j g, nth_error gs j = Some g -> solved (extend_ap ap [j]) (ts ++ theta) l None g) ->
+%      solved ap theta l (Some ts) (node (ap, ts ++ theta) gs).
+
+\newcommand{\p}{\mathtt{p}\xspace}
+
+\begin{definition}[solved]~\\
+
+  $A, \p, \theta \Yright G\mapsto r$
+  \begin{itemize}
+  \item In arena $A$
+  \item at position $\p$
+  \item with help of lookup table $\theta$
+  \item the game tree $G$ develops to the result $r$
+  \end{itemize}
+\end{definition}
+
+\begin{proposition}
+  If
+  \begin{itemize}
+  \item $A$ - is an arena
+  \item $\p$ - is a position in $A$
+  \item $\theta$ - is a lookup table (including binder at $\p$)
+  \item \emph{some condition on derivability in $\theta$}
+  \item $A, \p, \theta \Yright G\mapsto r$
+  \end{itemize}
+  then there is a derivation $\Gamma_\theta\vdash \p'(A) : \alpha_r$.
+\end{proposition}
+
+\begin{proposition}
+  If
+  \begin{itemize}
+  \item $A$ - is an arena
+  \item $\p$ - is a position in $A$
+  \item $\theta$ - is a lookup table (including binder at $\p$)
+  \item \emph{some condition on derivability in $\theta$}
+  \item and there is a derivation $\Gamma_\theta\vdash \p'(A) : \alpha_r$. 
+  \end{itemize}
+  then there is a game tree $G$ in $A$ such that $A,\p,\theta\Yright
+  G\mapsto r$.
+\end{proposition}
+
+\newpage
+
+\section{Subject reduction}
+
+\subsection{System}
+
+\begin{minipage}{\textwidth}
+\centering
+\begin{tabular}{l}
+  {
+  \RightLabel{\textnormal{(Ax)}}
+  \AxiomC{$A\in \sigma$}
+  \UnaryInfC{$\Gamma, x : \sigma  \vdash x : A$}
+  \DisplayProof
+  } \quad
+%
+  {
+  \RightLabel{\textnormal{($\omega$)}}
+  \AxiomC{}
+  \UnaryInfC{$\emptyset \vdash t : ()$}
+  \DisplayProof
+  }\\\\
+%
+%
+  {
+  \RightLabel{\textnormal{($\Rightarrow$I)}}
+  \AxiomC{%
+  \parbox{5cm}{
+  $\Gamma, x: \sigma_i \vdash t : A_i$ for $i=1...m$\\
+  with $\bar{A} = (A_1,\ldots,A_m)$\\
+  $\bar{\sigma} = (\sigma_1,\ldots,\sigma_m)$}
+  }
+  \UnaryInfC{$\Gamma \vdash \lambda x.t : \bar{\sigma} \Rightarrow \bar{A}$}
+  \DisplayProof
+  }\quad
+%
+  {
+  \RightLabel{\textnormal{($\Rightarrow$E)}}
+  \AxiomC{$\Gamma \vdash t : R(\bar{A}) \Rightarrow \bar{B}$}
+  \AxiomC{$\Delta \vdash u : \bar{A}$}
+  \BinaryInfC{$\Gamma \uplus R(\Delta) \vdash t \; u : \bar{B}$}
+  \DisplayProof
+  }
+\end{tabular}
+\end{minipage}
+
+
+
+\bigskip
+
+Assume that $C = a\to a$. We use the relation $R = \{(1,1)\}$ in the
+($\Rightarrow$E) rule below.
+
+\[
+  \begin{gathered}
+    \RightLabel{\scriptsize (Ax)}
+    \AxiomC{$C\to C \in \{C\to C, C\}$}
+    \UnaryInfC{$x:\{C\to C, C\} \vdash x : (C\to C)$}
+    \RightLabel{\scriptsize (Ax)}
+    \AxiomC{$C \in \{C\to C, C\}$}
+    \UnaryInfC{$x:\{C\to C, C\} \vdash x : (C)$}
+    \RightLabel{\scriptsize ($\Rightarrow$E)}
+    \BinaryInfC{$x : \{C\to C, C\} \vdash xx : C$}
+    \RightLabel{\scriptsize ($\Rightarrow$I)}
+    \UnaryInfC{$\vdash \lambda x.xx : (\{C\to C, C\} \to C)$}
+    \DisplayProof
+\end{gathered}
+\]
+
+We now apply this function to the identity as follows, with $R =
+\{(1,1),(2,1)\}$
+in the ($\Rightarrow$E) rule below.
+
+\[
+\AxiomC{$\vdash \lambda x.xx : (\{C, a\} \to a)$}
+\AxiomC{$y:C\in\{y:C\}$}
+\UnaryInfC{$y:C\vdash y : C$}
+\AxiomC{$y:a\in\{y:a\}$}
+\UnaryInfC{$y:a\vdash y : a$}
+\RightLabel{\scriptsize ($\Rightarrow$I)}
+\BinaryInfC{$ \vdash \lambda y.y : (C\to C,C)$}
+\RightLabel{\scriptsize ($\Rightarrow$E)}
+\BinaryInfC{$\vdash (\lambda x.xx)\,I:(C)$}
+\DisplayProof
+\]
+
+\begin{lemma}[substitution lemma]
+  ~\\
+  Assume $\bar{A} = (A_1,\ldots,A_n)$ and $\bar{B} = (B_1,\ldots,B_m)$.
+  If $\Gamma, x:\sigma_i\vdash t : B_i$ %
+  for $i=1,\ldots,m$ and $R$ such that $\sigma_i = \{A_j \mid j\, R\, i\}$
+  and $\Delta\vdash u : \bar{A}$ %
+  then $\Gamma\uplus R(\Delta) \vdash t[x:=u] : \bar{B}$.
+  
+\end{lemma}
+
 
 \newpage
 
