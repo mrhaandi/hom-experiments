@@ -338,8 +338,13 @@ Use Lemma~\ref{lem:transform} to collapse redundant entries and idempotence of i
 \begin{tabular}{l}
   {
   \RightLabel{\textnormal{(Ax)}}
-  \AxiomC{$A\in \sigma$}
-  \UnaryInfC{$\Gamma, x : \sigma  \vdash x : A$}
+  \AxiomC{
+  \parbox{5cm}{
+  $A_i\in \sigma_i$ for $i=1...m$\\
+  with $\bar{A} = (A_1,\ldots,A_m)$\\
+  $\bar{\sigma} = (\sigma_1,\ldots,\sigma_m)$
+  }}
+  \UnaryInfC{$\Gamma, x : \bar{\sigma}  \vdash x : \bar{A}$}
   \DisplayProof
   } \quad
 %
@@ -415,13 +420,31 @@ in the ($\Rightarrow$E) rule below.
 
 \begin{lemma}[substitution lemma]
   ~\\
-  Assume $\bar{A} = (A_1,\ldots,A_n)$ and $\bar{B} = (B_1,\ldots,B_m)$.
+  Assume $\bar{A} = (A_1,\ldots,A_n)$ and $\bar{B} =
+  (B_1,\ldots,B_m)$, and $\bar{\sigma} =
+  (\sigma_1,\ldots,\sigma_m)$.
   If $\Gamma, x:\sigma_i\vdash t : B_i$ %
-  for $i=1,\ldots,m$ and $R$ such that $\sigma_i = \{A_j \mid j\, R\, i\}$
+  for $i=1,\ldots,m$ and $R$ is such that $\sigma_i = \{A_j \mid j\, R\, i\}$
   and $\Delta\vdash u : \bar{A}$ %
   then $\Gamma\uplus R(\Delta) \vdash t[x:=u] : \bar{B}$.
   
 \end{lemma}
+\begin{proof}
+  Induction over $t$.
+
+  \begin{itemize}
+  \item $t=y$
+    \begin{itemize}
+    \item $y=x$ -- due to $R$ we can extract from the derivation for
+      $u$ all the necessary derivations for $B$'s.
+    \item $y\not=x$
+    \end{itemize}
+  \item $t=vw$ -- we have in the last derivation rule a relation
+    $R'$. For the derivation of $w$ we need to adapt $R$ to take into
+    account $R'$. This should be $R;R'^{-1}$.
+  \item $t=\lambda y.u$ -- congruence.
+  \end{itemize}
+\end{proof}
 
 
 \newpage
