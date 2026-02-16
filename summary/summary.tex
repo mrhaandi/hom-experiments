@@ -196,7 +196,7 @@ We consider type atoms as words of natural numbers.
 
 For example ${\downarrow_2}(\{12, 3\} \to \varepsilon) = \{122, 32\} \to 2$.
 
-\begin{lemma}[Equality Characterization]
+\begin{lemma}[Equality Characterization]\label{lem:eq_character}
 If $r$ is in $\beta$-normal form and $\Phi \vdash_{\textnormal{STLC}} r : \varphi$ is a $\eta$-long derivation, then there exists $\Gamma$, $A$ such that
 \begin{enumerate}
 \item $\Gamma \prec \Phi$ and $A \prec \varphi$
@@ -214,7 +214,7 @@ We set $\Gamma = (x : {\downarrow_1} A_1 \to {\downarrow_2} A_2 \to \varepsilon)
 and $A = \varepsilon$.
 \end{proof}
 
-\begin{lemma}[Disequality Characterization]
+\begin{lemma}[Disequality Characterization]\label{lem:neq_character}
 If $r$ is in $\beta$-normal form and $\Phi \vdash_{\textnormal{STLC}} r : \varphi$ is a $\eta$-long derivation, then there exists $\Gamma$, $A$ such that
 \begin{enumerate}
 \item $\Gamma \prec \Phi$ and $A \prec \varphi$
@@ -451,6 +451,36 @@ in the ($\Rightarrow$E) rule below.
 
 \section{Application to Fourth-order Matching}
 
+\begin{remark}[Roadmap]\label{rem:road}~
+\begin{enumerate}
+\item Start with equations
+\[
+\begin{array}{lll}
+X\,u_1^1\ldots u_1^n &=& r_1\\
+\vdots&&\vdots\\
+X\,u_m^1\ldots u_m^n &=& r_m
+\end{array}
+\]
+\item Construct characteristic typings
+$\Gamma_{[i]} \vdash r_i : \bar{A}_{[i]}$ for $i = 1, \ldots, m$
+\item\label{rem:road:character}
+By Lemma~\ref{lem:eq_character} there is a solution $\lambda x_1 \ldots x_n.t$ iff there is a $k$ such that for all $i \in \{1, \ldots, m\}$ we have \[\Gamma_{[i]} \vdash_k (\lambda x_1 \ldots x_n.t)\,u_i^1\ldots u_i^n : \bar{A}_{[i]}\]
+\item By inversion this is equivalent to: there are some $R_1^1, \ldots, R_m^n$ and $\bar{B}_1^1, \ldots, \bar{B}_m^n$ such that for all $i \in \{1, \ldots, m\}$ we have
+\[\Gamma_{[i]} \vdash_k (\lambda x_1 \ldots x_n.t) : R_i^1(\bar{B}_i^1) \Rightarrow \cdots \Rightarrow R_i^n(\bar{B}_i^n) \Rightarrow \bar{A}_{[i]}\]
+\item In combination this is equivalent to: there are some  $R^1, \ldots, R^n$ and $\bar{B}^1, \ldots, \bar{B}^n$ such that for all $i \in \{1, \ldots, m\}$ we have
+\[\Gamma_{[i]}, x_1 : \bar{B}^1, \ldots, x_n : \bar{B}^n \vdash_{mk} t : R^1(\bar{B}^1) \Rightarrow \cdots \Rightarrow R^n(\bar{B}^n) \Rightarrow \bar{A}\]
+This is exactly inhabitation in dimension $mk$.
+\end{enumerate}
+\end{remark}
+
+\begin{remark}[Key Step]
+The key step in Remark~\ref{rem:road} is determining the dimension bound $k$ in Step \ref{rem:road:character}.
+Ideas, how to establish this key step include:
+\begin{itemize}
+\item Bounded subject expansion in order $4$ starting from normal form $r_i$
+\item Padowani-style argument with maximal number of assumptions
+\end{itemize}
+\end{remark}
 
 \newpage
 
@@ -463,7 +493,7 @@ in the ($\Rightarrow$E) rule below.
 \item (alx) layout the statement of the dimension lemma
 \item (alx) layout the sketch ot the proof of the dimension lemma
 \end{itemize}
-
+\end{remark}
 \newpage
 
 \printbibliography
