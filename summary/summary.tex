@@ -460,7 +460,7 @@ By Lemma~\ref{lem:eq_character} there is a solution $\lambda x_1 \ldots x_n.t$ i
 \item By inversion this is equivalent to: there are some $R_1^1, \ldots, R_m^n$ and $\bar{B}_1^1, \ldots, \bar{B}_m^n$ such that for all $i \in \{1, \ldots, m\}$ we have
 \[\Gamma_{[i]} \vdash_k (\lambda x_1 \ldots x_n.t) : R_i^1(\bar{B}_i^1) \Rightarrow \cdots \Rightarrow R_i^n(\bar{B}_i^n) \Rightarrow \bar{A}_{[i]}\]
 \item In combination this is equivalent to: there are some  $R^1, \ldots, R^n$ and $\bar{B}^1, \ldots, \bar{B}^n$ such that for all $i \in \{1, \ldots, m\}$ we have
-\[\Gamma_{[i]}, x_1 : \bar{B}^1, \ldots, x_n : \bar{B}^n \vdash_{mk} t : R^1(\bar{B}^1) \Rightarrow \cdots \Rightarrow R^n(\bar{B}^n) \Rightarrow \bar{A}\]
+\[\Gamma, x_1 : \bar{B}^1, \ldots, x_n : \bar{B}^n \vdash_{mk} t : R^1(\bar{B}^1) \Rightarrow \cdots \Rightarrow R^n(\bar{B}^n) \Rightarrow \bar{A}\]
 This is exactly inhabitation in dimension $mk$.
 \end{enumerate}
 \end{remark}
@@ -471,6 +471,7 @@ Ideas, how to establish this key step include:
 \begin{itemize}
 \item Bounded subject expansion in order $4$ starting from normal form $r_i$
 \item Padowani-style argument with maximal number of assumptions
+\item States in a run of a Krivine machine
 \end{itemize}
 \end{remark}
 
