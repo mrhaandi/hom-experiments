@@ -258,14 +258,6 @@ Overall we can take $\Gamma = \Gamma'' \cup \{y : \{\varepsilon\}, g : \{\} \to 
 If $\Gamma \vdash t : \bar{A}$ and $R$ is right-unique, then $R(\Gamma) \vdash t : R(\bar{A})$.
 \end{lemma}
 
-\begin{lemma}
-If in a derivation of the judgment $\Gamma \vdash_k t : \bar{A}$ there occurs $\Delta \vdash_k u : \bar{B}$ such that for some distinct $i, j$
-$B_i = B_j$ and $\forall x.\Delta(x)_i = \Delta(x)$, then there is a derivation of $\Gamma \vdash_k t : \bar{A}$ that has no such property (TODO rephrase).
-\end{lemma}
-
-\begin{proof}
-Use Lemma~\ref{lem:transform} to collapse redundant entries and idempotence of intersection.
-\end{proof}
 
 \newpage
 
@@ -483,6 +475,119 @@ Ideas, how to establish this key step include:
 \end{remark}
 
 \newpage
+
+\newcommand{\fsize}{\mathsf{fsize}\xspace}
+\newcommand{\rank}{\mathsf{rank}\xspace}
+\newcommand{\arity}{\mathsf{rank}\xspace}
+\newcommand{\Types}{\mathsf{SubTypes}\xspace}
+
+
+\begin{definition}
+  Assume
+  $\bar{A} =
+  \sigma_1\Rightarrow\cdots\Rightarrow\sigma_n\Rightarrow\bar{B}$ is a
+  type over constants $C$, where $\bar{B}$ are type constants,
+  $\vdash_k t :\tau$ and $\vdash_k u :\tau$.
+  \begin{displaymath}
+    \begin{array}{lcp{200pt}}
+      t \preceq^k_{\tau} u &  \mbox{ if and only if } &
+    for each $u_1,\ldots,u_n$ such that $\vdash_k u_i:\sigma_i$ if
+    $tu_1\ldots u_n\to_\beta \bar{B}_i$ then $uu_1\ldots u_n\to_\beta \bar{B}_i$
+    \end{array}
+  \end{displaymath}
+  If $t \preceq^k_{\tau} u$ and $u \preceq^k_{\tau} t$ then $t \simeq^k_{\tau} u$.
+  Abstraction class of $t$ with regard to $\simeq^k_{\tau}$ is written $[t]^k_\tau$.
+\end{definition}
+
+
+\begin{lemma}
+  Assume
+  $\bar{A} =
+  \sigma_1\Rightarrow\cdots\Rightarrow\sigma_n\Rightarrow\bar{B}$ is a
+  type over constants $C$, where $\bar{B}$ is a type constant and
+  $\dim(\bar{B})=1$.  If $t\simeq^k_{\bar{A}} u$ and
+  $tu_1\ldots u_n\to^*_\beta \bar{B}_1$ then
+  $uu_1\ldots u_n\to^*_\beta \bar{B}_1$.
+\end{lemma}
+
+\begin{lemma}
+  If there is a typing $\Gamma\vdash t:\bar{A}$ where $\Gamma,\bar{A}$
+  use constants from a set $C$ and
+  then there is a typing
+  $\Gamma\vdash_k t:\bar{A}$ where
+  $$
+  k=\max\{ \fsize(C,r,a) \mid r = \rank(A), a=\arity(A)
+    \mbox{ where } B\in\Types(\Gamma,\bar{A}) \}.
+  $$
+\end{lemma}
+\begin{proof} (Sketch)
+  The proof is by induction over derivation of $t$. For a subterm $uv$
+  we may assume that the relation $R$ used in the relevant ($\Rightarrow E$)
+  is right-unique as the number of types is lower than $k$ some coordinates
+  are not used if dimension is greater than $k$. We can remove these coordinates
+  by weakening.
+\end{proof}
+
+\begin{definition}
+  Derivation $\vdash t : \bar{A}$ \emph{semantically agrees with constants
+    $C$} if for each subterm $u$ of $t$ and its subderivation
+  $x_1:\sigma_1,\ldots,x_n:\sigma_n\vdash u : \bar{A}$ where $\bar{A}$
+  and its minimal decomposition
+  \begin{displaymath}
+    x_1:(\sigma_1)_i,\ldots,x_n:(\sigma_n)_i\vdash u : (\bar{A})_i
+  \end{displaymath}
+  consists of type constants it holds that
+  \begin{itemize}
+  \item for each $u_1,\ldots,u_n$ such that $\vdash u_j:(B)$ for each $B\in(\sigma_j)_i$ 
+  \item semantically agrees with constants $C$,
+  \item $tu_1\ldots u_n\to_\beta^* \bar{A}_i$.
+  \end{itemize}
+\end{definition}
+
+
+\begin{lemma}
+  If $t$ is a solution to
+  \[
+    \begin{array}{lll}
+      X\,u_1^1\ldots u_1^n &=& r_1\\
+      \vdots&&\vdots\\
+      X\,u_m^1\ldots u_m^n &=& r_m
+    \end{array}
+  \]
+  then there is a typing
+  $\vdash t :\sigma_1\Rightarrow\cdots\Rightarrow\sigma_n\Rightarrow(r_1,\ldots,r_m)$
+  over constants $C$ resulting from $r_1,\ldots,r_m$ for some $\sigma_1,\ldots,\sigma_n$ such that
+  $\vdash t :\sigma_1\Rightarrow\cdots\Rightarrow\sigma_n\Rightarrow(r_1,\ldots,r_m)$  semantically agrees with $C$.
+\end{lemma}
+
+\begin{lemma}
+  Assume a set of equations
+  If $t$ is a solution to
+  \[
+    \begin{array}{lll}
+      X\,u_1^1\ldots u_1^n &=& r_1\\
+      \vdots&&\vdots\\
+      X\,u_m^1\ldots u_m^n &=& r_m
+    \end{array}
+  \]
+  then there is a typing
+  $\vdash t :\sigma_1\Rightarrow\cdots\Rightarrow\sigma_n\Rightarrow(r_1,\ldots,r_m)$
+  over constants $C$ resulting from $r_1,\ldots,r_m$ for some $\sigma_1,\ldots,\sigma_n$ such that
+  $\vdash t :\sigma_1\Rightarrow\cdots\Rightarrow\sigma_n\Rightarrow(r_1,\ldots,r_m)$  semantically agrees with $C$.
+\end{lemma}
+
+\begin{lemma}
+  Assume a set of equations
+  \[
+    \begin{array}{lll}
+      X\,u_1^1\ldots u_1^n &=& r_1\\
+      \vdots&&\vdots\\
+      X\,u_m^1\ldots u_m^n &=& r_m
+    \end{array}
+  \]
+  If $t$ is a term such that $\vdash t :\sigma_1\Rightarrow\cdots\Rightarrow\sigma_n\Rightarrow(r_1,\ldots,r_m)$ is a typing
+  that semantically agrees with constants $C$ resulting from $r_1,\ldots,r_m$ then $t$ is a solution to the set of equations.
+\end{lemma}
 
 \section*{TODOs}
 \begin{remark}[Open Questions]~
