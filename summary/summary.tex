@@ -590,6 +590,40 @@ Ideas, how to establish this key step include:
   that semantically agrees with constants $C$ resulting from $r_1,\ldots,r_m$ then $t$ is a solution to the set of equations.
 \end{lemma}
 
+
+\newpage
+
+\section{Application to Fifth-order Matching}
+
+\begin{remark}[Main Idea]\leavevmode
+\begin{enumerate}
+\item Reduce routing by main variables to constants (similar to unfolding) to bound the number of occurrences of main variables.
+\item Use Dimension Bound Lemma~\ref{lem:fifth-dim-bound} to bound the dimension of a potential solution.
+\item Use decidable inhabitation in bounded dimension to obtain the solution.
+\end{enumerate}
+\end{remark}
+
+\begin{lemma}[Dimension Bound]\label{lem:fifth-dim-bound}
+A bound on the number of occurrences of main variables $x_1, \ldots, x_n$ bounds the dimension of the solution term $\lambda x_1 \ldots x_n.t$.
+\end{lemma}
+
+\begin{proof}[Proof Idea]
+In fifth order matching a main variable $x$ may have the type
+\begin{align*}
+&a_1 \to \\
+&\big((a_2 \to a_3) \cap (a_4 \to a_5)\big) \to\\
+&\Big(\big((a_6 \to a_7) \cap (a_8 \to a_9)\big) \to a_{10}\Big) \cap \Big(\big((a_{11} \to a_{12}) \cap (a_{13} \to a_{14})\big) \to a_{15}\Big) \to\\
+&a_{16}
+\end{align*}
+So that the application $x\,v_1\,(\lambda z.v_2)\,(\lambda f.v_3)$ can introduce intersections.
+Use of the introduces variables $z$ and $f$ deeper in the term do not introduce intersections becuase they have a simple domain at each occurrence.
+Critically, $f$ cannot be assigned the type $(b_1 \cap b_2) \to b_2$ in a fifth-order matching scenario beucase it would require an argument that both occurs at position $b_1$ and $b_2$, which are distinct occurrences.
+Overall, only applications with the main variable at head positions do require intersection introduction.
+The dimension bound is $M^N$ where $N$ is the nuber of occurrences of main variables and $M$ is the maximal number of elements in an intersection. The number $M$ itself is bounded by the number of different intersection types of third order types refining the simple types in the original matching instance, and constants correspond to subterms on the right-hand sides.  
+\end{proof}
+
+\newpage
+
 \section*{TODOs}
 \begin{remark}[Open Questions]~
 \begin{itemize}
