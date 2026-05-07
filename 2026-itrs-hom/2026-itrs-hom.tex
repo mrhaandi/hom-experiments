@@ -47,7 +47,7 @@ University of Warsaw, Poland\\
 Decidability of higher-order matching was established by Stirling via a sophisticated game-semantic argument.
 We propose an alternative specification of higher-order matching as an intersection type inhabitation problem.
 Concretely, we use the recently proposed system~\textbf{R}, a syntax-directed intersection type system in which judgments derive vectors of types and binary relations control information flow between coordinates.
-Bounding the dimension of type vectors in system \textbf{R} derivations makes inhabitation in system~\textbf{R} decidable.
+Bounding the dimension of type vectors in system~\textbf{R} derivations makes inhabitation in system~\textbf{R} decidable.
 We outline how a solution to a higher-order matching instance corresponds to an inhabitant in system~\textbf{R} of bounded dimension.
 The work is in progress; the central challenge is establishing a dimensional bound that depends only on the matching instance.
 \end{abstract}
@@ -63,10 +63,8 @@ Decidability of the general problem was settled by Stirling~\cite{stirling2009} 
 Stirling's argument is technically demanding and not easily related to standard type-theoretic constructions.
 
 We propose to pursue a different approach: encoding higher-order matching as an inhabitation problem in a decidable fragment of an intersection type system.
-The encoding aims to reduce higher-order matching to inhabitation in a dimensionally bound system~\textbf{R}, a recently introduced intersection type system~\cite{dsr2026sysR}.
+The encoding aims to reduce higher-order matching to inhabitation in a dimensionally bounded system~\textbf{R}, a recently introduced intersection type system~\cite{dsr2026sysR}.
 This long abstract describes the encoding, identifies the central technical obstacle (a uniform dimensional bound), and discusses possible approaches towards its resolution.
-
-\newpage
 
 \section{System \textbf{R}}
 \label{sect:sysR}
@@ -79,15 +77,14 @@ A, B ::= a \mid \sigma \to A
 \sigma, \tau ::= \{A_1, \ldots, A_n\}, \quad n \geq 0,
 \]
 where $a$ ranges over type atoms.
-A vector $\bar{A} = (A_1, \ldots, A_n)$ has dimension $\dim(\bar{A}) = n$; we write $\bar{A}_{[i]}$ for $A_i$.
-The relations $\subseteq$, $\in$, and the operation $\cup$ are extended pointwise to vectors, and denoted $\rbar{\subseteq}, \rbar{\in}$, and $\rbar{\cup}$ respectively.
+A vector $\bar{A} = (A_1, \ldots, A_n)$ has dimension $\dim(\bar{A}) = n$, and we write $\bar{A}_{[i]}$ for $A_i$.
+The relation $\in$ is extended pointwise to vectors, and denoted $\rbar{\in}$.
 We set $\bar{\sigma} \Rightarrow \bar{A} := (\sigma_1 \to A_1, \ldots, \sigma_n \to A_n)$.
 An \emph{environment}~$\Gamma$ of dimension $d$ assigns to each variable in its domain a vector $\bar{\sigma}$ with $\dim(\bar{\sigma}) = d$.
 
 A binary relation $R \subseteq \{1,\ldots,n\} \times \{1,\ldots,m\}$ acts on a type vector $\bar{A}$ of dimension $n$ by
 $R(\bar{A})_{[i]} = \{A_j \mid j\,R\,i\}$,
 analogously on vectors of sets, and pointwise on environments.
-The operation $(\{A_1\}, \ldots, \{A_n\})\!\!\downarrow\, := (A_1, \ldots, A_n)$ recovers a type vector when each coordinate is a singleton.
 
 \begin{definition}[System \textbf{R} with Dimension Bound $k$]
 \label{def:sysR}
@@ -114,19 +111,31 @@ The operation $(\{A_1\}, \ldots, \{A_n\})\!\!\downarrow\, := (A_1, \ldots, A_n)$
 
 The dimension bound $k$ limits the length of all type vectors occurring in a derivation.
 The relation $R$ in rule $(\Rightarrow$E$)$ accommodates intersection introduction in a syntax-directed manner: the argument is typed with a vector $\bar{A}$ whose components are combined via $R$.
+In particular, relations are the mechanism by which intersection introduction is managed within a syntax-directed, Curry-style presentation.
+The following example illustrates the action of different relations in one derivation.
 
-\begin{example}\label{xmp:selfapp}
-With $R := \{(1,1)\}$ in the elimination step we can derive:
-\medskip\\
-\centerline{\AxiomC{$\{x : (\{\{a\} \to b\})\} \vdash_1 x : R((a)) \Rightarrow (b)$}
-\AxiomC{$\{x : (\{a\})\} \vdash_1 x : (a)$}
+\begin{example}[{\cite[Example~13]{dsr2026sysR}}]~\\
+For the following definitions 
+\begin{itemize}
+\item $\Gamma_1 := \{x : (\{\{b, c\} \to a\})\}$ 
+\item $\Gamma_2 := \{y : (\{\{a\} \to b\}, \{\{a\} \to c\})\}$ 
+\item $\Gamma_3 := \{x : (\{\{b, c\} \to a\}), y : (\{\{a\} \to b, \{a\} \to c\}), z : (\{a\})\}$
+\item $R_1 := \{(1,1), (2,1)\}$ with $R_1((b, c)) = (\{b, c\})$
+\item $R_2 := \{(1,1), (1,2)\}$ with $R_2((a)) = (\{a\}, \{a\})$
+\end{itemize}
+we have the following derivation:\medskip\\
+\AxiomC{$\Gamma_1 \vdash_2 x : R_1((b, c)) \Rightarrow (a)$}
+\AxiomC{$\Gamma_2 \cup R_2(\{z : (\{a\})\}) \vdash_2 y\,z : (b, c)$}
 \RightLabel{\textnormal{($\Rightarrow$E)}}
-\BinaryInfC{$\{x : (\{a, \{a\} \to b\})\} \vdash_1 x\,x : (b)$}
-\RightLabel{\textnormal{($\Rightarrow$I)}}
-\UnaryInfC{$\emptyset \vdash_1 \lambda x.x\,x : (\{a, \{a\} \to b\} \to b)$}
-\DisplayProof}
-\medskip\\
-Even in dimension~$1$, assumptions may carry sets of types of cardinality greater than one.
+\BinaryInfC{$\Gamma_3 \vdash_2 x\,(y\,z) : (a)$}
+\DisplayProof\medskip\\
+for which the judgment $\Gamma_2 \cup R_2(\{z : (\{a\})\}) \vdash_2 y\,z : (b, c)$ is derived in dimension $2$ as follows:\medskip\\
+\AxiomC{$\Gamma_2 \vdash_2 y : R_2((a)) \Rightarrow (b, c)$}
+\AxiomC{$\{z : (\{a\})\} \vdash_2 z : (a)$}
+\RightLabel{\textnormal{($\Rightarrow$E)}}
+\BinaryInfC{$\Gamma_2 \cup R_2(\{z : (\{a\})\}) \vdash_2 y\,z : (b, c)$}
+\DisplayProof\medskip\\
+In the above rule applications, the role of $R_1$ is to combine types in coordinates into an intersection, and the role of $R_2$ is to copy a type to two coordinates.
 \end{example}
 
 System~\textbf{R} satisfies subject reduction with respect to $\beta$-reduction in each bounded dimension and corresponds to the standard intersection type system of Barendregt, Coppo, and Dezani-Ciancaglini~\cite{BarendregtCD83} up to top-level subtyping~\cite{dsr2026sysR}.
@@ -141,7 +150,7 @@ is the central decision problem of system~\textbf{R}.
 \end{theorem}
 
 The decision procedure relies on a subformula property: there exists a derivation in $\beta$-normal form in which all coordinates of all type vectors are subformulae of types appearing in the input $\Gamma$ or $\bar{A}$ (or the empty set).
-Combined with the dimensional bound $k$, this yields polynomially many distinct vectors per coordinate, which an alternating procedure can traverse traverses in exponential space.
+Combined with the dimensional bound $k$, this yields polynomially many distinct vectors per coordinate, which an alternating procedure traverses in exponential space.
 
 \section{Higher-order Matching via Inhabitation}
 \label{sect:homInh}
@@ -154,8 +163,8 @@ or
 \begin{equation}\label{neq:hom}
 X\,u_i^1\,\ldots\,u_i^n \neq_{\beta\eta} r_i \qquad (i \in \{1, \ldots, m\})
 \end{equation}
-where the metaviariable $X$ has simple type $\varphi_1 \to \cdots \to \varphi_n \to \varphi$, each $u_i^j$ has simple type $\varphi_j$, each $r_i$ is a simply-typed $\beta\eta$-normal form of type $\varphi$, and free variables are taken from a fixed simply-typed context $\Phi$.
-A \emph{solution} is a $\lambda$-term $\lambda x_1 \ldots x_n.t$ of type $\varphi_1 \to \cdots \to \varphi_n \to \varphi$ such that, after substituting it for the metaviariable, every equation and disequation holds.
+where the metavariable $X$ has simple type $\varphi_1 \to \cdots \to \varphi_n \to \varphi$, each $u_i^j$ has simple type $\varphi_j$, each $r_i$ is a simply-typed $\beta\eta$-normal form of type $\varphi$, and free variables are taken from a fixed simply-typed context $\Phi$.
+A \emph{solution} is a $\lambda$-term $\lambda x_1 \ldots x_n.t$ of type $\varphi_1 \to \cdots \to \varphi_n \to \varphi$ such that, after substituting it for the metavariable, every equation and disequation holds.
 
 The encoding combines two ingredients.
 \emph{Characteristic typings} capture $\beta\eta$-equality at type~$\varphi$ via intersection-type derivability.
@@ -175,18 +184,11 @@ For each $\beta$-normal $\eta$-long $r$ with $\Phi \vdash_{\textnormal{STLC}} r 
 \end{enumerate}
 \end{lemma}
 
-A complementary disequality characterization is also possible (by exhibiting, for each alternative head shape, an environment ruling it out).
+A complementary disequality characterization is also possible by exhibiting, for each alternative head shape, an environment ruling it out.
 
 \begin{lemma}[Disequality Characterization]\label{lem:neq_character}
-If $r$ is in $\beta$-normal form and $\Phi \vdash_{\textnormal{STLC}} r : \varphi$ is a $\eta$-long derivation, then there exists $\Gamma$, $A$ such that
-\begin{enumerate}
-\item $\Gamma \prec \Phi$ and $A \prec \varphi$
-\item $\Gamma \vdash r : A$
-\item for all $t$ such that $\Phi \vdash_{\textnormal{STLC}} t : \varphi$ is an $\eta$-long derivation (not necessarily $\beta$-normal) and $\Gamma \vdash t : A$, then $t \not\twoheadrightarrow_\beta r$
-\end{enumerate}
+For each $\beta$-normal $\eta$-long $r$ with $\Phi \vdash_{\textnormal{STLC}} r : \varphi$, there exist $\Gamma \prec \Phi$ and $A \prec \varphi$ such that for any $\eta$-long $t$ with $\Phi \vdash_{\textnormal{STLC}} t : \varphi$ and $\Gamma \vdash t : A$ we have $t \not\twoheadrightarrow_\beta r$.
 \end{lemma}
-
-
 
 \subsection{Reduction to Inhabitation}
 
@@ -224,14 +226,15 @@ For fourth-order matching, an explicit bound is plausible, and the following thr
 For order $4$, the expansion shape is sufficiently regular that the dimension is bounded by the product of the number of right-hand sides and a quantity depending on the simple types of the arguments.
 \item[Padovani-style saturation.] Padovani's decision procedure for fourth-order matching~\cite{padovani2000} bounds the number of necessary type assumptions at intermediate variables.
 This induces a bound on the number of applications of intersection introduction in derivations.
-Given a bounden number of sufficient subformulae in a type derivation, this may limit the required dimension. 
+Given a bounded number of sufficient subformulae in a type derivation, this may limit the required dimension. 
 \item[Krivine-machine states.] Binary relations in system~\textbf{R} bear a resemblance to relational denotational semantics~\cite{Carvalho18}.
 The states reachable in a Krivine-machine evaluation of a candidate solution provide a candidate combinatorial bound on the dimension of any associated derivation.
 \end{description}
 
 We conjecture that a similar analysis extends to fifth-order matching along the lines suggested by the type structure of fifth-order metavariables, where intersection introduction is required only at applications headed by a main variable.
 
-Alternatively, TODO: it is interesting to render Strilings argument in the language of intersection type inhabitation
+A complementary line of research, orthogonal to the search for a dimensional bound, is to reinterpret Stirling's game-semantic argument~\cite{stirling2009} in the language of intersection type derivations.
+A faithful translation of game positions into system~\textbf{R} judgments could provide an independent type-theoretic justification of Stirling's argument.
 
 \label{sect:bib}
 \bibliographystyle{plain}
