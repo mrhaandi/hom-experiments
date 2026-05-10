@@ -5,6 +5,7 @@
 \usepackage{amssymb}
 \usepackage{bussproofs}
 \usepackage{stmaryrd}
+\usepackage{xspace}
 
 \theoremstyle{plain}% default
 \newtheorem{theorem}{Theorem}
@@ -17,6 +18,7 @@
 \newtheorem{remark}[theorem]{Remark}
 
 \newcommand{\rbar}[1]{\mathrel{\bar{#1}}}
+\renewcommand{\:}{\mbox{:}\xspace}
 \DeclareMathOperator{\dom}{dom}
 
 \title{Higher-order Matching via Intersection Type Inhabitation in Bounded Dimension}
@@ -46,7 +48,7 @@ University of Warsaw, Poland\\
 \begin{abstract}
 Decidability of higher-order matching was established by Stirling via a sophisticated game-semantic argument.
 We propose an alternative specification of higher-order matching as an intersection type inhabitation problem.
-Concretely, we use the recently proposed system~\textbf{R}, a syntax-directed intersection type system in which judgments derive vectors of types and binary relations control information flow between coordinates.
+Concretely, we use the recently proposed system~\textbf{R}, a syntax-directed intersection type system in which judgements derive vectors of types and binary relations control information flow between coordinates.
 Bounding the dimension of type vectors in system~\textbf{R} derivations makes inhabitation in system~\textbf{R} decidable.
 We outline how a solution to a higher-order matching instance corresponds to an inhabitant in system~\textbf{R} of bounded dimension.
 The work is in progress; the central challenge is establishing a dimensional bound that depends only on the matching instance.
@@ -55,11 +57,11 @@ The work is in progress; the central challenge is establishing a dimensional bou
 \section{Introduction}
 \label{sect:introduction}
 
-Higher-order matching is the following decision problem: given two simply typed $\lambda$-terms, can the first term be instantiated to be $\beta\eta$-equivalent to the second term?
+Higher-order matching is the following decision problem: given two simply typed $\lambda$-terms, can the first term be instantiated so that it is $\beta\eta$-equivalent to the second term?
 Higher-order matching was formulated by Huet in the 1970s and constitutes a fundamental decision problem in the simply-typed $\lambda$-calculus, with applications in theorem proving, program transformation, and program synthesis.
 
 Decidability at low orders was established incrementally: order~$2$ by Huet, order~$3$ by Dowek~\cite{dowek1992}, and order~$4$ by Padovani~\cite{padovani2000}.
-Decidability of the general problem was settled by Stirling~\cite{stirling2009} using a game-semantic characterization.
+Decidability of the general problem was settled by Stirling~\cite{stirling2009} using a game-semantic characterisation.
 Stirling's argument is technically demanding and not easily related to standard type-theoretic constructions.
 
 We propose to pursue a different approach: encoding higher-order matching as an inhabitation problem in a decidable fragment of an intersection type system.
@@ -88,7 +90,7 @@ analogously on vectors of sets, and pointwise on environments.
 
 \begin{definition}[System \textbf{R} with Dimension Bound $k$]
 \label{def:sysR}
-~
+~\\[1.5ex]
 
 \centering
 {\RightLabel{\textnormal{(Ax)}}
@@ -129,7 +131,7 @@ we have the following derivation:\medskip\\
 \RightLabel{\textnormal{($\Rightarrow$E)}}
 \BinaryInfC{$\Gamma_3 \vdash_2 x\,(y\,z) : (a)$}
 \DisplayProof\medskip\\
-for which the judgment $\Gamma_2 \cup R_2(\{z : (\{a\})\}) \vdash_2 y\,z : (b, c)$ is derived in dimension $2$ as follows:\medskip\\
+for which the judgement $\Gamma_2 \cup R_2(\{z : (\{a\})\}) \vdash_2 y\,z : (b, c)$ is derived in dimension $2$ as follows:\medskip\\
 \AxiomC{$\Gamma_2 \vdash_2 y : R_2((a)) \Rightarrow (b, c)$}
 \AxiomC{$\{z : (\{a\})\} \vdash_2 z : (a)$}
 \RightLabel{\textnormal{($\Rightarrow$E)}}
@@ -163,18 +165,18 @@ or
 \begin{equation}\label{neq:hom}
 X\,u_i^1\,\ldots\,u_i^n \neq_{\beta\eta} r_i \qquad (i \in \{1, \ldots, m\})
 \end{equation}
-where the metavariable $X$ has simple type $\varphi_1 \to \cdots \to \varphi_n \to \varphi$, each $u_i^j$ has simple type $\varphi_j$, each $r_i$ is a simply-typed $\beta\eta$-normal form of type $\varphi$, and free variables are taken from a fixed simply-typed context $\Phi$.
+where the metavariable $X$ has simple type $\varphi_1 \to \cdots \to \varphi_n \to \varphi$, each $u_i^j$ has simple type $\varphi_j$, each $r_i$ is a simply-typed $\beta\eta$-normal form of type $\varphi$, and free variables are taken from a fixed simply-typed context $\Phi$ \cite{Padovani95}.
 A \emph{solution} is a $\lambda$-term $\lambda x_1 \ldots x_n.t$ of type $\varphi_1 \to \cdots \to \varphi_n \to \varphi$ such that, after substituting it for the metavariable, every equation and disequation holds.
 
 The encoding combines two ingredients.
 \emph{Characteristic typings} capture $\beta\eta$-equality at type~$\varphi$ via intersection-type derivability.
-The collection of these typings into a single vector judgment then \emph{combines} into one inhabitation problem.
+The collection of these typings into a single vector judgement then \emph{combines} into one inhabitation problem.
 
 \subsection{Characteristic Typings}
 
 For each $\beta$-normal $\eta$-long term $r$ with $\Phi \vdash_{\textnormal{STLC}} r : \varphi$, we associate a refining environment $\Gamma$ and intersection type $A$, written $\Gamma \prec \Phi$ and $A \prec \varphi$, such that derivability of a typing for $\Gamma \vdash t : A$ uniquely identifies $r$ up to $\beta$-equivalence among $\eta$-long candidates.
 
-The construction lifts to vectors: a vector $\bar{A}$ characterizes a finite set of right-hand sides $r_1, \ldots, r_m$ by stacking, with $\bar{A}_{[i]} = A_i$ and the corresponding characteristic environments stacked coordinate-wise into $\Gamma$ with $\dim(\Gamma) = m$.
+The construction lifts to vectors: a vector $\bar{A}$ characterises a finite set of right-hand sides $r_1, \ldots, r_m$ by stacking, with $\bar{A}_{[i]} = A_i$ and the corresponding characteristic environments stacked coordinate-wise into $\Gamma$ with $\dim(\Gamma) = m$.
 
 \begin{lemma}[Equality Characterization]\label{lem:char}
 For each $\beta$-normal $\eta$-long $r$ with $\Phi \vdash_{\textnormal{STLC}} r : \varphi$, there exist $\Gamma \prec \Phi$ and $A \prec \varphi$ such that:
@@ -184,7 +186,7 @@ For each $\beta$-normal $\eta$-long $r$ with $\Phi \vdash_{\textnormal{STLC}} r 
 \end{enumerate}
 \end{lemma}
 
-A complementary disequality characterization is also possible by exhibiting, for each alternative head shape, an environment ruling it out.
+A complementary disequality characterisation is also possible by exhibiting, for each alternative head shape, an environment ruling it out.
 
 \begin{lemma}[Disequality Characterization]\label{lem:neq_character}
 For each $\beta$-normal $\eta$-long $r$ with $\Phi \vdash_{\textnormal{STLC}} r : \varphi$, there exist $\Gamma \prec \Phi$ and $A \prec \varphi$ such that for any $\eta$-long $t$ with $\Phi \vdash_{\textnormal{STLC}} t : \varphi$ and $\Gamma \vdash t : A$ we have $t \not\twoheadrightarrow_\beta r$.
@@ -212,7 +214,7 @@ Stacking the $m$ derivations into vectors of dimension at most $mk$ and combinin
 \]
 The term $t$ is an inhabitant in system~\textbf{R} of dimension $mk$, with environment and target type computable from $r_1, \ldots, r_m$ and the arguments $u_i^j$.
 
-Due to the characterization theorem, the higher-order matching instance~\eqref{eq:hom} has a solution iff the type $R^1(\bar{B}^1) \Rightarrow \cdots \Rightarrow R^n(\bar{B}^n) \Rightarrow \bar{A}$ is inhabited in the environment $\Gamma, x_1 : \bar{B}^1, \ldots, x_n : \bar{B}^n$ for some dimensional bound.
+Due to the characterisation theorem, the higher-order matching instance~\eqref{eq:hom} has a solution iff the type $R^1(\bar{B}^1) \Rightarrow \cdots \Rightarrow R^n(\bar{B}^n) \Rightarrow \bar{A}$ is inhabited in the environment $\Gamma, x_1 : \bar{B}^1, \ldots, x_n : \bar{B}^n$ for some dimensional bound.
 
 \subsection{The Dimension Bound}
 
@@ -234,10 +236,120 @@ The states reachable in a Krivine-machine evaluation of a candidate solution pro
 We conjecture that a similar analysis extends to fifth-order matching along the lines suggested by the type structure of fifth-order metavariables, where intersection introduction is required only at applications headed by a main variable.
 
 A complementary line of research, orthogonal to the search for a dimensional bound, is to reinterpret Stirling's game-semantic argument~\cite{stirling2009} in the language of intersection type derivations.
-A faithful translation of game positions into system~\textbf{R} judgments could provide an independent type-theoretic justification of Stirling's argument.
+A faithful translation of game positions into system~\textbf{R} judgements could provide an independent type-theoretic justification of Stirling's argument.
 
+\subsection{Stirling's Example}
+
+We present here an example that illustrates that using type information in system~\textbf{R} we can substantiate a term transformation that is used in Stirling's construction.
+Stirling in his unpublished paper \cite{Stirling13} illustrates his technique by means of the following example.
+
+\begin{displaymath}
+  \begin{array}{l@{\;}c@{\;}l}
+    a_1 & = & \lambda y_1^{o}.\, \lambda y_2^{o \to o \to o}.\, y_2\, y_1\, y_1\\
+    a_2 & = & \lambda y_3^{o \to (o \to o \to o) \to o}.\,
+               y_3\;\Bigl(y_3\, a\; (\lambda w_1^{o}.\, \lambda w_2^{o}.\, w_1)\Bigr)
+               \;(\lambda v_1^{o}.\, \lambda v_2^{o}.\, g\, v_2)\\
+    s & = & \lambda x_1^{o \to (o \to o \to o) \to o}.\,
+  \lambda x_2^{(o \to (o \to o \to o) \to o) \to o}.\,\\ & & \qquad
+  x_2\;\Bigl(
+    \lambda z_1^{o}.\, \lambda z_2^{o \to o \to o}.\,
+    x_1\, z_1\;
+    \bigl(
+      \lambda s_1^{o}.\, \lambda s_2^{o}.\,
+      x_1\, b\;
+      (\lambda u_1^{o}.\, \lambda u_2^{o}.\,
+      z_2\, s_1\, s_2)
+    \bigr)
+  \Bigr)
+  \end{array}
+\end{displaymath}
+Here $sa_1a_2$ $\beta$-reduces to $ga$. The unfolding transformation defined by Stirling replaces the variable $s_1$ with term
+$x_1z_1(\lambda s_1s_2.s_1)$ so that resulting term $s'$ is
+\begin{displaymath}
+    \begin{array}{l@{\;}c@{\;}l}
+    s' & = & \lambda x_1.\,
+  \lambda x_2.\,
+  x_2\;\Bigl(
+    \lambda z_1.\, \lambda z_2.\,
+    x_1\, z_1\;
+    \bigl(
+      \lambda s_1.\, \lambda s_2.\,
+      x_1\, b\;
+      (\lambda u_1.\, \lambda u_2.\,
+      z_2\, \underline{(x_1z_1(\lambda s_1s_2.s_1))}\, s_2)
+    \bigr)
+  \Bigr)
+  \end{array}
+\end{displaymath}
+A typing of this term in system~\textbf{R} along the lines of Lemma~\ref{lem:char} can be succinctly described as follows.
+
+\medskip
+
+$
+  \begin{array}{l@{\;}c@{\;}lllll}
+    a_1 & = &  \lambda y_1\:(\{a\}, & \emptyset, & \{a\}, & \emptyset &).\, \\ & &
+               \lambda y_2\:(\{\{a\} \to \emptyset \to a\}, & 
+                            \{\emptyset \to \emptyset \to a\}, &
+                            \{\emptyset \to a \to ga\}, &
+                            \{\emptyset \to \emptyset \to ga\} &).\,\\ & &
+                   \multicolumn{2}{l}{\qquad y_2\, y_1\, y_1 : (a,  a,  ga,  ga )}
+  \end{array}
+$
+
+\medskip
+
+$
+  \begin{array}{l@{\;}c@{\;}lllll}
+    a_2 & = & \lambda y_3\:(\{ \{a\} \to \{\{a\} \to \emptyset \to a\} \to a\},\quad
+                               \{a\} \to \{\emptyset \to \{a\} \to ga\} \to ga \}).\,\\ & &
+               \multicolumn{2}{l}{\qquad y_3\;\Bigl(y_3\, a\; (\lambda w_1\:\{a\}.\, \lambda w_2\:\emptyset.\, w_1)\Bigr)
+               \;(\lambda v_1\:\emptyset.\, \lambda v_2\:\{a\}.\, g\, v_2) : (ga)}\\
+  \end{array}
+$
+
+\medskip
+
+$
+\begin{array}{l@{\;}c@{\;}l@{}l@{}l@{}ll}
+      s\; & = & \lambda x_1\: (\{ & \multicolumn{3}{@{}l}{\{a\} \to \{\{a\} \to \emptyset \to a\} \to a,}\\ & & &
+                                    \multicolumn{3}{@{}l}{\emptyset \to \{\emptyset \to \emptyset \to a\} \to a,}\\ & & &
+                                    \multicolumn{3}{@{}l}{\{a\} \to \{\emptyset \to \{a\} \to ga\} \to ga,}\\ & & &
+                                    \multicolumn{3}{@{}l}{\emptyset \to \{\emptyset \to \emptyset \to ga\} \to ga\}).\,} \\ & & 
+               \lambda x_2\: (\{&   \multicolumn{3}{@{}l}{\{ \{a\} \to \{\{a\} \to \emptyset \to a\} \to a,\;
+                                                             \{a\} \to \{\emptyset \to \{a\} \to ga\} \to ga \} \to ga\}).\,}
+                &\\ & & & 
+                x_2\;\Bigl(
+                \lambda z_1\:(\{ & \multicolumn{2}{@{}l}{a\}, \{a\}).\, \lambda z_2\:(\{\{a\} \to \emptyset \to a\}, \{\emptyset \to \{a\} \to ga\}).\,} \\ & & & &
+    x_1\, z_1\;
+    \bigl(
+      \lambda s_1\:(\{ & a\}, \emptyset).\, \lambda s_2\:(\emptyset, \{a\}).\,\\ & & & & &
+      x_1\, b\;
+      (\lambda u_1\:(\emptyset,\emptyset).\, \lambda u_2\:(\emptyset,\emptyset).\,
+      z_2\, s_1\, s_2)
+    \bigr)
+  \Bigr) : (ga)
+
+  \end{array}
+  $
+
+\medskip
+
+\noindent
+We can see from the typing that $x_1$ can serve faithfully as a transformer of type
+$\{a\} \to \{\{a\} \to \emptyset \to a\} \to a$. At the same time $z_1$ in all contexts is of type $\{a\}$.
+Types of $s_1, s_2$ are in some typing contexts $\{a\}, \emptyset$ and in some other $\emptyset, \{a\}$ respectively.
+In the former typing contexts, $x_1z_1(\lambda s_1s_2.s_1)$ has type $\{a\}$.
+Note that when $z_2$ has the type that reflects that it uses its argument $s_1$ it must be the former context.
+Consequently, we can replace $s_1$ with $x_1z_1(\lambda s_1s_2.s_1)$ and the result of the reduction will not change.
+As it can be seen, the necessary description that makes it possible to apply the transformation is expressible in terms of typings in system~\textbf{R}.
+
+  
 \label{sect:bib}
 \bibliographystyle{plain}
 \bibliography{bibliography}
 
 \end{document}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
