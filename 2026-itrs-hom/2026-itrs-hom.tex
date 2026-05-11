@@ -64,6 +64,8 @@ Decidability at low orders was established incrementally: order~$2$ by Huet, ord
 Decidability of the general problem was settled by Stirling~\cite{stirling2009} using a game-semantic characterisation.
 Stirling's argument is technically demanding and not easily related to standard type-theoretic constructions.
 
+\medskip
+
 We propose to pursue a different approach: encoding higher-order matching as an inhabitation problem in a decidable fragment of an intersection type system.
 The encoding aims to reduce higher-order matching to inhabitation in a dimensionally bounded system~\textbf{R}, a recently introduced intersection type system~\cite{dsr2026sysR}.
 This long abstract describes the encoding, identifies the central technical obstacle (a uniform dimensional bound), and discusses possible approaches towards its resolution.
@@ -169,8 +171,8 @@ where the metavariable $X$ has simple type $\varphi_1 \to \cdots \to \varphi_n \
 A \emph{solution} is a $\lambda$-term $\lambda x_1 \ldots x_n.t$ of type $\varphi_1 \to \cdots \to \varphi_n \to \varphi$ such that, after substituting it for the metavariable, every equation and disequation holds.
 
 The encoding combines two ingredients.
-\emph{Characteristic typings} capture $\beta\eta$-equality at type~$\varphi$ via intersection-type derivability.
-The collection of these typings into a single vector judgement then \emph{combines} into one inhabitation problem.
+First, \emph{characteristic typings} capture $\beta\eta$-equality at type~$\varphi$ via intersection-type derivability.
+Second, the collection of these typings into a single vector judgement then \emph{combines} into one inhabitation problem.
 
 \subsection{Characteristic Typings}
 
