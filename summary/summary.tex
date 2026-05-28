@@ -624,6 +624,69 @@ The dimension bound is $M^N$ where $N$ is the nuber of occurrences of main varia
 
 \newpage
 
+\subsection{Bounding the Dimension}
+
+\begin{definition}[Contributing Type]~
+\begin{itemize}
+\item A first-order type is contributing iff it is not $\omega$
+\item A second-order type is contributing iff it is not $\omega$ and all its sources are different from its target
+\end{itemize}
+\end{definition}
+
+A non-contributing second-order type is e.g. $a \to \omega \to a$.
+Where $a$ is actually a path in some right-hand side.
+
+\begin{lemma}
+There is no coordinate such that two variables are assigned a contributing type with the same contribution.
+\end{lemma}
+
+\begin{proof}
+Take the corrdinate substitute all other variables by terms and beta-normalize.
+At specified path there can only be one contributing variable.
+\end{proof}
+
+\begin{example}
+It is possible that two distinct coordinates have different variables with same contributing types.
+\begin{itemize}
+\item $\{z_1 : a \to f\,a, z_2 : f\,a \to f\,a\}, \Gamma_1 \vdash z_2\,(z_1\,a) : f\,a$
+\item $\{z_1 : a \to a , z_2 : a \to f\,a\}, \Gamma_2 \vdash z_2\,(z_1\,a) : f\,a$
+\end{itemize}
+\end{example}
+
+
+\begin{corollary}
+In a characteristic typing there is a bounded number of times a main variable can introduce a variable with a contributing first-order or second-order type.
+
+{\color{red}Here an ingredient is missing. The contributing variables could be introduced in fresh coordinates.
+Maybe needs some type consistency property on main variables?}
+\end{corollary}
+
+\begin{example}
+{\color{red}
+A main variable could have the type $(((a \to \omega \to a) \to c) \to (a \to \omega \to a) \to c) \cap (((\omega \to b \to b) \to d) \to (\omega \to b \to b) \to d)$?}
+The implementation of $x$ would be $\lambda z_1 z_2.z_1\,z_2$.
+This would introduce a delayed global switch for the type vector $(c, d)$.
+However, using this main variable $x\,t_1\,t_2$ would mean that in the first context $t_2$ needs to evaluate to $K$ and in the second to $K'$, which again requires an existing switch.
+
+Still, the proof of switch existence on intersection introduction would hold, right?
+\end{example}
+
+\begin{definition}
+A global switch is a variables with non-contributing second-order types which all are not $\omega$.
+\end{definition}
+
+\begin{lemma}
+If a main variables introduces variables with only non-contributing types, then there is at least one introduced global switch.
+\end{lemma}
+
+\begin{proof}
+Conside one coordinate before intersection introduction.
+Substitute all old variables by terms and beta-normalize.
+The outermost new variable has to be a global switch, otherwise the type is $\omega$.
+\end{proof}
+
+\newpage
+
 \section*{TODOs}
 \begin{remark}[Open Questions]~
 \begin{itemize}
