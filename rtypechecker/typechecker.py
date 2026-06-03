@@ -25,6 +25,8 @@ from builtins import frozenset
 from dataclasses import dataclass
 from typing import Optional
 import re
+import sys
+import os
 
 
 # ---------------------------------------------------------------------------
@@ -613,29 +615,93 @@ def presentation(ty: list[TType]) -> str:
         return "No types"
     return "\n * " + " \n * ".join(str(t) for t in ty)
 
+
+
+# ---------------------------------------------------------------------------
+# File loading and example running
+# ---------------------------------------------------------------------------
+
+def load_examples_from_file(filepath):
+    """
+    Load examples from a file. Each line should be in the format:
+        expression
+    or:
+        var1:type1, var2:type2 |- expression
+    Lines starting with # are treated as comments and ignored.
+    Empty lines are ignored.
+    """
+    examples = []
+    with open(filepath, 'r', encoding='utf-8') as f:
+        for lineno, line in enumerate(f, 1):
+            line = line.strip()
+            if not line or line.startswith('#'):
+                continue
+            if '|-' in line:
+                ctx_part, expr_part = line.split('|-', 1)
+                expr = expr_part.strip()
+                ctx = parse_context(ctx_part.strip(), lineno)
+            else:
+                expr = line.strip()
+                ctx = {}
+            examples.append((expr, ctx))
+    return examples
+
+def parse_context(ctx_str, lineno=None):
+    """
+    Parse a context string of the form:
+        var1:[{type1}], var2:[{type2}], ...
+    Returns a dict mapping variable names to TType objects.
+    """
+    ctx = {}
+    if not ctx_str.strip():
+        return ctx
+    for entry in ctx_str.split(','):
+        entry = entry.strip()
+        if not entry:
+            continue
+        if ':' not in entry:
+            loc = f"line {lineno}" if lineno else "context"
+            raise ValueError(f"Invalid context entry at {loc}: '{entry}' (expected 'var:type')")
+        var, type_str = entry.split(':', 1)
+        var = var.strip()
+        type_str = type_str.strip()
+        try:
+            parsed_type = parse(type_str)
+            ctx[var] = parsed_type
+        except ParseError as e:
+            loc = f"line {lineno}" if lineno else "context"
+            raise ValueError(f"Failed to parse type for '{var}' at {loc}: {e}")
+    return ctx
+
 # ---------------------------------------------------------------------------
 # Demo
 # ---------------------------------------------------------------------------
 
+
+
+
 if __name__ == "__main__":
-    examples = [
-        # (expression, free-variable context for type-checking)
+    builtin_examples = [
         (r"fun x:[{a}]. x",                  {}),
         (r"fun f:[{{a}->b}]. fun x:[{a}]. f x",       {}),
         (r"fun x:[{a}]. fun y:[{b}]. x",            {}),
-        (r"(fun x:[{a}]. x) y",              {"y": TIType([IType({TyBase("a")})])}),
+        (r"(fun x:[{a}]. x) y",              {"y": TType([IType({TyBase("a")})])}),
         (r"fun f:[{{a}->b}]. fun g:[{{b}->c}]. fun x:[{a}]. g (f x)", {}),
         (r"fun p:[{{({a}->b)}->a}]. fun q:[{{a}->b}]. q (p q)",  {}),
     ]
 
-    print(f"{'Expression':<60}  {'AST (str)':<60}  Type")
-    print("-" * 100)
-    for src, ctx in examples:
-        try:
-            term = parse(src)
-            term = desugar(term)
-            ty = type_check(term, ctx)
-            print(f"{src:<40}  {str(term):<40}  {presentation(ty)}")
-        except (ParseError, TypeError) as e:
-            print(f"{src:<40}  ERROR: {e}")
+    file_args = [arg for arg in sys.argv[1:] if not arg.startswith('-')]
 
+    if not file_args:
+        # No files provided — run built-in examples
+        run_examples(builtin_examples, source_label="built-in examples")
+    else:
+        for filepath in file_args:
+            if not os.path.isfile(filepath):
+                print(f"ERROR: File not found: {filepath}", file=sys.stderr)
+                continue
+            try:
+                examples = load_examples_from_file(filepath)
+                run_examples(examples, source_label=filepath)
+            except Exception as e:
+                print(f"ERROR reading '{filepath}': {e}", file=sys.stderr)
