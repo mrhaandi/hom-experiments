@@ -637,7 +637,7 @@ A non-contributing second-order type is e.g. $a \to \omega \to a$.
 Where $a$ is actually a path in some right-hand side.
 
 \begin{lemma}
-There is no coordinate such that two variables are assigned a contributing type with the same contribution.
+There is no coordinate such that two variables are assigned a contributing type (first-order, second-order) with the same contribution.
 \end{lemma}
 
 \begin{proof}
@@ -651,8 +651,54 @@ It is possible that two distinct coordinates have different variables with same 
 \item $\{z_1 : a \to f\,a, z_2 : f\,a \to f\,a\}, \Gamma_1 \vdash z_2\,(z_1\,a) : f\,a$
 \item $\{z_1 : a \to a , z_2 : a \to f\,a\}, \Gamma_2 \vdash z_2\,(z_1\,a) : f\,a$
 \end{itemize}
+{\color{red}Can this actually happen in a characteristic typing?}
+Conjecture: no, see next example.
 \end{example}
 
+\begin{example}
+It is possible that two distinct coordinates have different variables with same contributing types.
+\begin{itemize}
+\item $\{z_1 : a \to f\,a, z_2 : f\,a \to f\,a\}, \Gamma_1 \vdash z_2\,(z_1\,a) : f\,a$
+\item $\{z_1 : \omega , z_2 : \omega \to f\,a\}, \Gamma_2 \vdash z_2\,(z_1\,a) : f\,a$
+\end{itemize}
+
+
+For this consider the main variable
+\[x : ((a \to fa) \to (fa \to fa) \to fa) \cap (\omega \to (\omega \to fa) \to fa) \to fa\]
+and
+
+\[x := \lambda y. y\,(\lambda y1. y\,(\lambda y2.y2)\,(\lambda y2.f\,y1))\,(\lambda y3.y3)\]
+with solution term
+\[\lambda x.x\,(\lambda z1 z2.z2\,(z1\,a))\]
+
+Pattern: only one coordinate which \enquote{truly} contributes by \enquote{real} construction.
+{\color{red}Does this pattern always emerge in characteristic typings?}
+
+Conjecture: $a \to fa$ can happen at most once; $\omega \to fa$ can happen only at one occurrence of the main variable.
+\end{example}
+
+\begin{example}
+It is possible that two distinct coordinates have different variables with same contributing types.
+\begin{itemize}
+\item $\{z_1 : a \to f\,a, z_2 : f\,a \to f\,a\}, \Gamma_1 \vdash z_2\,(z_1\,a) : f\,a$
+\item $\{z_1 : \omega , z_2 : \omega \to f\,a\}, \Gamma_2 \vdash z_2\,(z_1\,a) : f\,a$
+\item $\{z_1 : fa \to fa , z_2 :  fa \to fa\}, \Gamma_2 \vdash z_2\,(z_1\,fa) : fa$
+\end{itemize}
+
+
+For this consider the main variable
+\begin{align*}
+x &:&& \Big(((a \to fa) \to (fa \to fa) \to fa) \cap (\omega \to (\omega \to fa) \to fa) \cap ((fa \to fa) \to (fa \to fa) \to fa) \to fa\Big) \\
+&\cap&& \Big((fa \to fa) \to (fa \to fa) \to fa\Big)
+\end{align*}
+and
+
+\[x := \lambda y. ??? y\,(\lambda y1. y\,(\lambda y2.y2)\,(\lambda y2.f\,y1))\,(\lambda y3.y3)\]
+with solution term
+\[???\lambda x.x\,(\lambda z1 z2.z2\,(z1\,a))\]
+
+{\color{red}What happens here?}
+\end{example}
 
 \begin{corollary}
 In a characteristic typing there is a bounded number of times a main variable can introduce a variable with a contributing first-order or second-order type.
@@ -684,6 +730,8 @@ Conside one coordinate before intersection introduction.
 Substitute all old variables by terms and beta-normalize.
 The outermost new variable has to be a global switch, otherwise the type is $\omega$.
 \end{proof}
+
+The above lemma can be applied iteratively to recursively split the contexts and reduce dimension.
 
 \newpage
 
