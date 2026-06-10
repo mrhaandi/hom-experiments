@@ -1,0 +1,510 @@
+\documentclass{beamer}
+
+\usepackage{bussproofs}
+\usepackage{xspace}
+
+
+\definecolor{myblue}{HTML}{9F8E28}
+
+\newcommand{\rbar}[1]{\mathrel{\bar{#1}}}
+\renewcommand{\:}{\mbox{\,:\,}\xspace}
+\newcommand{\type}[1]{{\color{myblue}#1}}
+
+ \usetheme{Madrid}
+% \usetheme{Warsaw}
+%\usetheme{Luebeck}
+% \usecolortheme{wolverine}
+\usecolortheme{whale}
+
+\title{Higher-order Matching via Intersection Type Inhabitation in Bounded Dimension}
+\author{Andrej Dudenhefner \and Aleksy Schubert}
+\date{}
+
+\begin{document}
+
+\frame{\titlepage}
+
+%----------------------------------------
+
+\begin{frame}{Higher-order matching (HOM)}
+\begin{itemize}
+    \item Problem:
+      \begin{itemize}
+      \item Given a pair of STLC terms $l = r$
+      \item Find a substitution $S$ in STLC such that $S(l) =_{\beta\eta} r$
+      \end{itemize}
+    \item Example:\\
+      $f(X(\lambda y_1y_2.y_1)ab)(X(\lambda y_1y_2.y_2)ab) = f(fab)(fbb)$\\[1ex]
+      Solution: $[X := \lambda x_1x_2x_3.f(x_1x_2x_3)x_3]$
+\end{itemize}
+\end{frame}
+
+%----------------------------------------
+
+\begin{frame}{Alternative presentation}
+\begin{itemize}
+    \item HOM is equivalent to dual interpolation (DI, Padovani)
+    \item A higher-order matching instance can be presented as a pair of systems
+      of shape
+      \begin{equation}\label{eq:hom}
+        X\,u_i^1\,\ldots\,u_i^n =_{\beta\eta} r_i \qquad (i \in \{1, \ldots, m\})
+      \end{equation}
+      or shape
+      \begin{equation}\label{neq:hom}
+        X\,u_i^1\,\ldots\,u_i^n \neq_{\beta\eta} r_i \qquad (i \in \{1, \ldots, m\})
+      \end{equation}
+
+    \item Example:\\
+      $\{X(\lambda y_1y_2.y_1)ab = fab,$\\
+      $~X(\lambda y_1y_2.y_2)ab = fbb\}$\\[1ex]
+      $\{X(\lambda y_1y_2.y_1)ab \not= a\}$\\[1ex]
+      Solution: $[X := \lambda x_1x_2x_3.f(x_1x_2x_3)x_3]$
+\end{itemize}
+\end{frame}
+
+%----------------------------------------
+
+
+
+\begin{frame}{Motivation}
+\begin{itemize}
+    \item Higher-order matching is applicable in
+      \begin{itemize}
+      \item theorem proving
+      \item program transformation and 
+      \item higher-order rewriting systems
+      \end{itemize}
+    \item Decidability proof by Colin Stirling is too complicated
+    \item Consequently $\Rightarrow$ we do not understand the nature of the problem
+    \item Goal: make a clear decidability argument
+    \item Clarity criterion: so that it can be formalised
+\end{itemize}
+\end{frame}
+
+%----------------------------------------
+
+\begin{frame}{Main Idea}
+  \begin{itemize}
+    \item Use intersection types to semantically describe solutions of DI
+    \item Employ inhabitation to find a solution\\[2ex]
+    \item Obstacle: inhabitation in ITD is undecidable\\[2ex]
+    \item Observation:
+      \begin{itemize}
+      \item known undecidability proofs operate on vectors of
+        target types 
+      \item these vectors represent contents of a tape of a Turing Machine
+      \end{itemize}%\\[2ex]
+    \item Idea: bound the culprit of undecidability, i.e. vector dimension
+    \end{itemize}
+\end{frame}
+
+%----------------------------------------
+
+\begin{frame}{Format to express bounded dimension}
+  \begin{itemize}
+  \item Introduce \textbf{System R}
+  \item Typing judgements return \textbf{vectors of types}
+  \item Use \textbf{relations} to control information flow
+  \item Define \textbf{dimension} as vector length
+  \end{itemize}
+\end{frame}
+
+%----------------------------------------
+
+
+\begin{frame}{Intersection Types}
+\begin{block}{Definition}
+\[
+A ::= a \mid \sigma \rightarrow A
+\]
+\[
+\sigma ::= \{A_1, \dots, A_n\}
+\]
+\end{block}
+
+\begin{itemize}
+    \item Types built from atoms and arrow constructors
+    \item Sets represent intersections
+\end{itemize}
+\end{frame}
+
+%----------------------------------------
+
+\begin{frame}{Type Vectors}
+\begin{itemize}
+    \item Work with vectors: $\bar{A} = (A_1, \dots, A_n)$
+    \item Dimension = number of components
+    \item Enables parallel typing
+\end{itemize}
+\end{frame}
+
+%----------------------------------------
+
+\begin{frame}{Relations}
+\begin{itemize}
+    \item Relations map between vector coordinates
+    \item Control information flow
+\end{itemize}
+
+\begin{block}{Example}
+\[
+R((a,b,c)) = (\{a,b\}, \emptyset, \{a,c\})
+\]
+\end{block}
+\end{frame}
+
+%----------------------------------------
+
+\begin{frame}{Typing Rules (System R)}
+
+  \begin{itemize}
+  \item Judgements: $\Gamma \vdash_k t : \bar{A}$
+  \end{itemize}
+
+
+  \begin{block}{Rules}
+
+
+\begin{minipage}{0.9\textwidth}
+\centering
+%\begin{tabular}{c}
+
+
+{\RightLabel{\textnormal{(Ax)}}
+\AxiomC{$\bar{A} \rbar{\in} \bar{\sigma}$}
+\AxiomC{$\dim(\bar{A}) \leq k$}
+\BinaryInfC{$\Gamma, x : \bar{\sigma} \vdash_k x : \bar{A}$}
+\DisplayProof}
+
+~\\[2ex]
+{\RightLabel{\textnormal{($\Rightarrow$I)}}
+\AxiomC{$\Gamma, x: \bar{\sigma} \vdash_k t : \bar{A}$}
+\UnaryInfC{$\Gamma \vdash_k \lambda x.t : \bar{\sigma} \Rightarrow \bar{A}$}
+\DisplayProof}
+
+~\\[2ex]
+
+{\RightLabel{\textnormal{($\Rightarrow$E)}}
+\AxiomC{$\Gamma \vdash_{k} t : R(\bar{A}) \Rightarrow \bar{B}$}
+\AxiomC{$\Delta \vdash_{k} u : \bar{A}$}
+\BinaryInfC{$\Gamma \cup R(\Delta) \vdash_k t \; u : \bar{B}$}
+\DisplayProof}
+%\end{tabular}
+\end{minipage}
+
+\end{block}
+
+~\\[2ex]
+    
+\begin{itemize}
+    \item $k$ is the dimension bound
+    \item vectors are of dimension at most $k$, see the (Ax) rule
+\end{itemize}
+
+
+\end{frame}
+
+%----------------------------------------
+
+\begin{frame}{Results for System R}
+  \begin{itemize}
+  \item Subject reduction holds
+  \item Subformula property limits search space
+  \item Strong normalisation inherited
+  \item Inhabitation decidable in:
+    \begin{itemize}
+        \item $2$-EXPTIME (bounded dimension)
+        \item EXPTIME (fixed dimension)
+    \end{itemize}
+    \item Lies between:
+    \begin{itemize}
+        \item multiset system (EXPSPACE)
+        \item set system (undecidable)
+    \end{itemize}
+\end{itemize}
+\end{frame}
+
+%----------------------------------------
+
+\begin{frame}{Characteristic Typings}
+  \begin{itemize}
+  \item Consider rhs $r$ of an interpolation equation ($\beta$-normal $\eta$-long term)
+  \item We have $\Phi \vdash_{\textnormal{STLC}} r : \varphi$
+  \item Devise
+    \begin{itemize}
+    \item a refining environment $\Gamma$ and 
+    \item intersection type $A$
+    \end{itemize}
+    such that\\[2ex]
+    for each $\eta$-long $t$\\
+    $\Gamma \vdash_k t : A$ for some $k\quad$ iff $\quad t\twoheadrightarrow_\beta r$\\[2ex]
+  \item Written $\Gamma \prec \Phi$ and $A \prec \varphi$
+\end{itemize}
+\end{frame}
+
+%----------------------------------------
+
+
+\begin{frame}{Characteristic Typings -- Idea}
+  \begin{itemize}
+  \item Idea: associate a unique type atom with each subexpression of $r$
+  \item A type expresses:\\[2ex]
+    \begin{block}{Property}
+      A term $s$ of type $$\sigma_1\to\cdots\to\sigma_n\to A$$ when applied to arguments of types $\sigma_1,\ldots,\sigma_n$ reduces to $A$.      
+    \end{block}
+
+    
+\end{itemize}
+\end{frame}
+
+%----------------------------------------
+
+
+\begin{frame}{Characteristic Typings -- Example}
+
+  \begin{itemize}
+  \item Instance: $X(\lambda y_1y_2.y_1)ab = fab$
+  \item Solution: $[X := \lambda x_1x_2x_3.f(x_1x_2x_3)x_3]$
+  \item Type atoms: $a, b, fab$
+  \item Typing: $\emptyset\vdash (\lambda x_1x_2x_3.f(x_1x_2x_3)x_3)\;\;(\lambda y_1y_2.y_1)\;\;a\;\;b : fab$
+    
+  \item More detailed:
+    \begin{displaymath}
+      \begin{array}{l@{}l}
+        \emptyset\vdash
+        (\lambda & x_1:(\{\{a\}\to\emptyset\to a\}).\\ & 
+                                                                                                   x_2:(\{a\}).\\ &
+                                                                                                   x_3:(\{b\}).\\ &
+
+         \multicolumn{1}{l}{~~~f(x_1x_2x_3)x_3)\;\;(\lambda y_1:(\{a\}).y_2:(\emptyset).y_1)\;\;a\;\;b : (fab)}
+      \end{array}
+    \end{displaymath}
+  \item Also characteristic typing for: $X(\lambda y_1y_2.y_1)ab \not= a$
+    
+  \end{itemize}
+
+  \end{frame}
+
+  %----------------------------------------
+
+\begin{frame}{Characteristic Typings -- Another Example}
+
+  \begin{itemize}
+  \item Instance: $X(\lambda y_1y_2.y_2)ab = fbb$
+  \item Solution: $[X := \lambda x_1x_2x_3.f(x_1x_2x_3)x_3]$
+  \item Type atoms: $b, fbb$
+  \item Typing: $\emptyset\vdash (\lambda x_1x_2x_3.f(x_1x_2x_3)x_3)\;\;(\lambda y_1y_2.y_2)\;\;a\;\;b : fab$
+    
+  \item More detailed:
+    \begin{displaymath}
+      \begin{array}{l@{}l}
+        \emptyset\vdash
+        (\lambda & x_1:(\{\emptyset\to\{b\}\to b\}).\\ & 
+                                                                                                   x_2:(\{a\}).\\ &
+                                                                                                   x_3:(\{b\}).\\ &
+
+         \multicolumn{1}{l}{~~~f(x_1x_2x_3)x_3)\;\;(\lambda y_1:(\emptyset).y_2:(\{b\}).y_2)\;\;a\;\;b : (fbb)}
+      \end{array}
+    \end{displaymath}
+    
+  \end{itemize}
+
+  \end{frame}
+
+  % ----------------------------------------
+
+  \begin{frame}{Characteristic Typings}
+
+    \begin{block}{Lemma (equality characterisation)}
+      For each $\beta$-normal $\eta$-long $r$ with $\Phi \vdash_{\textnormal{STLC}} r : \varphi$, there exist $\Gamma \prec \Phi$ and $A \prec \varphi$ such that:
+      \begin{enumerate}
+      \item $\Gamma \vdash r : A$ in system~\textbf{R}
+      \item for any $\eta$-long $t$ with $\Phi \vdash_{\textnormal{STLC}} t : \varphi$, if $\Gamma \vdash t : A$ then $t \twoheadrightarrow_\beta r$.
+      \end{enumerate}
+    \end{block}
+
+    \begin{block}{Lemma (disequality characterisation)}
+      For each $\beta$-normal $\eta$-long $r$ with
+      $\Phi \vdash_{\textnormal{STLC}} r : \varphi$, there exist
+      $\Gamma \prec \Phi$ and $A \prec \varphi$ such that for any
+      $\eta$-long $t$ with
+      $\Phi \vdash_{\textnormal{STLC}} t : \varphi$ and
+      $\Gamma \vdash t : A$ we have
+      $t \not\twoheadrightarrow_\beta r$.
+    \end{block}
+    
+  \end{frame}
+  
+
+  % ----------------------------------------
+
+
+  \begin{frame}{Reduction to Inhabitation}
+
+    \begin{itemize}
+    \item We focus only on $\beta\eta$-equations
+    \item Suppose $s = \lambda x_1 \ldots x_n.t$ is a solution to $\{ Xu_i^1\ldots u_i^n = r_i \}_{i\in I}$
+    \item Then $s\,u_i^1\,\ldots\,u_i^n \twoheadrightarrow_\beta r_i$ for every $i$.
+    \item There is a dimension bound $k$ such that
+      \begin{displaymath}
+        \Gamma_{[i]} \vdash_k (\lambda x_1 \ldots x_n.t)\,u_i^1\,\ldots\,u_i^n : \bar{A}_{[i]} \qquad (i \in \{1, \ldots, m\}).
+      \end{displaymath}
+    \item By inversion of rule $(\Rightarrow$E$)$, there are some
+      relations $R_i^j$ and vectors $\bar{B}_i^j$ with
+      \begin{displaymath}
+        \begin{array}{l}
+          \Gamma_{[i]} \vdash_k \lambda x_1 \ldots x_n.t : R_i^1(\bar{B}_i^1) \Rightarrow \cdots \Rightarrow R_i^n(\bar{B}_i^n) \Rightarrow \bar{A}_{[i]},\\
+          \Gamma_{[i]} \vdash_k u_i^j : \bar{B}_i^j.
+        \end{array}
+      \end{displaymath}
+    \item Stack  $m$ derivations into vectors of dimension at most $mk$
+      yields $R^1, \ldots, R^n$ and $\bar{B}^1, \ldots, \bar{B}^n$ such that
+      \[
+        \Gamma, x_1 : \bar{B}^1, \ldots, x_n : \bar{B}^n \vdash_{mk} t : R^1(\bar{B}^1) \Rightarrow \cdots \Rightarrow R^n(\bar{B}^n) \Rightarrow \bar{A}
+      \]
+    \item $t$ is an inhabitant of dimension $mk$, with environment and target type computable from $r_1, \ldots, r_m$ and the arguments $u_i^j$.
+    \end{itemize}
+    
+  \end{frame}
+
+  % ----------------------------------------
+
+  
+  \begin{frame}{Reduction to Inhabitation}
+    \begin{block}{Proposition}
+      The higher-order matching instance~ $\{ Xu_i^1\ldots u_i^n = r_i \}_{i\in I}$ has a solution\\[1ex]
+      \centerline{iff}
+
+      ~\\[-2ex]
+      the type $R^1(\bar{B}^1) \Rightarrow \cdots \Rightarrow R^n(\bar{B}^n) \Rightarrow \bar{A}$ is inhabited in the environment $\Gamma, x_1 : \bar{B}^1, \ldots, x_n : \bar{B}^n$ for some dimensional bound.
+    \end{block}
+  \end{frame}
+
+  % ----------------------------------------
+
+  
+  \begin{frame}{Dimension Bound for 4th Order}
+    \begin{itemize}
+    \item Bounded subject expansion
+    \item Padovani-style saturation
+    \item Krivine-machine states
+    \end{itemize}
+  \end{frame}
+
+
+  \begin{frame}{Stirling's Example}
+
+    \begin{displaymath}
+  \begin{array}{l@{\;}c@{\;}l}
+    u_1 & = & \lambda y_1^{\type{o}}.\, \lambda y_2^{\type{o \to o \to o}}.\, y_2\, y_1\, y_1\\
+    u_2 & = & \lambda y_3^{\type{o \to (o \to o \to o) \to o}}.\,
+               y_3\;\Bigl(y_3\, a\; (\lambda w_1^{\type{o}}.\, \lambda w_2^{\type{o}}.\, w_1)\Bigr)
+               \;(\lambda v_1^{\type{o}}.\, \lambda v_2^{\type{o}}.\, g\, v_2)\\
+    s & = & \lambda x_1^{\type{o \to (o \to o \to o) \to o}}.\,
+  \lambda x_2^{\type{(o \to (o \to o \to o) \to o) \to o}}.\,\\ & & \qquad
+  x_2\;\Bigl(
+    \lambda z_1^{\type{o}}.\, \lambda z_2^{\type{o \to o \to o}}.\,
+    x_1\, z_1\;
+    \bigl(
+      \lambda s_1^{\type{o}}.\, \lambda s_2^{\type{o}}.\,
+      x_1\, b\;
+      (\lambda u_1^{\type{o}}.\, \lambda u_2^{\type{o}}.\,\\ & & \mbox{~}\hspace{18em}
+      z_2\, s_1\, s_2)
+    \bigr)
+  \Bigr)\mbox{~}\hspace{5em}
+  \end{array}
+\end{displaymath}
+
+
+\begin{displaymath}
+  \begin{array}{l@{\;}c@{\;}l}
+    s' & = & \lambda x_1^{\type{o \to (o \to o \to o) \to o}}.\,
+             \lambda x_2^{\type{(o \to (o \to o \to o) \to o) \to o}}.\,\\ & & \qquad
+  x_2\;\Bigl(
+\lambda z_1^{\type{o}}.\, \lambda z_2^{\type{o \to o \to o}}.\,
+    x_1\, z_1\;
+    \bigl(
+      \lambda s_1^{\type{o}}.\, \lambda s_2^{\type{o}}.\,
+      x_1\, b\;
+      (\lambda u_1^{\type{o}}.\, \lambda u_2^{\type{o}}.\,\\ & & \mbox{~}\hspace{18em}
+      z_2\, \underline{(x_1z_1(\lambda s_1s_2.s_1))}\, s_2)
+    \bigr)
+  \Bigr)
+  \end{array}
+\end{displaymath}
+
+
+   Reduction of an overarching binding of $s_1$ over $x_1$.
+  \end{frame}
+
+
+  \begin{frame}{Stirling's Example}
+    \small
+    $
+  \begin{array}{l@{\;}c@{\;}lllll}
+    u_1 & = &  \lambda y_1\:\type{(\{a\},} & \type{\emptyset,} & \type{\{a\}}, & \type{\emptyset} &\type{)}.\, \\ & &
+                                                                                           \lambda y_2\:\type{(\{\{a\} \to \emptyset \to a\},} & 
+                        \type{\{\emptyset \to \emptyset \to a\},} &
+                        \type{\{\emptyset \to a \to ga\},} &
+                         \type{\{\emptyset \to \emptyset \to ga\}} &\type{)}.\,\\ & &
+                   \multicolumn{2}{l}{\qquad y_2\, y_1\, y_1 : {\type{(a,  a,  ga,  ga )}}}
+  \end{array}
+$
+
+\medskip
+
+$
+  \begin{array}{l@{\;}c@{\;}lllll}
+    u_2 & = & \lambda y_3\:\type{(\{ \{a\} \to \{\{a\} \to \emptyset \to a\} \to a\},\quad
+                               \{a\} \to \{\emptyset \to \{a\} \to ga\} \to ga \})}.\,\\ & &
+               \multicolumn{2}{l}{\qquad y_3\;\Bigl(y_3\, a\; (\lambda w_1\:\type{\{a\}}.\, \lambda w_2\:\type{\emptyset}.\, w_1)\Bigr)
+               \;(\lambda v_1\:\type{\emptyset}.\, \lambda v_2\:\type{\{a\}}.\, g\, v_2) : (ga)}\\
+  \end{array}
+$
+
+\medskip
+
+$
+\begin{array}{l@{\;}c@{\;}l@{}l@{}l@{}ll}
+  s\; & = & \lambda x_1\: \type{(\{} &
+                                    \multicolumn{3}{@{}l}{\type{\{a\} \to \{\{a\} \to \emptyset \to a\} \to a,}}\\ & & &
+                                    \multicolumn{3}{@{}l}{\type{\emptyset \to \{\emptyset \to \emptyset \to a\} \to a,}}\\ & & &
+                                    \multicolumn{3}{@{}l}{\type{\{a\} \to \{\emptyset \to \{a\} \to ga\} \to ga,}}\\ & & &
+                                    \multicolumn{3}{@{}l}{\type{\emptyset \to \{\emptyset \to \emptyset \to ga\} \to ga\})}.\,} \\ & & 
+            \lambda x_2\: \type{(\{}&
+                                    \multicolumn{3}{@{}l}{\type{\{ \{a\} \to \{\{a\} \to \emptyset \to a\} \to a,\;
+                                                                   \{a\} \to \{\emptyset \to \{a\} \to ga\} \to ga \} \to ga\})}.\,}
+                &\\ & & & 
+                x_2\;\Bigl(
+                \lambda z_1\:\type{(\{} & \multicolumn{2}{@{}l}{\type{a\}, \{a\})}.\, \lambda z_2\:\type{(\{\{a\} \to \emptyset \to a\}, \{\emptyset \to \{a\} \to ga\})}.\,} \\ & & & &
+                         x_1\, z_1\;
+    \bigl(
+      \lambda s_1\:\type{(\{} & \type{a\}, \emptyset)}.\, \lambda s_2\:\type{(\emptyset, \{a\})}.\,\\ & & & & &
+      x_1\, b\;
+      (\lambda u_1\:\type{(\emptyset,\emptyset)}.\, \lambda u_2\:\type{(\emptyset,\emptyset)}.\,
+      z_2\, s_1\, s_2)
+    \bigr)
+  \Bigr) : (ga)
+
+  \end{array}
+  $
+
+
+  $x_1z_1(\lambda s_1s_2.s_1)$ has type $(a)$
+  \end{frame}
+  
+\begin{frame}{Conclusion}
+\begin{itemize}
+    \item Alternative approach to decidability of the HOM problem
+    \item Intersection types in format of System R
+    \item Characteristic typings provide valuable reduction invariants
+    \item Dimension restriction as a key to solution search
+    \item Bound on dimension is the main technical difficulty
+\end{itemize}
+\end{frame}
+
+\end{document}
+%%% Local Variables:
+%%% mode: latex
+%%% TeX-master: t
+%%% End:
