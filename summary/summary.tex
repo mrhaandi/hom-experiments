@@ -701,9 +701,18 @@ with solution term
 \end{example}
 
 \begin{lemma}
+\label{lem:pseudo}
 {\color{red} conjecture}
 If a main variable wants to introduce any number of pseudo-contributing second-order variables it \emph{has} to introduce at least one contributing variable.
 \end{lemma}
+
+\begin{lemma}[Dichotomy Lemma]
+A main variable introduces either only non-contribution variables or at lesast one truly contributing variable.
+\end{lemma}
+
+\begin{proof}
+By Lemma~\ref{lem:pseudo}.
+\end{proof}
 
 \begin{corollary}
 In a characteristic typing there is a bounded number of times a main variable can introduce a variable with a contributing first-order or second-order type.
