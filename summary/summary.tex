@@ -664,12 +664,12 @@ It is possible that two distinct coordinates have different variables with same 
 
 
 For this consider the main variable
-\[x : ((a \to fa) \to (fa \to fa) \to fa) \cap (\omega \to (\omega \to fa) \to fa) \to fa\]
+\[u : ((a \to fa) \to (fa \to fa) \to fa) \cap (\omega \to (\omega \to fa) \to fa) \to fa\]
 and
 
-\[x := \lambda y. y\,(\lambda y1. y\,(\lambda y2.y2)\,(\lambda y2.f\,y1))\,(\lambda y3.y3)\]
+\[u := \lambda y. y\,(\lambda y1. y\,(\lambda y2.y2)\,(\lambda y2.f\,y1))\,(\lambda y3.y3)\]
 with solution term
-\[\lambda x.x\,(\lambda z1 z2.z2\,(z1\,a))\]
+\[t := \lambda x.x\,(\lambda z1 z2.z2\,(z1\,a))\]
 
 Pattern: only one coordinate which \enquote{truly} contributes by \enquote{real} construction.
 {\color{red}Does this pattern always emerge in characteristic typings?}
