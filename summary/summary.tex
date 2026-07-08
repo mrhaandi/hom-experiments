@@ -629,7 +629,8 @@ The dimension bound is $M^N$ where $N$ is the nuber of occurrences of main varia
 \begin{definition}[Contributing Type]~
 \begin{itemize}
 \item A first-order type is contributing iff it is not $\omega$
-\item A second-order type is contributing iff it is not $\omega$ and all its sources are different from its target
+\item A second-order type is contributing iff it is not $\omega$ and all its sources are different from its target and different than $\omega$.
+\item A second-order type is fixed iff it is not $\omega$ and all its sources are $\omega$.
 \end{itemize}
 \end{definition}
 
@@ -664,10 +665,10 @@ It is possible that two distinct coordinates have different variables with same 
 
 
 For this consider the main variable
-\[u : ((a \to fa) \to (fa \to fa) \to fa) \cap (\omega \to (\omega \to fa) \to fa) \to fa\]
+\[x : ((a \to fa) \to (fa \to fa) \to fa) \cap (\omega \to (\omega \to fa) \to fa) \to fa\]
 and
 
-\[u := \lambda y. y\,(\lambda y1. y\,(\lambda y2.y2)\,(\lambda y2.f\,y1))\,(\lambda y3.y3)\]
+\[u_x := \lambda y. y\,(\lambda y1. y\,(\lambda y2.y2)\,(\lambda y2.f\,y1))\,(\lambda y3.y3)\]
 with solution term
 \[t := \lambda x.x\,(\lambda z1 z2.z2\,(z1\,a))\]
 
@@ -676,6 +677,42 @@ Pattern: only one coordinate which \enquote{truly} contributes by \enquote{real}
 
 Conjecture: $a \to fa$ can happen at most once; $\omega \to fa$ can happen only at one occurrence of the main variable.
 \end{example}
+
+\begin{example}
+It is possible that two distinct coordinates have different variables with same contributing types.
+\begin{itemize}
+\item $\{z_1 : f\,a \to f\,a, z_2 : f\,a \to f\,a, z_3 : f\,a \}, \Gamma_1 \vdash z_2\,(z_1\,z_3) : f\,a$
+\item $\{z_1 : \omega\to f\,a , z_2 : f\,a \to f\,a, z_3 : \omega\}, \Gamma_2 \vdash z_2\,(z_1\,z_3) : f\,a$
+\end{itemize}
+
+
+For this consider the main variable
+\[
+  \begin{array}{lp{20pt}l}
+    u : & \\ &
+       arg1: & \{
+               (f\,a \to f\,a)\to (f\,a \to f\,a) \to f\,a \to f\,a,\\ & & \;\;
+               (\omega \to f\,a)\to (f\,a \to f\,a) \to \omega \to f\,a
+
+                       \} \\ & 
+       arg2: & \{ fa \} \\ &
+      $\to$   &fa
+  \end{array}
+\]
+and
+
+\[u := \lambda y_1y_2. y_1\,(\lambda y'_1. y_1\,(\lambda y'_2.y'_2)\,(\lambda y'_3.y'_3)y_2)\,(\lambda y'_4.y'_4)b\]
+with solution term
+\[t := \lambda x.x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (fa)\]
+as well as
+\[t := \lambda x.x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (fa))\]
+
+Pattern: only one coordinate which \enquote{truly} contributes by \enquote{real} construction.
+
+Conjecture: $a \to fa$ can happen at most once; $\omega \to fa$ can happen only at one occurrence of the main variable.
+\end{example}
+
+
 
 \begin{example}
 It is possible that two distinct coordinates have different variables with same contributing types.
@@ -703,7 +740,7 @@ with solution term
 \begin{lemma}
 \label{lem:pseudo}
 {\color{red} conjecture}
-If a main variable wants to introduce any number of pseudo-contributing second-order variables it \emph{has} to introduce at least one contributing variable.
+If a main variable wants to introduce any number of fixed second-order variables it \emph{has} to introduce at least one contributing variable.
 \end{lemma}
 
 \begin{lemma}[Dichotomy Lemma]
