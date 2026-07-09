@@ -629,7 +629,7 @@ The dimension bound is $M^N$ where $N$ is the nuber of occurrences of main varia
 \begin{definition}[Contributing Type]~
 \begin{itemize}
 \item A first-order type is contributing iff it is not $\omega$
-\item A second-order type is contributing iff it is not $\omega$ and all its sources are different from its target and different than $\omega$.
+\item A second-order type is contributing iff it is not $\omega$ and all its sources are different from its target and at least some of them in not $\omega$.
 \item A second-order type is fixed iff it is not $\omega$ and all its sources are $\omega$.
 \end{itemize}
 \end{definition}
@@ -707,6 +707,8 @@ with solution term
 as well as
 \[t := \lambda x.x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (fa))\]
 
+\[t := \lambda x.x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (\lambda z'_1.x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (\lambda z_1.f(z_1(z'_1a))))\]
+
 Pattern: only one coordinate which \enquote{truly} contributes by \enquote{real} construction.
 
 Conjecture: $a \to fa$ can happen at most once; $\omega \to fa$ can happen only at one occurrence of the main variable.
@@ -742,6 +744,14 @@ with solution term
 {\color{red} conjecture}
 If a main variable wants to introduce any number of fixed second-order variables it \emph{has} to introduce at least one contributing variable.
 \end{lemma}
+The conjecture above is false.
+
+\begin{lemma}
+\label{lem:small-second-order}
+{\color{red} conjecture}
+Focus on applicative terms only such that only second-order variables are used. Then the height of such a term is bounded by the number of possible different interpretations of the secon-order variables. The number is bounded by the number of projections and fixed terms that result in some subexpression of the right-hand side.
+\end{lemma}
+
 
 \begin{lemma}[Dichotomy Lemma]
 A main variable introduces either only non-contribution variables or at lesast one truly contributing variable.
