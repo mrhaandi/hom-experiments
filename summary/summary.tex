@@ -679,7 +679,7 @@ Conjecture: $a \to fa$ can happen at most once; $\omega \to fa$ can happen only 
 \end{example}
 
 \begin{example}
-It is possible that two distinct coordinates have different variables with same contributing types.
+It is possible that there are arbitrary many occurrences of a main variable with fixed type in second-order arguments of its arguments?
 \begin{itemize}
 \item $\{z_1 : f\,a \to f\,a, z_2 : f\,a \to f\,a, z_3 : f\,a \}, \Gamma_1 \vdash z_2\,(z_1\,z_3) : f\,a$
 \item $\{z_1 : \omega\to f\,a , z_2 : f\,a \to f\,a, z_3 : \omega\}, \Gamma_2 \vdash z_2\,(z_1\,z_3) : f\,a$
@@ -707,11 +707,6 @@ with solution term
 as well as
 \[t := \lambda x.x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (fa))\]
 
-\[t := \lambda x.x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (\lambda z'_1.x\,(\lambda z_1 z_2 z_3.z_2\,(z_1\,z_3)) (\lambda z_1.f(z_1(z'_1a))))\]
-
-Pattern: only one coordinate which \enquote{truly} contributes by \enquote{real} construction.
-
-Conjecture: $a \to fa$ can happen at most once; $\omega \to fa$ can happen only at one occurrence of the main variable.
 \end{example}
 
 
