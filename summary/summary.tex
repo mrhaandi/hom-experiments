@@ -1360,17 +1360,701 @@ With constants typed by silent arrows, ``$\mathcal{E}$ contains no call'' means 
 
 \newpage
 
-\section*{TODOs}
-\begin{remark}[Open Questions]~
+\section{Non-trivial Example}
+
+\begin{example}[Unfolding needs a skeleton]\label{ex:fifth-skeleton}
+Let $\Phi = \{g, f : \bullet \to \bullet,\ a, b : \bullet\}$, and let
+\[
+X : \big(((\bullet\to\bullet)\to\bullet) \to ((\bullet\to\bullet)\to\bullet) \to \bullet\big) \to (\bullet \to \bullet) \to \bullet
+\]
+(order $5$).
+Consider the two equations
+\[
+X\,u_1\,w = g\,(f\,a), \qquad X\,u_2\,w = g\,(f\,b),
+\]
+with
+\[
+u_1 = \lambda F_1 F_2.\,F_1\,(\lambda y.\,F_2\,(\lambda y'.\,y)),
+\qquad
+u_2 = \lambda F_1 F_2.\,F_1\,(\lambda y.\,F_2\,(\lambda y'.\,y')),
+\qquad
+w = \lambda h.\,f\,h .
+\]
+A solution is
+\[
+t = \lambda x_1 x_2.\; \underbrace{x_1\,(\lambda z_1.\,g\,(z_1\,a))\,(\lambda z_2.\,x_2\,(z_2\,b))}_{n} .
+\]
+We have $t\,u_1\,w \twoheadrightarrow g\,((\lambda y.\,x_2((\lambda y'.y)\,b))\,a) \twoheadrightarrow g\,(f\,a)$, and  $t\,u_2\,w \twoheadrightarrow g\,(f\,b)$.
+
+The main node $n$ is unproductive, since $u_1$ and $u_2$ contain no constants.
+It binds $z_1$ and $z_2$.
+The occurrence $o = z_2\,b$ lies below the productive main node $x_2(\cdot)$, so it is far.
+
+\paragraph{Typings.}
+The characteristic environments are $\Gamma_1 = \{g : 1 \to \varepsilon,\ f : 11 \to 1,\ a : 11\}$ and $\Gamma_2 = \{g : 1 \to \varepsilon,\ f : 11 \to 1,\ b : 11\}$.
+The head types of $n$ are
+\[
+B_1 = C_1 \to C_2 \to \varepsilon,
+\quad C_1 = (11 \to 1) \to \varepsilon,
+\quad C_2 = (\omega \to 11) \to 1,
+\]
+\[
+B_2 = C'_1 \to C'_2 \to \varepsilon,
+\quad C'_1 = (\omega \to 1) \to \varepsilon,
+\quad C'_2 = (11 \to 11) \to 1 .
+\]
+Slot~$1$ is entered by the head call.
+Slot~$2$ is entered by a re-entry from the polynomial $\lambda y.\,F_2(\ldots)$ bound to $z_1$, so its target is $1 \neq \varepsilon$.
+The occurrence $o$ has two instances, both with target $11$:
 \begin{itemize}
-\item do we have subject expansion in bounded dimension and fixed rank 2?
-\item do we have subject expansion in bounded dimension and fixed order 3?
-\item (alx) cleaning the note
-\item (alx) layout the statement of the dimension lemma
-\item (alx) layout the sketch ot the proof of the dimension lemma
+\item in equation~1, $z_2 : \omega \to 11$ is an \emph{outer} return of $y$, i.e.\ of the argument $a$ of the use $\nu_1 = z_1\,a$;
+\item in equation~2, $z_2 : 11 \to 11$ is an \emph{own} return of $b$.
+\end{itemize}
+
+\paragraph{What fails.}
+\begin{itemize}
+\item \emph{Projection and Outer Return Elimination.}
+$o := b$ fails in equation~1, and $o := a$ fails in equation~2.
+\item \emph{Canonical unfolding.}
+It requires $B^* = B_i$ with target $\varepsilon \ne 11$.
+Target shift at the head call is also inapplicable, since the head of $u_i$ is $F_1$, not $F_2$.
+\item \emph{Keeping the original slot~1.}
+The re-call $x_1\,(\lambda z_1.\,g\,(z_1\,a))\,(\lambda z'_2.\,z'_2\,b)$ evaluates to $g\,a$, respectively $g\,b$, instead of $a$, respectively $b$.
+In types, $\lambda z_1.\,g(z_1\,a)$ would need a type with target $11$, but $g$ is typed only at $\varepsilon$.
+\end{itemize}
+
+\paragraph{The skeleton re-call.}
+The routed path has length~$2$: the head call $F_1$, then the head $F_2$ of $\lambda y.\,F_2(\ldots)$.
+Its linked use is $\nu_1 = z_1\,a$ with exit term $a$.
+Lemma~\ref{lem:fifth-callfree} yields
+\[
+R_S = x_1\,(\lambda z'_1.\,z'_1\,a)\,(\lambda z'_2.\,z'_2\,b),
+\]
+typed in the two instances by
+\[
+B^*_1 = ((11 \to 11) \to 11) \to ((\omega \to 11) \to 11) \to 11
+\]
+\[
+B^*_2 = ((\omega \to 11) \to 11) \to ((11 \to 11) \to 11) \to 11
+\]
+Both are derivable for $u_1$, respectively $u_2$.
+\begin{itemize}
+\item In equation~1, $z'_1 : 11 \to 11$ uses $a : 11$, and $b$ is untyped.
+\item In equation~2, $a$ is untyped, and $z'_2 : 11 \to 11$ uses $b : 11$.
+\end{itemize}
+Indeed $u_1\,(\lambda z'_1.z'_1\,a)\,(\lambda z'_2.z'_2\,b) \twoheadrightarrow a$ and $u_2\,(\ldots) \twoheadrightarrow b$.
+The result is
+\[
+t' = \lambda x_1 x_2.\; x_1\,(\lambda z_1.\,g\,(z_1\,a))\,\big(\lambda z_2.\,x_2\,(x_1\,(\lambda z'_1.\,z'_1\,a)\,(\lambda z'_2.\,z'_2\,b))\big),
+\]
+in which $z_2$ no longer occurs.
+
+\paragraph{The required features.}
+The occurrence lives in slot~$2$, yet the re-call must replace slot~$1$ by a skeleton.
+This skeleton drops the black output $g$ and keeps only the exit term $a$ of $\nu_1$.
+The type of $z_2$ switches between a fixed type (outer return) and a non-contributing type (own return).
+Hence global switches must also cover outer returns.
+\end{example}
+
+\begin{remark}[Reading Example~\ref{ex:fifth-skeleton} off the colored derivation]
+Consider the derivations of $(\lambda x_1x_2.t)\,u_i\,w$.
+Uses are black axioms, and each is linked to a white derivation.
+The head axiom of a region is the axiom carrying its target (Lemma~\ref{lem:fifth-head}).
+\begin{center}
+\begin{tabular}{llllll}
+eq. & use & type at the use & head of linked white derivation & linked $\kappa \neq 0$ & kind\\ \hline
+1 & $x_1$ & $B_1$ & $F_1 : C_1$ (target $\varepsilon$) & entry $2$, ret $1$ & routing call\\
+1 & $x_2$ & $[11] \to 1$ & $f$ (target $1$) & prod $1$, ret $1$ & productive call\\
+1 & $z_1$ & $[11] \to 1$ & $F_2 : C_2$ (target $1$) & entry $1$, ret $1$ & re-entry\\
+1 & $z_2$ & $[\,] \to 11$ & $y : 11$, $y$ bound by $\lambda y$ & ret $1$ & outer return\\ \hline
+2 & $x_1$ & $B_2$ & $F_1 : C'_1$ (target $\varepsilon$) & entry $2$, ret $1$ & routing call\\
+2 & $x_2$ & $[11] \to 1$ & $f$ (target $1$) & prod $1$, ret $1$ & productive call\\
+2 & $z_1$ & $[\,] \to 1$ & $F_2 : C'_2$ (target $1$) & entry $1$, ret $1$ & re-entry\\
+2 & $z_2$ & $[11] \to 11$ & $y' : 11$, $y'$ bound by $\lambda y'$ & ret $1$ & own return
+\end{tabular}
+\end{center}
+
+\paragraph{Productions.}
+In both equations, position $\varepsilon$ is produced by the black $g$ and position $1$ by the white $f$ of $w$.
+Position $11$ is produced by the black $a$ (argument of $z_1$) in equation~1, and by the black $b$ (argument of $z_2$) in equation~2.
+This gives $\kappa_{\mathrm{prod}} = 3 = |\Pos(r_i)|$.
+The call of $x_1$ has $\kappa_{\mathrm{prod}} = 0$, so $n$ only routes.
+
+\paragraph{Unfolding.}
+The linked derivation of each instance of $o = z_2\,b$ consists of a single return, so $o$ is returning.
+Following the links backwards gives the routed path:
+\begin{itemize}
+\item the continuation of slot~2 is linked to the axiom of $F_2$;
+\item this axiom is the head of the region of the polynomial linked to the use $\nu_1$ of $z_1$;
+\item that polynomial is an argument of the axiom of $F_1$, which is the head of the body region of $u_i$.
+\end{itemize}
+Hence the path enters slots $(1,2)$ via the variables $(z_1, z_2)$.
+The return determines the exit term:
+\begin{itemize}
+\item in equation~1, $y$ is the parameter of step~1, so the exit term is the argument $a$ of $\nu_1$;
+\item in equation~2, $y'$ is the own parameter, so the exit term is the argument $b$ of $o$.
+\end{itemize}
+Consistency (S1) and scope (S2') hold.
+Pruning the linked white derivation to the path and the final return, and retargeting the path to $11$, yields $B^*_1$ and $B^*_2$ together with their derivations.
+Hence $R_S = x_1\,(\lambda z'_1.\,z'_1\,a)\,(\lambda z'_2.\,z'_2\,b)$.
+Its index adds $1$ call, $2$ entries and $1$ use per instance, in accordance with the table of effects.
+
+\paragraph{Caveats.}
+\begin{itemize}
+\item The types of introduced variables do not determine kinds.
+$[11] \to 1$ has the contributing shape but is a re-entry.
+$[\,] \to 11$ and $[\,] \to 1$ have the fixed shape but are an outer return and a re-entry.
+\item Kinds belong to the white derivation linked to a use.
+In an inhabitation search over $T^j$, a derivation of $u_i^j$ must therefore be fixed for each type used.
+\item The replacement is a term: its exit terms are copied from the argument positions of the linked axioms.
 \end{itemize}
 \end{remark}
-\newpage
+
+\paragraph{Non-idempotent Typings}
+
+\begin{example}[Occurrence-level unfolding is incomplete]\label{ex:fifth-clash}
+Let $\Phi = \{g : \bullet\to\bullet\to\bullet,\ f : \bullet\to\bullet,\ a,b,c : \bullet\}$, and let
+\[
+X : \big(((\bullet\to\bullet)\to\bullet) \to ((\bullet\to\bullet)\to\bullet) \to \bullet\big) \to (\bullet\to\bullet) \to \bullet .
+\]
+Consider
+\[
+X\,u_1\,w = g\,(f\,a)\,(f\,b), \qquad X\,u_2\,w = g\,(f\,c)\,(f\,c),
+\]
+where $u_1, u_2, w$ are as in Example~\ref{ex:fifth-skeleton}.
+A solution is
+\[
+t = \lambda x_1x_2.\; \underbrace{x_1\,(\lambda z_1.\, g\,(z_1\,a)\,(z_1\,b))\,(\lambda z_2.\, x_2\,(z_2\,c))}_{n} .
+\]
+The node $n$ is unproductive.
+The occurrence $o = z_2\,c$ lies below the call $x_2(\cdot)$, so it is far.
+In equation~1 it has two uses, reached through $\nu = z_1\,a$ and $\nu' = z_1\,b$:
+\begin{itemize}
+\item use A: $z_2 : \omega \to 11$, an outer return of $a$;
+\item use B: $z_2 : \omega \to 12$, an outer return of $b$.
+\end{itemize}
+
+\emph{No local replacement exists.}
+At $o$, only $x_1, x_2, z_2$ are in scope.
+Let $s$ be a replacement that does not mention $z_2$.
+Its environment is identical in uses A and B, so $s$ must be typable at $11$ and at $12$ in the same environment.
+Then $s\{u_1/x_1, w/x_2\} \twoheadrightarrow a$ and $\twoheadrightarrow b$, a contradiction.
+
+\emph{Route-based resolution.}
+The routes of A and B diverge at $\nu$ versus $\nu'$.
+Both are opaque re-entries: the re-entered slot~$2$ contains the productive call $x_2$.
+Copy re-calls replace them:
+\[
+\nu := x_1\,(\lambda z'_1.\,z'_1\,a)\,(\lambda z'_2.\,x_2\,(z'_2\,c)),
+\qquad
+\nu' := x_1\,(\lambda z'_1.\,z'_1\,b)\,(\lambda z'_2.\,x_2\,(z'_2\,c)).
+\]
+These evaluate to $f\,a$ and $f\,b$ in equation~1, and to $f\,c$ in equation~2.
+Afterwards $z_1$ no longer occurs, so slot~$2$ of $n$ is never entered and $o$ is garbage.
+Lemma~\ref{lem:fifth-route} then removes $n$.
+Inside each copy, the occurrence $z'_2\,c$ has a single route.
+It is unfolded by Lemma~\ref{lem:fifth-callfree}, giving for instance $x_1\,(\lambda z''_1.z''_1\,a)\,(\lambda z''_2.z''_2\,c)$.
+\end{example}
+
+\begin{definition}[Callee Closure, Transparent and Opaque Re-entries]
+The \emph{callee closure} of a use consists of its linked derivation, together with the derivations reached from it through call links, recursively.
+Return links, which lead to arguments, are excluded.
+A re-entry is \emph{transparent} if its callee closure has $\kappa_{\mathrm{prod}} = 0$, and \emph{opaque} otherwise.
+\end{definition}
+
+A transparent re-entry is a delayed return.
+Its route continues through the re-entered continuation to a return, and condition~(b) of Lemma~\ref{lem:fifth-spine} holds along the flat path.
+
+\begin{definition}[Route-based Localisation]
+Let $o$ be an occurrence of a variable bound at an unproductive node $n$.
+Two uses of $o$ \emph{diverge at step $m$} if their routes enter the same slot through different occurrences $\nu_m \neq \nu'_m$.
+\begin{enumerate}
+\item If no two uses diverge, unfold $o$:
+\begin{itemize}
+\item if its final derivations are call-free, by Lemma~\ref{lem:fifth-callfree};
+\item if its uses are transparent re-entries, by a skeleton re-call whose route is extended to the eventual return.
+\end{itemize}
+\item Otherwise, unfold the occurrences at the first divergence step instead:
+\begin{itemize}
+\item transparent ones by extended skeleton re-calls;
+\item opaque ones by \emph{copy re-calls}, i.e.\ a skeleton up to $\nu_m$ followed by a copy of the re-entered continuation in its slot.
+\end{itemize}
+\end{enumerate}
+\end{definition}
+
+The soundness of each step is by Lemma~\ref{lem:fifth-repl}.
+The required derivation is assembled from the characteristic one:
+\begin{itemize}
+\item route types are pruned and retargeted;
+\item the derivations of the copied continuations are taken from their linked elements.
+\end{itemize}
+
+\begin{lemma}[Separator Bound, OPEN]\label{lem:fifth-separator}
+Route-based localisation terminates on a minimal solution.
+Moreover, the following situations occur at most $W_{\mathrm{sep}}$ times along any branch, for a computable $W_{\mathrm{sep}}$:
+\begin{itemize}
+\item a copy re-call would have to place its copy in a slot that is already used earlier on its route (same-slot recursion);
+\item uses diverge inside a skipped black segment through a call of another main variable.
+\end{itemize}
+\end{lemma}
+
+Lemma~\ref{lem:fifth-separator} replaces Lemma~\ref{lem:fifth-residual}.
+Together with Proposition~\ref{prop:fifth-width-red}, it yields Lemma~\ref{lem:fifth-width}.
+It corresponds to Stirling's bound on separators.
+A plausible strategy is to charge each separator either to a production (at most $P$ in total) or to a divergence decided by some $u_i^j$.
+The latter is bounded by the nesting depth of polynomials along a route within one call.
+
+\begin{remark}[Detection is type-theoretic]
+By de~Carvalho's correspondence, a multi-type derivation of $(\lambda\bar x.t)\,\bar u_i$ records a run of the Krivine machine.
+Each judgement of an occurrence is a visit, and links are the environment pointers (Stirling's look-up tables).
+Hence the route of every use, and every divergence, can be read off the derivation.
+In system~\textbf{R}, uses with different typings occupy different coordinates.
+Uses with identical typings are interchangeable for every replacement.
+\end{remark}
+
+\begin{definition}[Route, Divergence]
+Let $J$ be a judgement of an occurrence $o$ of a variable bound at $n$.
+The \emph{route} of $J$ is the chain of call links from the head call of the linked use of the main variable of $n$ down to $J$.
+It records the black occurrences $\nu_1, \ldots, \nu_{s-1}$ through which slots are entered.
+Two judgements of $o$ \emph{diverge} if their routes enter the same slot at the same step through different occurrences.
+\end{definition}
+
+\begin{lemma}[No Local Replacement]\label{lem:fifth-nolocal}
+Suppose that the only introduced variables in scope at $o$ are bound by the binder of its head.
+Then every replacement $s$ for $o$ that avoids this binder satisfies $\FV(s) \subseteq \bar x$.
+Consequently, if two judgements of $o$ in equation $i$ have targets $p \neq q$ with $r_i|_p \neq r_i|_q$, no such replacement exists.
+\end{lemma}
+
+\begin{proof}
+In both judgements, $s\{\bar u_i/\bar x\}$ would be closed and typable at $p$ and at $q$.
+By Lemma~\ref{lem:fifth-char}, it would then reduce both to $r_i|_p$ and to $r_i|_q$.
+\end{proof}
+
+Example~\ref{ex:fifth-clash} is an instance of Lemma~\ref{lem:fifth-nolocal}.
+
+\begin{lemma}[Uses are Redistributed]\label{lem:fifth-redistribute}
+Let a skeleton re-call or a copy re-call replace an occurrence.
+Then a characteristic multi-type derivation of the new solution arises from the old one by moving sub-derivations:
+\begin{itemize}
+\item the elements of a copied continuation, or of a copied exit term, that are linked through the replaced use move into the copy;
+\item the remaining elements stay in place;
+\item the re-call adds only the judgements of its direct references and of its route, and its dummies remain untyped.
+\end{itemize}
+In particular, $\kappa_{\mathrm{prod}}$ is unchanged, and no judgement of a non-direct occurrence is duplicated.
+\end{lemma}
+
+\begin{proof}[Proof sketch]
+Non-idempotent derivations use each argument element exactly once.
+The replaced use owned its linked white element.
+That element, pruned to the route and retargeted, becomes the derivation of the new call.
+The continuation and exit-term elements linked to it are re-attached to the copies.
+\end{proof}
+
+Let $\mu$ be the number of judgements of non-direct occurrences of variables bound at unproductive nodes.
+Let $\delta$ be the number of unordered pairs of diverging judgements of the same occurrence.
+
+\begin{corollary}[Termination]\label{cor:fifth-termination}
+Each step of route-based localisation decreases $(\mu, \delta)$ lexicographically.
+\begin{itemize}
+\item A skeleton step on a non-diverging occurrence removes its judgements, so $\mu$ decreases.
+\item A copy step at a first divergence separates the diverging pair, so $\delta$ decreases.
+It does not increase $\mu$, by Lemma~\ref{lem:fifth-redistribute}.
+\end{itemize}
+Hence route-based localisation terminates.
+\end{corollary}
+
+\begin{lemma}[Blocked References, OPEN]\label{lem:fifth-blocked}
+After exhaustive route-based localisation, every remaining non-direct reference to a variable of an unproductive node is blocked in one of two ways:
+\begin{enumerate}
+\item[(B1)] \emph{scope}: an exit term on its route contains a variable of a productive node bound strictly between $n$ and the route occurrence;
+\item[(B2)] \emph{same-slot recursion with output}: its route revisits a slot whose earlier visit produces output, so the slot would need a skeleton and a copy at once.
+\end{enumerate}
+The open claim is that the number of variables with blocked references below any $\mu$ is bounded by a computable function of $P$, the number of productive nodes, and the nesting depth of polynomials in the arguments.
+\end{lemma}
+
+By Proposition~\ref{prop:fifth-width-red} and Corollary~\ref{cor:fifth-termination}, Lemma~\ref{lem:fifth-blocked} implies Lemma~\ref{lem:fifth-width}.
+In case (B2), the revisits of one slot along a route within one call are bounded by the nesting depth of polynomials in $u_i^j$.
+Each blocking visit contains a production, which suggests charging (B2) to productions.
+In case (B1), the binders involved belong to at most $P$ productive nodes.
+
+
+\begin{remark}[Drivers of Dimension]
+Typings of an occurrence differ only through the assumptions of its free variables.
+Variation comes from three sources:
+\begin{itemize}
+\item equations (a factor of at most $m$);
+\item routing by $u$ (switches), where the same occurrences are reached with different polynomials;
+\item divergence, where different occurrences lie on the routes.
+\end{itemize}
+Skeleton re-calls serve the second source uniformly, and copy re-calls separate the third.
+Unbounded growth requires unboundedly many free introduced variables, i.e.\ unbounded width.
+Hence Corollaries~\ref{cor:fifth-termination} and~\ref{cor:fifth-width-dim} together with Proposition~\ref{prop:fifth-width-red} give
+\[
+\dim \le D\bigl(1 + hkP + W_{\mathrm{blocked}}\bigr),
+\]
+where $W_{\mathrm{blocked}}$ is the bound claimed in Lemma~\ref{lem:fifth-blocked}.
+Lemma~\ref{lem:fifth-blocked} is the only missing ingredient.
+Corollary~\ref{cor:fifth-width-dim} also supersedes Lemma~\ref{lem:fifth-dim-bound}: it bounds the dimension by width rather than by the number of occurrences of main variables.
+\end{remark}
+
+\subsection{Machines on the Characteristic Derivation}
+\label{sec:fifth-machines}
+
+We use sequence types, i.e.\ non-idempotent and non-commutative intersections~\cite{CatoziDLV26}, with the positional atoms of Lemma~\ref{lem:eq_character}.
+Elements of a sequence are matched to specific occurrences, so links are canonical.
+The \emph{depth} of an atom occurrence in a type is the number of sequences enclosing it.
+
+\begin{lemma}[Depth at Order Five]\label{lem:fifth-depth}
+In a characteristic derivation of $(\lambda\bar x.t)\,\bar u_i$ for an instance of order at most~$5$, every atom occurrence on the right of $\vdash$ has depth at most~$4$.
+\end{lemma}
+
+\begin{proof}
+A type refining a simple type of order $o$ has atom depth at most $o - 1$.
+The largest type occurring is that of $\lambda\bar x.t$, of order at most $5$.
+\end{proof}
+
+\begin{proposition}[IAM at Order Five, transfer to be checked]\label{prop:fifth-iam}
+Jumps of the PaJAM with parameter $k$ skip only atom occurrences of depth greater than $2k+1$ (Proposition~10 of~\cite{CatoziDLV26}).
+Hence, by Lemma~\ref{lem:fifth-depth}, PaJAM$(2)$ never jumps on characteristic derivations of order-$5$ instances and coincides with the IAM.
+The IAM visits every atom occurrence exactly once (Proposition~9 of~\cite{CatoziDLV26}).
+\end{proposition}
+
+\begin{definition}[Resolution Trajectory]
+Consider a visit of the IAM to an occurrence $o$ whose head is a variable $z$.
+Its \emph{resolution trajectory} is the segment of the run from the head of $o$ to the head of the term substituted for $z$.
+Concatenating resolution trajectories until the run reaches a black exit term or a production yields the \emph{trajectory} of the visit.
+\end{definition}
+
+\begin{proposition}[Skeleton = Trajectory, claim]\label{prop:fifth-trajectory}
+Consider a use whose route has no output on the white side.
+The skeleton re-call $R_S$ of Lemma~\ref{lem:fifth-spine} consists of the constructors visited by the trajectory of the use, with the contexts skipped by the variable-to-binder transitions removed.
+The IAM run of $R_S$ visits the same white constructors and reaches the same exit term with the same atom labels; this is Stirling's Fact~36.
+Two judgements of $o$ diverge iff their trajectories enter a slot through different occurrences.
+A copy re-call additionally materialises the closure that the KAM builds when entering the re-entered continuation.
+\end{proposition}
+
+\begin{proposition}[Stirling Positions, claim]\label{prop:fifth-positions}
+JAM states ($k = 0$) on the characteristic derivation correspond to positions of Stirling's game:
+\begin{itemize}
+\item the subterm of the state is the node;
+\item the label $p$ of the marked atom determines the goal $r_i|_p$;
+\item the log is the look-up table.
+\end{itemize}
+A stage contributes iff the label of the marked atom changes.
+\end{proposition}
+
+\begin{remark}[Tight Typings]
+By~\cite{AccattoliGK18}, tight derivations have split indices: $\beta$-steps and normal-form size.
+These indices are exact, and they are determined by the final judgement alone.
+With $(\Gamma_i^\natural, \varepsilon)$ as final judgement, this yields Lemma~\ref{lem:fifth-conservation}.
+It also makes $\kappa$, $\mu$ and $\delta$ (Corollary~\ref{cor:fifth-termination}) invariants of the solution, independent of the chosen derivation.
+The transfer requires leftmost evaluation with neutral terms, since our normal forms are headed by constants.
+\end{remark}
+
+\begin{remark}[What Remains]
+If Proposition~\ref{prop:fifth-positions} holds, Lemma~\ref{lem:fifth-blocked} is Stirling's bound on separators (at most $pq^{p-1}|u|$ with $p = 2$), restated on the characteristic derivation.
+Proving it then amounts to translating the proof of Theorem~37 of~\cite{stirling2009}: stages, families and separators become segments of IAM runs, link descendants and shared occurrences.
+\end{remark}
+
+\subsection{The SIAM as Reference Model}
+\label{sec:fifth-siam}
+
+Let $\pi$ be a characteristic derivation of $(\lambda\bar x.t)\,\bar u_i$ with sequence types and positional atoms.
+The SIAM~\cite{AccattoliDLV21} acts on $\pi$.
+Its states are occurrences of atoms on the right of $\vdash$, together with a direction.
+Its transitions connect an atom occurrence in a judgement with the corresponding occurrence in an adjacent judgement:
+\begin{itemize}
+\item a parent or child in the derivation;
+\item a variable axiom and the matching element in the type of its binder;
+\item a sequence element of an argument and the matching domain element of the function.
+\end{itemize}
+We extend it by one rule for constants.
+When an axiom $c : [p1] \to \cdots \to [pk] \to p$ is reached at its target $p$, the run branches into the occurrences $p1, \ldots, pk$.
+This mirrors Stirling's $\forall$-moves.
+
+\begin{definition}[Interaction Tree]
+The \emph{interaction tree} of $\pi$ is the tree of SIAM runs from the root occurrence $\varepsilon$, branching at constants.
+\end{definition}
+
+\begin{proposition}[Properties, transfer to be checked]\label{prop:fifth-siam}
+\leavevmode
+\begin{enumerate}
+\item The SIAM is bi-deterministic, and every atom occurrence of $\pi$ lies on exactly one node of the interaction tree (Proposition~13.1 and Theorem~14.5 of~\cite{AccattoliDLV21}).
+\item At order~$5$, every atom occurrence has depth at most~$4$ (Lemma~\ref{lem:fifth-depth}).
+\item The branches of the interaction tree, restricted to occurrences of depth at most~$1$, are the plays of Stirling's game.
+A stage contributes iff the atom label changes along its segment.
+\item Consider a maximal segment of depth at least~$2$ between two visits of depth at most~$1$.
+It is a resolution trajectory.
+The term occurrences of its judgements form the skeleton of Lemma~\ref{lem:fifth-callfree}.
+\item Two judgements of one occurrence diverge iff their trajectory segments enter the same slot through judgements of different occurrences.
+\item Uses are sequence elements.
+Re-calls move elements between calls and reconnect the path (Lemma~\ref{lem:fifth-redistribute}).
+\end{enumerate}
+\end{proposition}
+
+\begin{remark}[Choice of Machine]
+The SIAM needs no logs, tapes, closures or jumps, because all copies are present in $\pi$.
+\begin{itemize}
+\item The KAM represents copies by closures; in $\pi$ these are sequence elements.
+\item The JAM and PAM skip exactly the segments of depth at least~$2$, i.e.\ the trajectories that unfolding must materialise.
+\item The cost of the IAM grows with the size of types, but at order~$5$ the depth of types is bounded.
+\end{itemize}
+Accordingly, we state routes, divergence, contribution and unfolding as properties of the interaction tree.
+Lemma~\ref{lem:fifth-blocked} then becomes a statement about segments of depth at least~$2$ that are shared by several branches; these are Stirling's separators.
+\end{remark}
+
+\begin{remark}[Required Extensions]
+The results of~\cite{AccattoliDLV21} concern closed call-by-name evaluation with a single ground type and abstractions as normal forms.
+We need open terms with first-order constants, strong evaluation into the arguments of constants, and positional atoms.
+The head-evaluation $\lambda$IAM for open terms~\cite{AccattoliDLV20} is the natural starting point.
+\end{remark}
+
+\section{Routes as Label Bindings}
+\label{sec:fifth-labels}
+
+This section replaces Section~\ref{sec:fifth-machines} and the remark ``Detection is type-theoretic''.
+Following Kobayashi~\cite{Kobayashi13}, we label arguments and head occurrences of variables.
+\emph{Link bindings} then record which argument is substituted for which occurrence, and at which type.
+Linked polynomials, routes and exits become link bindings in one derivation of $(\lambda\bar x.t)\,\bar u_i$.
+Their properties follow from labelled versions of Kobayashi's Lemmas~3.8--3.11~\cite{Kobayashi13}; no machine model is needed.
+
+\subsection{Labelled Characteristic Typing}
+
+\paragraph{Labels.}
+In $S_i = (\lambda\bar x.t)\,u_i^1\ldots u_i^n$ we attach pairwise distinct labels of two kinds.
+\begin{itemize}
+\item \emph{Argument labels} $\gamma$:
+  \begin{itemize}
+  \item $\varsigma$ on each continuation argument of a main node (black);
+  \item $\epsilon$ on each argument of a use of an introduced variable (black);
+  \item $\ell$ on each polynomial of $u_i^j$, i.e.\ on each argument of a call $F\,\bar\pi$ (white).
+  \end{itemize}
+\item \emph{Occurrence labels} $\theta$:
+  \begin{itemize}
+  \item $m$ on each occurrence of a main variable (black);
+  \item $\mu$ on each head occurrence of an introduced variable (black);
+  \item $\kappa$ on each occurrence of some $F$ (white);
+  \item $\rho$ on each parameter occurrence in a polynomial (white).
+  \end{itemize}
+\end{itemize}
+We write $S_i^\sharp$ for the labelled term.
+Reduction copies labelled subterms, so a label may occur several times in a reduct.
+
+\paragraph{Types and rules.}
+Types are as in Section~\ref{sec:fifth-typed}, except that a type may carry one argument label as a \emph{tag}, written $A^\gamma$.
+The universe of types remains finite.
+Environments are sets of bindings $x : A$ for variables and constants, and $\gamma : A$, $\theta : A^\gamma$ for labels.
+We write $\Gamma_V$ and $\Gamma_L$ for the two parts.
+
+The rules are Kobayashi's relevant rules, without weakening:
+\[
+\frac{}{\{x : A\} \vdash x : A}
+\qquad
+\frac{\Gamma \cup \{x : A_k \mid k \in K\} \vdash s : B \quad x \notin \mathrm{dom}(\Gamma)}{\Gamma \vdash \lambda x.s : \{A_k \mid k \in K\} \to B}
+\]
+\[
+\frac{\Gamma_0 \vdash s : \{A_k \mid k \in K\} \to B \qquad \Gamma_k \vdash u : A_k \ \ (k \in K)}{\Gamma_0 \cup \bigcup_{k \in K} \Gamma_k \vdash s\,u : B}
+\]
+In the application rule, $A_k = A_{k'}$ is allowed for $k \neq k'$, with different environments.
+Argument types must equal domain elements, tags included.
+A tag on the type of a function in head position is ignored.
+Constants are variables, and the characteristic environment $\Gamma_i$ of Lemma~\ref{lem:eq_character} is part of $\Gamma_V$.
+
+Labels are typed by
+\[
+\frac{\Gamma \vdash s : A}{\Gamma \cup \{\gamma : A\} \vdash s^\gamma : A^\gamma}\ (\mathrm{Arg})
+\qquad\qquad
+\frac{\Gamma \vdash s : A^\gamma}{\Gamma \cup \{\theta : A^\gamma\} \vdash s^\theta : A}\ (\mathrm{Occ})
+\]
+In (Occ) the tag may be absent; this is the case for main variables, whose arguments $u_i^j$ carry no label.
+
+\paragraph{Labelled reduction.}
+A \emph{positioned subterm} of a reduct is a subterm $s$ of $C[s]$ where the context $C$ consists of constants only.
+Its position is that of the hole.
+Labelled reduction consists of leftmost-outermost $\beta$-steps and of (R-Lab) steps, which remove a label at the head of a positioned subterm.
+It terminates in $r_i$, which contains no labels.
+
+\begin{lemma}[Kobayashi's Lemmas~3.8--3.11, labelled and positional]\label{lem:fifth-kob}
+\leavevmode
+\begin{enumerate}
+\item \emph{Substitution.}
+Suppose $\Gamma_0 \cup \{x : A_1, \ldots, x : A_n\} \vdash s : B$ with pairwise distinct $A_k$ and $x \notin \mathrm{dom}(\Gamma_0)$, and $\Gamma_k \vdash u : A_k$ for all $k$.
+Then $\Gamma_0 \cup \Gamma_1 \cup \cdots \cup \Gamma_n \vdash s[u/x] : B$.
+\item \emph{Subject reduction.}
+Let $\Gamma \vdash S' : \varepsilon$ and $\theta : A^\gamma \in \Gamma_L$.
+Then one of the following holds:
+  \begin{itemize}
+  \item $S'$ has a positioned subterm $(s^\gamma)^\theta\,s_1\ldots s_k$ at position $\tgt(A)$, typed according to $A$;
+  \item $S' \to S''$ with $\Gamma'' \vdash S'' : \varepsilon$ and $\theta : A^\gamma \in \Gamma''_L$.
+  \end{itemize}
+\item \emph{Inverse substitution.}
+If $\Gamma \vdash s[u/x] : B$, then there are a finite set $K$, types $A_k$ and environments $\Gamma_k$ for $k \in \{0\} \cup K$ such that
+\[
+\Gamma_0 \cup \{x : A_k \mid k \in K\} \vdash s : B,
+\qquad
+\Gamma_k \vdash u : A_k \ \ (k \in K),
+\qquad
+\Gamma = \bigcup_{k \in \{0\} \cup K} \Gamma_k .
+\]
+\item \emph{Subject expansion.}
+If $\Gamma'' \vdash S'' : \varepsilon$ and $S' \to S''$, then $\Gamma \vdash S' : \varepsilon$ for some $\Gamma$ with $\Gamma_V = \Gamma''_V$ and $\Gamma_L \supseteq \Gamma''_L$.
+\end{enumerate}
+\end{lemma}
+
+\begin{proof}
+As in~\cite{Kobayashi13}, where the proofs of~(1) and~(3) are given in the extended version.
+Tags are part of types and do not change the arguments.
+Constants are variables bound in $\Gamma_i$.
+Positioned subterms replace Kobayashi's branch selection (R-Const), because all branches are typed.
+Item~(3) is exact because the application rule admits repeated argument types (Section~\ref{sec:fifth-tight}).
+For a $\beta$-step, item~(4) follows from item~(3).
+For an (R-Lab) step, rule (Arg) or (Occ) adds the binding of the removed label.
+\end{proof}
+
+\begin{theorem}[Links as Bindings]\label{thm:fifth-links}
+Let $\lambda\bar x.t$ be a solution.
+Expanding the characteristic derivation of $\Gamma_i \vdash r_i : \varepsilon$ along the labelled reduction of $S_i^\sharp$ yields a derivation $\mathcal{D}_i$ of $\Gamma_i \cup \Gamma_L \vdash S_i^\sharp : \varepsilon$, the \emph{canonical labelled derivation}.
+For every occurrence label $\theta$, argument label $\gamma$ and type $A$, the binding $\theta : A^\gamma$ belongs to $\Gamma_L$ iff some reduct has a positioned subterm $(s^\gamma)^\theta\,s_1\ldots s_k$ at position $\tgt(A)$, typed according to $A$.
+The same holds for untagged bindings $\theta : A$ and for argument bindings $\gamma : A$.
+\end{theorem}
+
+\begin{proof}
+The derivation exists by Lemma~\ref{lem:fifth-kob}(4), which preserves $\Gamma_V = \Gamma_i$ exactly.
+
+($\Leftarrow$)
+In the reduct with the positioned subterm, the (R-Lab) step for $\theta$ is inverted by (Occ), which adds $\theta : A^\gamma$.
+Lemma~\ref{lem:fifth-kob}(4) keeps this binding up to $S_i^\sharp$.
+
+($\Rightarrow$)
+By Lemma~\ref{lem:fifth-kob}(2) and termination, as in the proof of~\cite[Theorem~3.6]{Kobayashi13}.
+The derivation of $r_i$ has no label bindings, so $\theta : A^\gamma$ must be consumed at a positioned head.
+\end{proof}
+
+\subsection{Links, Routes and Exits}
+
+\begin{definition}[Links]
+In $\mathcal{D}_i$, the bindings of occurrence labels are \emph{links}:
+\begin{itemize}
+\item a \emph{main link} $m : B$: the occurrence $m$ of $x_j$ uses $u_i^j$ at $B$;
+\item a \emph{call link} $\kappa : C^\varsigma$: the call site $\kappa$ in $u_i^j$ enters the slot $\varsigma$ at $C$;
+\item a \emph{use link} $\mu : A^\ell$: the use $\mu$ applies the polynomial $\ell$ at $A$, and $\ell$ is its \emph{linked polynomial};
+\item a \emph{return link} $\rho : a^\epsilon$: the parameter occurrence $\rho$ yields the black argument $\epsilon$ at the atom $a$.
+\end{itemize}
+\end{definition}
+
+The white side of every link is a label in the judgement.
+In particular, the types in $T_i^j$ are tagged.
+Through its tags, a type $B$ of $u_i^j$ lists which call sites enter which slots, and which polynomials are passed at which types.
+No derivation of $u_i^j$ has to be fixed for the types used, and the corresponding caveat in the remark on Example~\ref{ex:fifth-skeleton} is obsolete.
+
+\paragraph{Kinds are syntactic.}
+Given a use link $\mu : A^\ell$, the kind of the use is determined by the head of the body of $\pi_\ell$:
+\begin{itemize}
+\item a constant gives an output;
+\item some $F$ gives a re-entry;
+\item a parameter of $\pi_\ell$ gives an own return;
+\item a parameter of an enclosing polynomial gives an outer return.
+\end{itemize}
+The final derivation is \emph{call-free} if the environment of the judgement of $\pi_\ell$ at $A^\ell$ in $\mathcal{D}_i$ contains no call link.
+
+\begin{definition}[Route, Exit]
+Let $\mu : A^\ell$ be a use link of an occurrence bound at a main node with main link $m : B$.
+A \emph{route} for it is a sequence of links
+\[
+m : B,\ \ \kappa_1 : C_1^{\varsigma_1},\ \ \mu_1 : A_1^{\ell_1},\ \ \ldots,\ \ \mu_{s-1} : A_{s-1}^{\ell_{s-1}},\ \ \kappa_s : C_s^{\varsigma_s},\ \ \mu : A^\ell .
+\]
+Write $\ell_s = \ell$ and $A_s = A$.
+The route must satisfy three conditions:
+\begin{enumerate}
+\item \emph{Syntax.}
+$\kappa_1$ lies in the body of $u_i^j$, and $\kappa_{r+1}$ lies in the body of $\pi_{\ell_r}$.
+$\ell_r$ is the $g_r$-th argument of $\kappa_r$, and the head of $\mu_r$ is bound by the slot $\varsigma_r$.
+\item \emph{Types.}
+$A_r^{\ell_r}$ belongs to the $g_r$-th domain of $C_r$.
+\item \emph{Routing.}
+$\tgt(C_1) = \tgt(B)$ and $\tgt(C_{r+1}) = \tgt(A_r)$.
+\end{enumerate}
+By Lemma~\ref{lem:fifth-head}, condition~(3) says that each call on the route is the head of its white region.
+
+An \emph{exit} is a return link $\rho : a^\epsilon$ with $a = \tgt(A)$, where $\rho$ is the head of the body of $\pi_\ell$.
+Suppose $\rho$ is the $k$-th parameter of $\pi_{\ell_r}$ with $r \le s$.
+Then $a^\epsilon$ belongs to the $k$-th domain of $A_r$, and $\epsilon$ labels the \emph{exit term}, the $k$-th argument of $\mu_r$.
+\end{definition}
+
+\begin{lemma}[Routes Exist]\label{lem:fifth-routes}
+Every use link of an occurrence bound at an unproductive main node has a route.
+If the use is a return, the route has an exit.
+\end{lemma}
+
+\begin{proof}
+By Theorem~\ref{thm:fifth-links}, the use link is realised in the labelled reduction.
+Trace back the creation of the polynomial $\ell$:
+\begin{itemize}
+\item $\ell$ was substituted at the call site $\kappa_s$ of which it is an argument;
+\item $\kappa_s$ reached a positioned head either inside the body of $u_i^j$, or inside the evaluation of the polynomial containing it, which was applied by a use $\mu_{s-1}$.
+\end{itemize}
+Each of these head occurrences is a link of $\mathcal{D}_i$ by Theorem~\ref{thm:fifth-links}.
+The calls are heads of their regions by Lemma~\ref{lem:fifth-routing}, which gives the routing condition.
+A return parameter reaches a positioned head at $\tgt(A)$, which gives the exit.
+\end{proof}
+
+\begin{remark}[Divergence from Bindings]
+Two use links $\mu : A^\ell$ and $\mu : A'^{\ell'}$ of the same occurrence \emph{diverge} if they have routes entering the same slot at the same step through different use labels $\mu_r \neq \mu'_r$.
+This is a property of $\Gamma_L$.
+Links with equal types are merged by idempotency, and such links are interchangeable for every replacement.
+\end{remark}
+
+Lemmas~\ref{lem:fifth-spine} and~\ref{lem:fifth-callfree} are restated with these notions:
+\begin{itemize}
+\item the linked use $\nu_r$ is the occurrence labelled $\mu_r$;
+\item the final derivation $\mathcal{E}$ is the judgement of $\pi_\ell$ at $A^\ell$ in $\mathcal{D}_i$;
+\item the exit terms are given by return links.
+\end{itemize}
+The proofs are unchanged.
+The pruned and retargeted derivation of $u_i^j$ at $B^*$ is assembled from white judgements of $\mathcal{D}_i$.
+
+\subsection{Tightness Check}
+\label{sec:fifth-tight}
+
+A labelled derivation is \emph{tight} if every binding in every environment is used by an axiom, by (Arg) or by (Occ).
+Since the rules admit no weakening, every derivation is tight.
+The real question is whether the lemmas above preserve environments \emph{exactly}.
+
+\begin{remark}[Repeated Argument Types]
+By~\cite[Remark~8.1]{Kobayashi13}, inverse substitution is exact, i.e.\ $\Gamma = \bigcup_k \Gamma_k$, only if the application rule admits repeated equal argument types with different environments.
+Otherwise only $\Gamma' \subseteq \Gamma$ holds.
+The reason is that occurrences of $u$ typed at the same type in different environments would have to share one derivation, and the bindings of the others are lost.
+Kobayashi's example is $\{x : r, y : r\} \vdash (\lambda z.z)(a\,x\,y) : r$.
+It needs two premises $a\,x\,y : r$, one with environment $\{x : r\}$ and one with $\{y : r\}$.
+\end{remark}
+
+For the type systems used in this paper:
+\begin{itemize}
+\item The labelled system above admits repetitions, so Lemma~\ref{lem:fifth-kob}(3) is exact.
+By Lemma~\ref{lem:fifth-kob}(4), the canonical labelled derivation of every solution has $\Gamma_V = \Gamma_i$, and $\Gamma_L$ consists exactly of the realised links.
+\item In system~\textbf{R}, repeated equal types occupy distinct coordinates with distinct environment columns, so inverse substitution is exact as well.
+\item The set-based system of Section~\ref{sec:fifth-typed} has one premise per type and top-down environments.
+It suffices for the soundness of replacements (Lemma~\ref{lem:fifth-repl}), but link bindings can be lost under expansion.
+Statements about links, routes, exits and tightness are therefore made in the labelled system.
+\end{itemize}
+
+This replaces the claim that tightness is preserved by the replacements:
+\begin{itemize}
+\item Replacements are justified by Lemma~\ref{lem:fifth-repl}.
+\item The new solution has its own canonical labelled derivation by Theorem~\ref{thm:fifth-links}, which is tight with $\Gamma_V = \Gamma_i$.
+\item Grafting derivations directly preserves tightness only after pruning: each assumption whose last use was replaced must be removed from its binder.
+\item Pruning changes head types $B$ into pruned types $B'$.
+These remain in $T_i^j$, because restricting a derivation of $u_i^j$ to the remaining argument premises is again a derivation, by exactness of Lemma~\ref{lem:fifth-kob}(3).
+\end{itemize}
+Counting statements (Section~\ref{sec:fifth-colours}) still require multi types; the labels carry over to them unchanged.
+
+\begin{remark}[Outlook: Pumping]
+In Kobayashi's proof of the pumping lemma, a repeated binding of the same label at the same type along a chain makes the segment in between removable.
+Here, the links with target $a$ form the chain of head terms at position $a$.
+This chain produces no output except its final constant.
+A repetition of the same occurrence label at the same type in this chain is the typed analogue of Stirling's T2.
+It is the natural candidate for proving Lemma~\ref{lem:fifth-blocked} on flat segments.
+\end{remark}
 
 \printbibliography
 \end{document}
