@@ -1,0 +1,299 @@
+% !TEX TS-program = pdflatex
+\documentclass[11pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm,mathtools}
+\usepackage{enumitem}
+\usepackage{stmaryrd}
+\usepackage{xspace}
+
+\newcommand{\Ground}{\mathsf{o}\xspace}
+\newcommand{\FV}{\mathsf{FV}\xspace}
+\newcommand{\NF}{\mathsf{NF}\xspace}
+\newcommand{\Val}{\mathsf{Val}\xspace}
+\newcommand{\ObsEq}{\mathrel{\simeq}\xspace}
+\newcommand{\ObsLeq}{\mathrel{\lesssim}\xspace}
+\newcommand{\hole}[1]{[\,]_{#1}}
+\newcommand{\arity}{\operatorname{ar}}
+\newcommand{\mctx}{\mathcal C}
+\newcommand{\mcell}{\Sigma}
+\newcommand{\subst}[2]{[#1/#2]}
+
+\newtheorem{definition}{Definition}
+\newtheorem{lemma}{Lemma}
+\newtheorem{proposition}{Proposition}
+\newtheorem{remark}{Remark}
+
+\title{Contextual Equivalence, Cells, and Semi-Cellular Terms\\
+       \large A parametrized formulation and a proof attempt for Lemma 2}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{Setting}
+
+We work in the simply typed $\lambda$-calculus with one ground type
+$\Ground$.  In our case, ground values are
+allowed to be first-order terms
+\[
+        f(a_1,\ldots,a_n)
+\]
+where $f$ is a first-order symbol of arity $n$ and
+$a_1,\ldots,a_n$ are ground constants.  Thus a ground normal form is a
+first-order ground term of depth at most 1 (here constants are the special case $n=0$). The set of all such value terms of depth $0$ is written $\Val^0$ and of depth at most $1$ is written $\Val^1$
+
+We assume that all terms are in $\eta$-long form.  As usual,
+\[
+ \lambda x_1\ldots x_n.u
+\]
+is an abbreviation for
+$\lambda x_1.(\cdots(\lambda x_n.u)\cdots)$, with $u$ of ground type.
+
+\section{Contextual equivalence}
+
+\begin{definition}[Contextual equivalence]
+Let $t,t'$ be closed terms of the same type.  We write
+\[
+        t \ObsLeq^i t'
+\]
+if, for every closing context $C[-]$ such that $C[t]$ has ground type and
+$C[t]\in\Val^i$ we have
+\[
+        \NF(C[t])=\NF(C[t']).
+\]
+We let $t\ObsEq t'$ when $t\ObsLeq t'$ and $t'\ObsLeq t$.
+Here $\NF(u)$ denotes the $\beta$-normal form of $u$.
+\end{definition}
+
+Equivalently, in the usual deterministic simply typed setting, one may
+define the relation inductively on types by
+\[
+\begin{array}{ll}
+t,t':\Ground
+  &\Longrightarrow\quad
+  t\ObsLeq^i t' \iff \NF(t) = \NF(t')\in\Val^i
+\\[2mm]
+t,t':A\to B
+  &\Longrightarrow\quad
+  t\ObsLeq t'
+  \iff
+  \text{for every closed }u:A,\;
+  (tu)\ObsLeq^i(t'u).
+\end{array}
+\]
+The first-order ground symbols only affect the possible ground normal
+forms; in particular, the observation at ground type is equality of the
+resulting first-order ground terms.
+
+\begin{lemma}[Context lemma]
+If $u\ObsEq^i u'$, then for every term $t$,
+\[
+        tu\ObsEq^i tu'.
+\]
+\end{lemma}
+
+\begin{proposition}[Stretching lemma]
+Assume, we work with only one first order constant $f$. Let
+$
+t = \lambda y_1 \ldots y_n.M[u]
+$
+be a closed term under observations ${\cal M}$, where $M$ is a context with a hole of ground type.
+Then ${\cal M} = {\cal M}_1\cup{\cal M}_2$ and 
+\begin{itemize}
+\item $t$ is observationally equivalent to
+$
+\lambda y_1 \ldots y_n.M[M[u]].
+$
+under ${\cal M}_1$
+\item $t$ is observationally equivalent to
+$
+\lambda y_1 \ldots y_n.fv_1\ldots v_n
+$
+under ${\cal M}_2$ where $v_i$ is either a constant or $u$ and $\lambda y_1\ldots y_n.u$ is a constant
+under observations ${\cal M}_2$. 
+\end{itemize}
+\end{proposition}
+\begin{proof}
+Observe that
+$
+M[M[u]] =  M[x][M[u]/x]
+$ 
+and we can instantiate the free main variables by $t$ such that $M[u][\vec{t}/\vec{y}]$ is observed. We have
+$$
+ M[x][M[u]/x][\vec{t}/\vec{y}] = M[\vec{t}/\vec{y}][x][M[u][\vec{t}/\vec{y}]/x]
+$$
+with 
+\begin{itemize}
+\item
+$
+M[\vec{t}/\vec{y}][x] =_\beta x
+$
+under some observations ${\cal M}'_1$
+and
+$
+M[M[u]][\vec{t}/\vec{y}]
+=_\beta
+x[M[u][\vec{t}/\vec{y}]/x]
+= M[u][\vec{t}/\vec{y}],
+$
+or
+\item
+$
+M[\vec{t}/\vec{y}][x] =\beta a
+$
+under some observations ${\cal M}''_1$
+and
+$
+M[M[u]][\vec{t}/\vec{y}]
+=_\beta
+a[M[u][\vec{t}/\vec{y}]/x]
+= a.
+$
+ or
+\item $M[t/y][x] =_\beta fv_1\ldots v_k$ 
+under some observations ${\cal M}_2$
+where $x\in\FV(v_i)$ or $x\not\in\FV(v_i)$
+in the former case, actually $v_i = x$ and then $\lambda y_1\ldots y_n.u$ is a constant under observations ${\cal M}_2$; in the latter case $v_i$ must be a constant since our observable is $f$ applied to constants.
+\end{itemize}
+The conclusion follows for observations ${\cal M}_1={\cal M}'_1\cup{\cal M}''_1$ and ${\cal M}_2$.
+\end{proof}
+
+
+\section{Parametrized contexts and cells}
+
+We use three parameters:
+\[
+        m\quad\text{(initial variables)},\qquad
+        n\quad\text{(ordinary variables at level 1)},\qquad
+        k\quad\text{(ordinary variables at level 0)}.
+\]
+In addition we operate with an index $K$ that enumerates contextual holes.
+The distinction between the three classes is purely in the intent they are used for, but it is useful when imposing explicit bounds on the shape of terms.
+
+Let
+\[
+ X = \{x_1,\ldots,x_m \},\quad X' = \{x'_1,\ldots,x'_m \}
+\]
+be the initial variables and
+\[
+ Y = \{ y_1,\ldots,y_n\},\quad Y' = \{ y'_1,\ldots,y'_n\}
+\]
+the ordinary variables at level 1 and
+\[
+ Z = \{ z_1,\ldots,z_k \},\quad Z' = \{ z'_1,\ldots,z'_k \}
+\]
+the ordinary variables at level 0.
+We require that the three sets are disjoint.
+The holes
+\[
+        \hole{1},\ldots,\hole{K}
+\]
+are always of ground type.
+
+A context may contain variables from the set
+\[
+ X\cup Y\cup Z
+ =
+ \{x_1,\ldots,x_m,y_1,\ldots,y_n, z_1,\ldots,z_k\}.
+\]
+
+\begin{definition}[$(m,n,k)$-context]
+An $(m,n,k)$-context is a term context
+\[
+        C\hole{1}\ldots\hole{K}
+\]
+such that
+\[
+        \FV(C)\subseteq X\cup Y\cup Y'\cup Z\cup Z'
+\]
+and each hole has ground type.
+
+We write
+\[
+        \mathcal C_{m,n,k}
+\]
+for the set of all such contexts.
+\end{definition}
+
+The parameter $m$ bounds the number of initial variables, $n$ bounds the
+number of ordinary variables of level 1, and $k$ bounds the number of ordinary variables of level 0.
+
+\begin{definition}[$(m,n,K)$-cell]
+An $(1,m,n,k)$-cell is a context of the form
+\[
+\mcell\hole{1}\ldots\hole{K}
+ =
+ \bigl(
+ y\,(C_1\hole{1}\ldots\hole{K})
+   \cdots
+   (C_p\hole{1}\ldots\hole{K})
+ \bigr),
+\]
+where 
+\[
+ y\in X\cup Y,
+\]
+each hole is of ground type, and
+\[
+ \FV(C_i)=\varnothing.
+\]
+Moreover, the displayed occurrence of $y$ is the unique head occurrence
+of the cell.
+
+We require
+\[
+        |X|=m,\qquad |Y|=n,\qquad
+        |Z|=k.
+\]
+\end{definition}
+
+In particular, a cell has a unique head variable.  The original definition
+of Padovani is recovered by taking $m=0$ and letting the $n$ variables
+$y_1,\ldots,y_n$ be the available free variables.  In that formulation a
+cell has the form
+\[
+ \Sigma[\ ]_1\ldots[\ ]_K
+ =
+ \bigl(y(C_1[\ ]_1\ldots[\ ]_K)\ldots
+          (C_p[\ ]_1\ldots[\ ]_K)\bigr),
+\]
+with the $C_i$ having no free variables other than the variables explicitly
+allowed by the surrounding abstraction.
+
+\begin{definition}
+    A term $t$ is cellular if and only if it is of the following form:
+    \begin{itemize}
+    \item $\lambda x_1\ldots x_n.a$ where $a$ is an allowed rhs, or,
+    \item $\lambda x_1\ldots x_n.\Sigma[w_1]_1\ldots [w_K]_K$ where:
+    \begin{itemize}
+    \item $\Sigma$ is a cell whose free variable is amongst $X,Y$,
+    \item $w_i = (\lambda\vec{x}\vec{y}\vec{z}.M)x''_1... x''_my''_1...y''_nz''_1...z''_k$
+        where $x''_i$ is either $x_i$ or $x'_i$, $y''_i$ is either  $y_i$ or $y'_i$, $z''_i$
+        is either $z_i$ or $z'_i$.
+        \end{itemize}
+        \end{itemize}
+\end{definition}
+
+
+
+\begin{lemma}
+    Every semi-cellular term $t$ is observationally equivalent to a cellular term.
+\end{lemma}
+\begin{proof}
+    By induction on the length of $t$. Assume $t = \lambda x_1\ldots x_n.u$ is in normal
+    form, with $u = (x_i u_1\ldots u_p)$. Let $M$ be the minimal context such that
+    \begin{itemize}
+        \item $M\not= [ ]$,
+        \item $u = M [t_1]\ldots[t_K]$
+        \item each $t_k$ is a term of the form $\lambda\vec{x}\vec{y}\vec{z}.y\ldots$  with $y\in X\cup Y$.
+    \end{itemize}
+    For each $k$, $t_k$ is a subterm of some $u_j$, and the closure of this latter term is $k$-cellular. Hence, there exists a cell $\Sigma_k$ and terms $w_{1k},\ldots w_L$
+    such that:  
+\end{proof}
+
+
+\end{document}
