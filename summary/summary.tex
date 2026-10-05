@@ -2056,6 +2056,350 @@ A repetition of the same occurrence label at the same type in this chain is the 
 It is the natural candidate for proving Lemma~\ref{lem:fifth-blocked} on flat segments.
 \end{remark}
 
+\section{Examples}
+\label{sec:examples}
+
+Type atoms are positions read from the node to the root, e.g.\ $a : 11$ and $b : 12$ in $g\,(f\,a)\,(f\,b)$.
+$\omega$ is the empty set, and singleton braces are omitted.
+A single equation is always solved by $\lambda\bar x.\,r_1$, so main nodes are forced only by variation between instances.
+Each example isolates one feature, stated at its end.
+
+\subsection{Basic Properties}
+
+\begin{example}[Garbage, Projection, Routing]\label{ex:ex-collapse}
+Let $\Phi = \{a,b : \bullet\}$, $X : (((\bullet\to\bullet\to\bullet)\to\bullet)\to\bullet)\to\bullet$ and $u = \lambda F.\,F\,(\lambda y_1y_2.\,y_1)$.
+Take $X\,u = a$ and $t = \lambda x.\,x\,(\lambda z.\,z\,a\,b)$.
+With $\Gamma = \{a : \varepsilon\}$ the head type is $((\varepsilon \to \omega \to \varepsilon) \to \varepsilon) \to \varepsilon$.
+\begin{itemize}
+\item $\Inst(b) = \emptyset$, so $b$ is garbage (Corollary~\ref{cor:fifth-garbage}).
+\item The only instance of $z\,a\,b$ has $z : \varepsilon \to \omega \to \varepsilon$, so Lemma~\ref{lem:fifth-proj} gives $x\,(\lambda z.\,a)$.
+\item Then $z$ no longer occurs, and the slot has target $\varepsilon$, so Lemma~\ref{lem:fifth-route} gives $a$.
+\end{itemize}
+
+\emph{Feature.}
+The basic simplifications are decided by instances alone.
+Projection needs only one projection index across all instances.
+\end{example}
+
+\begin{example}[Switch]\label{ex:ex-switch}
+Let $\Phi = \{a,b : \bullet\}$ and $X : (((\bullet\to\bullet\to\bullet)\to\bullet)\to\bullet)\to\bullet$.
+Let $u_1 = \lambda F.\,F\,(\lambda y_1y_2.\,y_1)$ and $u_2 = \lambda F.\,F\,(\lambda y_1y_2.\,y_2)$.
+Take $X\,u_1 = a$, $X\,u_2 = b$ and $t = \lambda x.\,x\,(\lambda z.\,z\,a\,b)$.
+The instances of $z\,a\,b$ are $z : \varepsilon \to \omega \to \varepsilon$ (equation~1) and $z : \omega \to \varepsilon \to \varepsilon$ (equation~2).
+Hence $x$ has the head types $((\varepsilon \to \omega \to \varepsilon) \to \varepsilon) \to \varepsilon$ and $((\omega \to \varepsilon \to \varepsilon) \to \varepsilon) \to \varepsilon$, one coordinate each.
+Projection fails, and $b$ is not garbage.
+Every solution contains $x$: an $x$-free solution is closed and would reduce both to $a$ and to $b$.
+
+\emph{Feature.}
+Variation between equations is carried by the arguments $u_i^j$.
+It can be recovered only by calling a main variable.
+This is the information that re-calls transport.
+\end{example}
+
+\begin{example}[Intersections below Introduced Variables]\label{ex:ex-pos}
+Let $\Phi = \{g : \bullet\to\bullet\to\bullet,\ a : \bullet\}$, $X : (((\bullet\to\bullet)\to\bullet)\to\bullet)\to\bullet$ and $u = \lambda F.\,F\,(\lambda y.\,g\,y\,y)$.
+Take $X\,u = g\,a\,a$ and $t = \lambda x.\,x\,(\lambda z.\,z\,a)$.
+Then $\Gamma = \{g : 1 \to 2 \to \varepsilon,\ a : \{1,2\}\}$, and the polynomial has type $\{1,2\} \to \varepsilon$.
+Hence $z : \{1,2\} \to \varepsilon$, and the black $a$ is typed twice.
+
+\emph{Feature.}
+Intersections also arise at arguments of introduced variables, not only at main nodes (cf.\ the remark on Lemma~\ref{lem:fifth-dim-bound}).
+They range over positions of one right-hand side, which should cost only a factor $|\Pos(r_i)|$ per coordinate.
+One exit term may serve several returns at distinct targets.
+\end{example}
+
+\begin{example}[Instances Multiply]\label{ex:ex-instances}
+Let $\Phi = \{g : \bullet\to\bullet\to\bullet,\ a,b : \bullet\}$, $X : ((\bullet\to\bullet)\to\bullet)\to\bullet$ (order $4$) and $w = \lambda H.\,g\,(H\,a)\,(H\,b)$.
+Take $X\,w = g\,(g\,(g\,a\,a)\,(g\,a\,b))\,(g\,(g\,b\,a)\,(g\,b\,b))$ and
+\[
+t = \lambda x.\,x\,(\lambda h_1.\,\underbrace{x\,(\lambda h_2.\,g\,h_1\,h_2)}_{n'}).
+\]
+The outer node has a single instance.
+Since $w$ calls $H$ twice, $n'$ has two instances:
+\begin{itemize}
+\item target $1$ with $h_1 : \{111, 121\}$;
+\item target $2$ with $h_1 : \{112, 122\}$.
+\end{itemize}
+Its body $g\,h_1\,h_2$ has four instances, at targets $11$, $21$, $12$ and $22$.
+
+\emph{Feature.}
+Within one equation, instances multiply along nested nodes whose white side copies its continuation.
+The instances are separated only by the types of black ground variables ($h_1$, $h_2$).
+Hence dimension is driven by the nesting of main nodes (Lemma~\ref{lem:fifth-dim-bound}), not only by the number of equations.
+\end{example}
+
+\subsection{Unfolding}
+
+\begin{example}[Canonical Unfolding (Flat)]\label{ex:ex-canon}
+Let $\Phi = \{a,b,c : \bullet\}$ and
+\[
+X : (((\bullet\to\bullet\to\bullet)\to\bullet)\to\bullet) \to (((\bullet\to\bullet\to\bullet)\to\bullet)\to\bullet) \to \bullet .
+\]
+Let $p_1 = \lambda F.\,F\,(\lambda y_1y_2.\,y_1)$ and $p_2 = \lambda F.\,F\,(\lambda y_1y_2.\,y_2)$.
+Take
+\[
+X\,p_1\,p_1 = a,
+\qquad
+X\,p_2\,p_1 = b,
+\qquad
+X\,p_1\,p_2 = c,
+\]
+and
+\[
+t = \lambda x_1x_2.\,\underbrace{x_1\,(\lambda z.\,\underbrace{x_2\,(\lambda z'.\,z'\,(z\,a\,b)\,c)}_{n'})}_{n}.
+\]
+The occurrence $\nu = z\,a\,b$ lies below $n'$.
+Its instances are $z : \varepsilon \to \omega \to \varepsilon$ (equation~1) and $z : \omega \to \varepsilon \to \varepsilon$ (equation~2), both at target $\varepsilon$; equation~3 has no instance.
+\begin{itemize}
+\item Projection fails at $\nu$ and at $z'\,(z\,a\,b)\,c$, since the indices differ.
+\item Lemma~\ref{lem:fifth-route} does not apply to $n'$, since its body uses $z'$.
+\item In every instance, $(n,\nu)$ is flat and $\sigma_1$ is a singleton, so Corollary~\ref{cor:fifth-canon} applies with $B^* = B$.
+\end{itemize}
+This gives $\nu := x_1\,(\lambda z''.\,z''\,a\,b)$, after which Lemma~\ref{lem:fifth-route} removes $n$:
+\[
+\lambda x_1x_2.\,x_2\,(\lambda z'.\,z'\,(x_1\,(\lambda z''.\,z''\,a\,b))\,c).
+\]
+
+\emph{Feature.}
+In the flat case the re-call reuses the head type unchanged.
+Size is unchanged; what decreases is width, since the far reference to $z$ disappears.
+The flat case is non-trivial only if the intermediate node uses its own binder; otherwise Lemma~\ref{lem:fifth-route} removes that node first.
+\end{example}
+
+\begin{example}[Far Switch: Target Shift]\label{ex:ex-shift}
+Let $\Phi = \{f : \bullet\to\bullet,\ a,b : \bullet\}$ and $X : (((\bullet\to\bullet\to\bullet)\to\bullet)\to\bullet) \to (\bullet\to\bullet) \to \bullet$.
+Let $u_1 = \lambda F.\,F\,(\lambda y_1y_2.\,y_1)$, $u_2 = \lambda F.\,F\,(\lambda y_1y_2.\,y_2)$ and $w = \lambda h.\,f\,h$.
+Take $X\,u_1\,w = f\,a$, $X\,u_2\,w = f\,b$ and
+\[
+t = \lambda x_1x_2.\,\underbrace{x_1\,(\lambda z.\,x_2\,(z\,a\,b))}_{n}.
+\]
+The occurrence $\nu = z\,a\,b$ lies below the productive node $x_2(\cdot)$.
+It has target $1$, with $z : 1 \to \omega \to 1$ in equation~1 and $z : \omega \to 1 \to 1$ in equation~2.
+The head types of $n$ have target $\varepsilon$.
+\begin{itemize}
+\item Projection fails, since the indices differ.
+\item Canonical unfolding fails: $(n,\nu)$ is not flat, because $x_2$ produces $f$ between the slot and $\nu$.
+\item The body of $u_i$ is headed by the slot's $F$, so Lemma~\ref{lem:fifth-shift} applies.
+It gives $B^*_1 = ((1 \to \omega \to 1) \to 1) \to 1$ and $B^*_2 = ((\omega \to 1 \to 1) \to 1) \to 1$.
+\end{itemize}
+Hence $\nu := x_1\,(\lambda z'.\,z'\,a\,b)$, and Lemma~\ref{lem:fifth-route} yields $\lambda x_1x_2.\,x_2\,(x_1\,(\lambda z'.\,z'\,a\,b))$.
+
+\emph{Feature.}
+Black output between a slot and an occurrence is harmless if the white route to the slot is output-free: the re-call is retargeted.
+\end{example}
+
+\begin{example}[Re-call Needs a Skeleton]\label{ex:ex-skeleton}
+Let $\Phi = \{g,f : \bullet\to\bullet,\ a,b : \bullet\}$ and
+\[
+X : \big(((\bullet\to\bullet)\to\bullet) \to ((\bullet\to\bullet)\to\bullet) \to \bullet\big) \to (\bullet\to\bullet) \to \bullet .
+\]
+Let
+\[
+u_1 = \lambda F_1F_2.\,F_1\,(\lambda y.\,F_2\,(\lambda y'.\,y)),
+\qquad
+u_2 = \lambda F_1F_2.\,F_1\,(\lambda y.\,F_2\,(\lambda y'.\,y')),
+\qquad
+w = \lambda h.\,f\,h .
+\]
+Take $X\,u_1\,w = g\,(f\,a)$, $X\,u_2\,w = g\,(f\,b)$ and
+\[
+t = \lambda x_1x_2.\,\underbrace{x_1\,(\lambda z_1.\,g\,(z_1\,a))\,(\lambda z_2.\,x_2\,(z_2\,b))}_{n}.
+\]
+Slot~2 is entered only by a re-entry from the polynomial bound to $z_1$.
+The far occurrence $o = z_2\,b$ has target $11$ in both equations:
+\begin{itemize}
+\item in equation~1, $z_2 : \omega \to 11$ is an outer return of the exit term $a$ of $\nu_1 = z_1\,a$;
+\item in equation~2, $z_2 : 11 \to 11$ is an own return of $b$.
+\end{itemize}
+What fails:
+\begin{itemize}
+\item Projection fails: $o := b$ in equation~1, $o := a$ in equation~2.
+\item Target shift fails, since $u_i$ is headed by $F_1$, not $F_2$.
+\item Keeping slot~1, the re-call $x_1\,(\lambda z_1.\,g\,(z_1\,a))\,(\lambda z'_2.\,z'_2\,b)$ yields $g\,a$, resp.\ $g\,b$: it replays $g$ at target $11$.
+\end{itemize}
+The skeleton re-call $R_S = x_1\,(\lambda z'_1.\,z'_1\,a)\,(\lambda z'_2.\,z'_2\,b)$ of Lemma~\ref{lem:fifth-callfree} drops $g$, keeps $a$, and is placed at $o$.
+A solution without far references is $\lambda x_1x_2.\,g\,(x_2\,(x_1\,(\lambda z.\,z\,a)\,(\lambda z'.\,z'\,b)))$.
+Types do not determine kinds: $z_2 : \omega \to 11$ is an outer return, while $z_1 : \omega \to 1$ in equation~2 is a re-entry.
+
+\emph{Feature.}
+The route has length~$2$, and the re-call rewrites an earlier slot than the one containing $o$.
+Variation between equations is still recoverable at $o$, since $R_S\{u_i/x_1\}$ differs in $i$.
+\end{example}
+
+\subsection{Limits of Local Replacement}
+
+\begin{example}[White Output]\label{ex:ex-white}
+Let $\Phi = \{g : \bullet\to\bullet\to\bullet,\ f : \bullet\to\bullet,\ a,b,c : \bullet\}$ and $X : ((\bullet\to\bullet)\to\bullet) \to (\bullet\to\bullet) \to \bullet$ (order $4$).
+Let $u_1 = \lambda F.\,g\,(F\,a)\,(F\,b)$, $u_2 = \lambda F.\,g\,(F\,c)\,(F\,c)$ and $w = \lambda h.\,f\,h$.
+Take $X\,u_1\,w = g\,(f\,a)\,(f\,b)$, $X\,u_2\,w = g\,(f\,c)\,(f\,c)$ and
+\[
+t = \lambda x_1x_2.\,x_1\,(\lambda z.\,x_2\,z).
+\]
+In equation~1 we have $x_1 : \{11 \to 1,\ 12 \to 2\} \to \varepsilon$.
+So the far occurrence $z$ has two judgements, $z : 11$ and $z : 12$.
+\begin{itemize}
+\item There is no $z$-free replacement: at $o$ only $x_1, x_2$ are in scope besides $z$, and $r_1|_{11} = a \neq b = r_1|_{12}$ (Lemma~\ref{lem:fifth-nolocal}).
+\item The re-call $x_1\,(\lambda z'.\,z')$ yields $g\,a\,b$.
+Target shift is impossible, since $u_i$ is headed by $g$.
+\item The reference is unavoidable.
+$g$ must come from $u_i$, since an $x_1$-free context cannot separate $a$ from $c$.
+Hence $x_1$ heads the solution, and $x_2$ must refer to its binder.
+\end{itemize}
+
+\emph{Feature.}
+The separating information is which call of $F$ under a white constant entered the slot.
+Such references are permanent, but their judgements are charged to white syntax: at most the number of calls of $F$ in $u_i^j$ per instance.
+At order~$4$ introduced variables are ground: every use is a return, and every route has length~$1$.
+\end{example}
+
+\begin{example}[Re-entry with Output]\label{ex:ex-reentry}
+Let $\Phi = \{g : \bullet\to\bullet\to\bullet,\ a,c : \bullet\}$ and $X : (((\bullet\to\bullet)\to\bullet)\to\bullet)\to\bullet$.
+Let $u_1 = \lambda F.\,F\,(\lambda y.\,F\,(\lambda y'.\,y))$ and $u_2 = \lambda F.\,F\,(\lambda y.\,y)$.
+Take $X\,u_1 = g\,(g\,a\,c)\,c$, $X\,u_2 = g\,a\,c$ and
+\[
+t = \lambda x.\,x\,(\lambda z.\,g\,(z\,a)\,c).
+\]
+In equation~1, $u_1$ enters the slot twice: by the head call at $\varepsilon$ and by a re-entry at $1$.
+This gives $x : \{C_1, C_2\} \to \varepsilon$ with $C_1 = (11 \to 1) \to \varepsilon$ and $C_2 = (\omega \to 11) \to 1$.
+The occurrence $\nu = z\,a$ has the following judgements:
+\begin{itemize}
+\item in equation~1, $z : 11 \to 1$ at target $1$ and $z : \omega \to 11$ at target $11$;
+\item in equation~2, $z : 1 \to 1$ at target $1$.
+\end{itemize}
+Both visits of the continuation produce black output, so (L2) is strict in both judgements of equation~1.
+\begin{itemize}
+\item Target shift fails: $N_1 = \{C_2\}$, and (b) fails for $C_2$.
+Indeed, $\nu := x\,(\lambda z'.\,z'\,a)$ gives $g\,a\,c \neq r_1$.
+\item There is no $z$-free replacement: $r_1|_1 = g\,a\,c \neq a = r_1|_{11}$ (Lemma~\ref{lem:fifth-nolocal}).
+\item Separating the inner visit at its route step $\nu$ would need slot~1 to hold the skeleton $\lambda z'.\,z'\,a$ and a copy of $\lambda z.\,g\,(z\,a)\,c$ at once.
+\end{itemize}
+
+\emph{Feature.}
+This is same-slot recursion with output, case~(B2) of Lemma~\ref{lem:fifth-blocked}.
+The separating information is the re-entry depth inside $u_1$, and neither a skeleton nor a copy re-call applies.
+Here $\nu$ is direct; below a productive node it would be a blocked far reference.
+Each blocked visit is a strict step, which suggests charging (B2) to Lemma~\ref{lem:fifth-branch}.
+\end{example}
+
+\begin{example}[No Local Replacement: Divergence]\label{ex:ex-clash}
+Let $\Phi = \{g : \bullet\to\bullet\to\bullet,\ f : \bullet\to\bullet,\ a,b,c : \bullet\}$ and
+\[
+X : \big(((\bullet\to\bullet)\to\bullet) \to ((\bullet\to\bullet)\to\bullet) \to \bullet\big) \to (\bullet\to\bullet) \to \bullet .
+\]
+Let
+\[
+u_1 = \lambda F_1F_2.\,F_1\,(\lambda y.\,F_2\,(\lambda y'.\,y)),
+\qquad
+u_2 = \lambda F_1F_2.\,F_1\,(\lambda y.\,F_2\,(\lambda y'.\,y')),
+\qquad
+w = \lambda h.\,f\,h .
+\]
+Take $X\,u_1\,w = g\,(f\,a)\,(f\,b)$, $X\,u_2\,w = g\,(f\,c)\,(f\,c)$ and
+\[
+t = \lambda x_1x_2.\,\underbrace{x_1\,(\lambda z_1.\,g\,(z_1\,a)\,(z_1\,b))\,(\lambda z_2.\,x_2\,(z_2\,c))}_{n}.
+\]
+In equation~1, the far occurrence $o = z_2\,c$ has two judgements:
+\begin{itemize}
+\item $z_2 : \omega \to 11$, reached through $\nu = z_1\,a$;
+\item $z_2 : \omega \to 12$, reached through $\nu' = z_1\,b$.
+\end{itemize}
+At $o$ only $x_1, x_2, z_2$ are in scope.
+A $z_2$-free replacement $s$ would be typed at $11$ and at $12$ in the same environment.
+Then $s\{u_1/x_1, w/x_2\}$ would reduce both to $a$ and to $b$ (Lemma~\ref{lem:fifth-nolocal}).
+
+The routes diverge at $\nu$ versus $\nu'$.
+Both uses are opaque re-entries, since slot~2 contains the productive call $x_2$.
+Copy re-calls at $\nu$ and $\nu'$ make $o$ garbage, and Lemma~\ref{lem:fifth-route} removes $n$.
+A solution without far references is $\lambda x_1x_2.\,g\,(x_2\,R_a)\,(x_2\,R_b)$ with $R_e = x_1\,(\lambda z.\,z\,e)\,(\lambda z'.\,z'\,c)$.
+
+\emph{Feature.}
+Both judgements lie in one equation, so every $x_j$ denotes the same $u_1^j$ in both, and no re-call separates them.
+The separating information (through which use slot~2 was entered) becomes syntactic only at $\nu$ and $\nu'$.
+The resolution copies a productive continuation, so size grows.
+\end{example}
+
+\begin{example}[No Local Replacement without Divergence: Scope]\label{ex:ex-scope}
+Let $\Phi = \{g : \bullet\to\bullet\to\bullet,\ a,b,c : \bullet\}$ and
+\[
+X : \big(((\bullet\to\bullet)\to\bullet) \to ((\bullet\to\bullet)\to\bullet) \to \bullet\big) \to ((\bullet\to\bullet)\to\bullet) \to \bullet
+\]
+(order~$5$).
+Let
+\[
+u_1 = \lambda F_1F_2.\,F_1\,(\lambda y.\,F_2\,(\lambda y'.\,y)),
+\qquad
+u_2 = \lambda F_1F_2.\,F_1\,(\lambda y.\,F_2\,(\lambda y'.\,y')),
+\qquad
+w = \lambda H.\,g\,(H\,a)\,(H\,b).
+\]
+Take $X\,u_1\,w = g\,a\,b$, $X\,u_2\,w = g\,c\,c$ and
+\[
+t = \lambda x_1x_2.\,\underbrace{x_1\,(\lambda z_1.\,x_2\,(\lambda h.\,z_1\,h))\,(\lambda z_2.\,z_2\,c)}_{n}.
+\]
+In equation~1 we have $x_2 : \{1 \to 1,\ 2 \to 2\} \to \varepsilon$.
+\begin{itemize}
+\item $\nu_1 = z_1\,h$ has the judgements $h : 1,\ z_1 : 1 \to 1$ and $h : 2,\ z_1 : 2 \to 2$, both re-entries into slot~2.
+\item $o = z_2\,c$ has the judgements $z_2 : \omega \to 1$ and $z_2 : \omega \to 2$, both outer returns with exit term $h$.
+\end{itemize}
+Both judgements of $o$ are routed through the same occurrence $\nu_1$, so they do not diverge.
+Still, only $x_1, x_2, z_2$ are in scope at $o$, and $r_1|_1 = a \neq b = r_1|_2$, so no local replacement exists.
+Lemma~\ref{lem:fifth-callfree} fails by (S2'): $h$ is bound by the productive node $x_2(\lambda h.\cdot)$ between $n$ and $\nu_1$.
+
+At $\nu_1$, however, $h$ is in scope.
+The judgements of $\nu_1$ are transparent re-entries, and the extended skeleton re-call is
+\[
+\nu_1 := x_1\,(\lambda z'_1.\,z'_1\,h)\,(\lambda z'_2.\,z'_2\,c).
+\]
+For $p \in \{1,2\}$ it is typed by $((p \to p) \to p) \to ((\omega \to p) \to p) \to p$ in equation~1, and by $((\omega \to p) \to p) \to ((p \to p) \to p) \to p$ in equation~2.
+Afterwards slot~2 is no longer entered, and Lemma~\ref{lem:fifth-route} yields
+\[
+\lambda x_1x_2.\,x_2\,(\lambda h.\,x_1\,(\lambda z.\,z\,h)\,(\lambda z'.\,z'\,c)).
+\]
+
+\emph{Feature.}
+The separating information is a black value, not a route choice: $\delta = 0$, yet the reference is not removable locally.
+The uses separate inside a skipped black segment through a call of another main variable (cf.\ Lemma~\ref{lem:fifth-separator}).
+Localisation must therefore process route occurrences (here $\nu_1$) before the final occurrence $o$.
+\end{example}
+
+\begin{remark}[Why Local Replacement Fails]\label{rem:ex-nolocal}
+A replacement $s$ at $o$ is a term over the variables in scope at $o$.
+In all judgements of equation $i$, each $x_j$ denotes $u_i^j$, and an introduced variable contributes only its type.
+By the argument of Lemma~\ref{lem:fifth-nolocal}, applied after substituting the values of either judgement, the following holds.
+If two judgements of $o$ in equation $i$ agree on the types of all variables free in $s$, then their targets $p, q$ satisfy $r_i|_p = r_i|_q$.
+
+The separating information belongs to the evaluation context of $o$, not to its scope.
+In the KAM it is the closure, in Stirling's game the look-up table, and in system~\textbf{R} the coordinate.
+The examples exhibit four sources:
+\begin{itemize}
+\item the call of a parameter under a white constant (Example~\ref{ex:ex-white}): permanent, charged to white syntax;
+\item re-entry depth with black output (Example~\ref{ex:ex-reentry}): permanent, charged to strict steps;
+\item the occurrence through which a slot was entered (Example~\ref{ex:ex-clash}): resolved at the divergence by copy re-calls;
+\item a black value out of scope at $o$ (Example~\ref{ex:ex-scope}): resolved under its binder by a skeleton re-call.
+\end{itemize}
+Variation between equations is not among them.
+It is carried by the $x_j$, so re-calls recover it locally (Examples~\ref{ex:ex-canon}, \ref{ex:ex-shift} and~\ref{ex:ex-skeleton}).
+\end{remark}
+
+\begin{remark}[Consequences for Order~5]\label{rem:ex-consequences}~
+\begin{itemize}
+\item Re-calls for variation between equations are graded by the route.
+A flat route keeps $B$ (Example~\ref{ex:ex-canon}).
+Output on the black side only is retargeted (Example~\ref{ex:ex-shift}).
+A route of length greater than~$1$ needs a skeleton (Example~\ref{ex:ex-skeleton}).
+\item Unfolding is not occurrence-local.
+Its site is the earliest route step at which the separating information is syntactic, so localisation proceeds upstream first.
+\item Resolution may copy productive continuations, so termination is measured on judgements (Corollary~\ref{cor:fifth-termination}), not on term size.
+Small solutions are obtained via width (Example~\ref{ex:ex-canon}).
+\item Remaining far references are charged to white constants (Example~\ref{ex:ex-white}) or to black strict steps (Example~\ref{ex:ex-reentry}).
+Both are bounded per branch, which is the intended shape of Lemma~\ref{lem:fifth-blocked}.
+\item Dimension within one equation is driven by nesting under copying white sides (Example~\ref{ex:ex-instances}).
+Bounding width and nesting therefore bounds dimension.
+\item The shape of a re-call is fixed by targets and links.
+It is not fixed by the types of introduced variables, which do not determine kinds (Example~\ref{ex:ex-skeleton}).
+\end{itemize}
+\end{remark}
+
 \printbibliography
 \end{document}
 %%% Local Variables:
