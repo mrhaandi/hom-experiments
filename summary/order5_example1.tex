@@ -1,0 +1,60 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+
+\newcommand{\red}{\twoheadrightarrow_\beta}
+\newcommand{\id}{\mathsf{id}}
+
+\begin{document}
+
+\paragraph{Types.}
+Let $\sigma = (o\to o)\to o\to o$, so $y_2 : o\to o$ and $y_1 : o$.
+Let $x : \sigma\to o$, and let $a, b : o$ be free variables.
+Then $\mathrm{ord}(\sigma) = 3$, $\mathrm{ord}(\sigma\to o) = 4$ and
+$\mathrm{ord}((\sigma\to o)\to o) = 5$.
+
+\paragraph{Terms.}
+Let $\id = \lambda z.\,z$ and $\Pi = \lambda y_2 y_1.\,y_1 : \sigma$.
+\begin{align*}
+  N &= \lambda z_1 z_2.\, y_2\, y_1, \\
+  M &= \lambda y_2 y_1.\, x\, N, \\
+  t &= \lambda x.\, x\, M, \\
+  u &= \lambda g.\, g\, \id\, \bigl(g\, (\lambda z.\,a)\, b\bigr).
+\end{align*}
+The term $N$ contains an occurrence of $y_1$.
+
+\paragraph{Reduction of $t\,u$.}
+Write $M^u = M[x := u]$. For all $w, v$,
+\[
+  M^u\, w\, v \;\red\; u\, (\lambda z_1 z_2.\, w\, v) \;\red\; w\, v .
+\]
+Hence
+\[
+  t\,u \;\red\; u\, M^u \;\red\; M^u\, \id\, \bigl(M^u\, (\lambda z.\,a)\, b\bigr)
+  \;\red\; \id\, \bigl((\lambda z.\,a)\, b\bigr) \;\red\; a .
+\]
+
+\paragraph{The modified term $t'$.}
+Let
+\begin{align*}
+  N' &= N[y_1 := x\,\Pi] = \lambda z_1 z_2.\, y_2\, (x\,\Pi), \\
+  M' &= \lambda y_2 y_1.\, x\, N', \\
+  t' &= \lambda x.\, x\, M'.
+\end{align*}
+
+\paragraph{Reduction of $t'\,u$.}
+We have
+\[
+  u\,\Pi \;\red\; \Pi\, \id\, \bigl(\Pi\, (\lambda z.\,a)\, b\bigr)
+  \;\red\; \Pi\, (\lambda z.\,a)\, b \;\red\; b .
+\]
+Write $M'^u = M'[x := u]$. For all $w, v$,
+\[
+  M'^u\, w\, v \;\red\; u\, \bigl(\lambda z_1 z_2.\, w\, (u\,\Pi)\bigr) \;\red\; w\, b .
+\]
+Hence
+\[
+  t'\,u \;\red\; M'^u\, \id\, \bigl(M'^u\, (\lambda z.\,a)\, b\bigr)
+  \;\red\; \id\, b \;\red\; b \neq a .
+\]
+
+\end{document}

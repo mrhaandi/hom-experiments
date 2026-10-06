@@ -1,0 +1,55 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+
+\newcommand{\red}{\twoheadrightarrow_\beta}
+
+\begin{document}
+
+\paragraph{Types.}
+Let $\sigma = (o\to o)\to o\to o$, so $y_2 : o\to o$ and $y_1 : o$.
+Let $x : \sigma\to o$, and let $f : o\to o$ and $b : o$ be free variables.
+Then $\mathrm{ord}(\sigma) = 3$, $\mathrm{ord}(\sigma\to o) = 4$ and
+$\mathrm{ord}((\sigma\to o)\to o) = 5$.
+
+\paragraph{Terms.}
+Let $\Pi = \lambda y_2 y_1.\,y_1 : \sigma$.
+\begin{align*}
+  N &= \lambda z_1 z_2.\, z_1\, y_1, \\
+  M &= \lambda y_2 y_1.\, x\, N, \\
+  t &= \lambda x.\, x\, M, \\
+  u &= \lambda g.\, g\, f\, (g\, f\, b).
+\end{align*}
+
+\paragraph{Reduction of $t\,u$.}
+Write $M^u = M[x := u]$. For all $w, v$,
+\[
+  M^u\, w\, v \;\red\; u\, (\lambda z_1 z_2.\, z_1\, v) \;\red\; f\, v .
+\]
+Hence
+\[
+  t\,u \;\red\; u\, M^u \;\red\; M^u\, f\, (M^u\, f\, b) \;\red\; f\,(f\,b) .
+\]
+
+\paragraph{The modified term $t'$.}
+Let
+\begin{align*}
+  N' &= N[y_1 := x\,\Pi] = \lambda z_1 z_2.\, z_1\, (x\,\Pi), \\
+  M' &= \lambda y_2 y_1.\, x\, N', \\
+  t' &= \lambda x.\, x\, M'.
+\end{align*}
+
+\paragraph{Reduction of $t'\,u$.}
+We have
+\[
+  u\,\Pi \;\red\; \Pi\, f\, (\Pi\, f\, b) \;\red\; \Pi\, f\, b \;\red\; b .
+\]
+Write $M'^u = M'[x := u]$. For all $w, v$,
+\[
+  M'^u\, w\, v \;\red\; u\, \bigl(\lambda z_1 z_2.\, z_1\, (u\,\Pi)\bigr) \;\red\; f\,(u\,\Pi) \;\red\; f\, b .
+\]
+Hence
+\[
+  t'\,u \;\red\; M'^u\, f\, (M'^u\, f\, b) \;\red\; f\, b \;\neq\; f\,(f\,b) .
+\]
+
+\end{document}
