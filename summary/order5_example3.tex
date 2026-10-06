@@ -1,0 +1,63 @@
+\documentclass{article}
+\usepackage{amsmath,amssymb}
+
+\newcommand{\red}{\twoheadrightarrow_\beta}
+\newcommand{\id}{\mathsf{id}}
+
+\begin{document}
+
+\paragraph{Types.}
+Let $\sigma = (o\to o)\to o\to o$, so $y_2 : o\to o$ and $y_1 : o$.
+Let $x : \sigma\to o$, and let $a, b : o$ be free variables.
+Then $\mathrm{ord}(\sigma) = 3$, $\mathrm{ord}(\sigma\to o) = 4$ and
+$\mathrm{ord}((\sigma\to o)\to o) = 5$.
+
+\paragraph{Terms.}
+Let $\id = \lambda z.\,z$.
+\begin{align*}
+  N &= \lambda z_1 z_2.\, y_2\, y_1, \\
+  M &= \lambda y_2 y_1.\, x\, N, \\
+  t &= \lambda x.\, x\, M, \\
+  u &= \lambda g.\, g\, \id\, \bigl(g\, (\lambda z.\,a)\, b\bigr).
+\end{align*}
+
+\paragraph{Reduction of $t\,u$.}
+Write $M^u = M[x := u]$. For all $w, v$,
+\[
+  M^u\, w\, v \;\red\; u\, (\lambda z_1 z_2.\, w\, v) \;\red\; w\, v .
+\]
+Hence
+\[
+  t\,u \;\red\; M^u\, \id\, \bigl(M^u\, (\lambda z.\,a)\, b\bigr)
+  \;\red\; \id\, \bigl((\lambda z.\,a)\, b\bigr) \;\red\; a .
+\]
+
+\paragraph{The modified term $t''$.}
+Let $E = \lambda y_2 y_1.\, y_2\, y_1 : \sigma$, and replace $y_2\,y_1$ in $N$ by $x\,E$:
+\begin{align*}
+  N'' &= \lambda z_1 z_2.\, x\, E, \\
+  M'' &= \lambda y_2 y_1.\, x\, N'', \\
+  t'' &= \lambda x.\, x\, M''.
+\end{align*}
+
+\paragraph{Reduction of $t''\,u$.}
+We have
+\[
+  u\,E \;\red\; E\, \id\, \bigl(E\, (\lambda z.\,a)\, b\bigr)
+  \;\red\; E\, (\lambda z.\,a)\, b \;\red\; (\lambda z.\,a)\, b \;\red\; a .
+\]
+Write $M''^u = M''[x := u]$. For all $w, v$,
+\[
+  M''^u\, w\, v \;\red\; u\, (\lambda z_1 z_2.\, u\,E) \;\red\; u\,E \;\red\; a .
+\]
+Hence
+\[
+  t''\,u \;\red\; M''^u\, \id\, \bigl(M''^u\, (\lambda z.\,a)\, b\bigr) \;\red\; a .
+\]
+
+\paragraph{Remark.}
+Since $M^u\,w\,v \red w\,v$, we have $M^u =_{\beta\eta} \lambda w v.\, w\, v = E$.
+The replacement therefore substitutes for $y_2\,y_1$ exactly the value produced by the
+next unfolding of $x$, so $t''\,u$ and $t\,u$ coincide.
+
+\end{document}
