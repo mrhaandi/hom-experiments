@@ -30,7 +30,7 @@
 \newcommand{\sem}[1]{\llbracket #1\rrbracket}
 
 \title{Contextual Equivalence, Cells, and Semi-Cellular Terms\\
-       \large A parametrized formulation (revised: observations $\mathcal M$, semi-cellular terms, finite model, merging)}
+       \large A parametrized formulation (revised: observations $\mathcal M$, semi-cellular terms, finite model, merging, intersection types)}
 \author{}
 \date{}
 
@@ -748,6 +748,204 @@ Note also that $\mathrm{Def}_\sigma$ is not computable in general
 (Loader), but only $|\mathrm{Def}_\sigma|\le|D_\sigma|$ is used for the
 bounds, so the bounds stay computable.
 
+\section{Contexts as transducers: intersection types}\label{sec:itypes}
+
+In Section~\ref{sec:merge} a hole had to be correct on \emph{all}
+definable values of its bound variables, because in the full model a
+context is only a function of the value of the hole and carries no
+information on which points it actually queries.  Here a context is
+treated as a transducer: from a requirement on the whole term it
+produces the requirements it sends into the hole.  The tool is a
+finitary intersection type system whose types are read in the model $D$.
+
+\subsection{Types refining the model}
+
+\begin{definition}[Refinement types]
+For every simple type $\sigma$ define the finite set $\mathrm{Ty}_\sigma$:
+\[
+  \mathrm{Ty}_\Ground=D_\Ground,\qquad
+  \mathrm{Ty}_{\sigma\to\tau}=\{\,S\to\theta\mid
+     S\subseteq\mathrm{Ty}_\sigma,\ \theta\in\mathrm{Ty}_\tau\,\}.
+\]
+A set $S\subseteq\mathrm{Ty}_\sigma$ is read as the intersection of its
+elements; $S=\varnothing$ is allowed.  The interpretation
+$\sem\theta\subseteq D_\sigma$ is
+\[
+  \sem d=\{d\},\qquad
+  \sem{S\to\theta}=\{\,\varphi\in D_{\sigma\to\tau}\mid
+     \forall a\in\textstyle\bigcap_{s\in S}\sem s.\ \varphi\,a\in\sem\theta\,\},
+\]
+with $\bigcap\varnothing=D_\sigma$.
+\end{definition}
+
+A \emph{type environment} $\Delta$ assigns to finitely many variables
+$x:\sigma$ a set $\Delta(x)\subseteq\mathrm{Ty}_\sigma$ (absent variables
+get $\varnothing$).  Judgements are $\Delta\vdash M:\theta$.
+
+\begin{definition}[Typing rules]
+\[
+\frac{\theta\in\Delta(x)}{\Delta\vdash x:\theta}
+\qquad
+\frac{}{\Delta\vdash a:a}
+\qquad
+\frac{d_1,\ldots,d_r\in D_\Ground}
+     {\Delta\vdash f:\{d_1\}\to\cdots\to\{d_r\}\to\hat f(d_1,\ldots,d_r)}
+\]
+\[
+\frac{\Delta,x:S\vdash M:\theta}{\Delta\vdash\lambda x.M:S\to\theta}
+\qquad
+\frac{\Delta\vdash M:S\to\theta\qquad
+      \Delta\vdash N:s\ \text{ for every } s\in S}
+     {\Delta\vdash M\,N:\theta}
+\]
+(In the abstraction rule $x\notin\mathrm{dom}(\Delta)$; in the
+application rule $S=\varnothing$ means that $N$ is not typed at all.)
+\end{definition}
+
+\begin{lemma}[Soundness]\label{lem:it-sound}
+If $\Delta\vdash M:\theta$ and $\eta$ is an environment with
+$\eta(x)\in\bigcap_{s\in\Delta(x)}\sem s$ for all $x$, then
+$\sem M_\eta\in\sem\theta$.
+\end{lemma}
+\begin{proof}
+Induction on the derivation; each rule is the definition of
+$\sem{S\to\theta}$.
+\end{proof}
+
+\begin{lemma}[Completeness at ground type]\label{lem:it-complete}
+For closed $N:\Ground$: $\vdash N:d$ iff $\sem N=d$.
+\end{lemma}
+\begin{proof}[Proof sketch]
+($\Rightarrow$) Lemma~\ref{lem:it-sound}.  ($\Leftarrow$) The system has
+subject expansion: if $M\to_\beta M'$ and $\Delta\vdash M':\theta$, then
+$\Delta\vdash M:\theta$ (the argument of the contracted redex is typed by
+the types at which the substituted variable was used, possibly none).
+$\NF(N)$ is a first-order ground term, and $\vdash\NF(N):\sem{\NF(N)}$
+is derived directly by the rules for $a$ and $f$.
+\end{proof}
+
+\begin{corollary}\label{cor:it-matching}
+For closed $t$ and $\vec s_q$:
+$\sem{t\,\vec s_q}=b_q$ iff there are
+$\theta_q=S_1\to\cdots\to S_n\to b_q$ with $\vdash t:\theta_q$ and
+$\vdash s_{q,i}:s$ for all $s\in S_i$.
+\end{corollary}
+\begin{proof}
+Lemma~\ref{lem:it-complete} and inversion of the application rule.
+\end{proof}
+
+So a matching problem becomes a finite set of \emph{top requirements}
+$\vdash t:\theta_q$.
+
+\subsection{Contexts as transducers}
+
+Let $L$ be a context with one hole of type $\Ground$ and let $\vec v$
+be the variables in scope at the hole.  A \emph{hole requirement} is a
+judgement $\Delta\vdash\hole{}:d$ with $\mathrm{dom}(\Delta)\subseteq\vec v$.
+For a set $J$ of hole requirements, $\vdash_J$ is the system above
+extended by the axiom
+\[
+  \frac{(\Delta\vdash\hole{}:d)\in J}{\Delta'\vdash\hole{}:d}
+  \quad(\Delta\subseteq\Delta'\text{ pointwise}).
+\]
+
+\begin{lemma}[Decomposition]\label{lem:decomp}
+$\Gamma\vdash L[b]:\theta$ iff there is a finite set $J$ of hole
+requirements such that $\Gamma\vdash_J L:\theta$ and $\Delta\vdash b:d$ for
+every $(\Delta\vdash\hole{}:d)\in J$.
+\end{lemma}
+\begin{proof}
+($\Rightarrow$) Take for $J$ the judgements of the subderivations for
+$b$ in the given derivation, and cut them off.  ($\Leftarrow$) Plug the
+derivations for $b$ into the leaves of $\vdash_J$; this needs the
+weakening $\Delta\subseteq\Delta'$, which is admissible in the system
+because the variable rule only asks $\theta\in\Delta(x)$.
+\end{proof}
+
+Thus $L$ acts as a nondeterministic transducer
+\[
+  T_L:\ (\Gamma\vdash\theta)\ \longmapsto\
+  \{\,J\mid \Gamma\vdash_J L:\theta\,\}:
+\]
+it receives a requirement from above and sends requirements into the
+hole.  Unlike the sets $E_j$ of Section~\ref{sec:merge}, $J$ contains
+only the requirements that the derivation actually uses: a variable
+that the context never applies to some value does not generate a
+requirement for that value.  For a cell
+$\mcell=y\,(\lambda\vec w_1.\hole1)\cdots(\lambda\vec w_K.\hole K)$
+the transducer is explicit: a requirement $\Gamma\vdash\Sigma:d$ is met by
+choosing $(S_1\to\cdots\to S_K\to d)\in\Gamma(y)$ and, for each $j$ and
+each $(R_1\to\cdots\to R_l\to d')\in S_j$, sending
+$\Gamma,\vec w_j:\vec R\vdash\hole j:d'$ into hole $j$.
+
+\subsection{Merging, typed}
+
+\begin{lemma}[Typed merging]\label{lem:typed-merge}
+Let $J$ be a set of hole requirements, $\Delta\vdash b:d$ for all
+$(\Delta\vdash\hole{}:d)\in J$, and $v,v'$ two variables of the same
+simple type with $\Delta(v')\subseteq\Delta(v)$ for every
+$(\Delta\vdash\hole{}:d)\in J$.  Then $\Delta\vdash b[v/v']:d$ for every
+such requirement.
+\end{lemma}
+\begin{proof}
+In each derivation of $\Delta\vdash b:d$ replace every use of $v'$ by
+$v$: the variable rule for $v'$ uses some $\theta\in\Delta(v')$, which
+lies in $\Delta(v)$.
+\end{proof}
+
+By Lemma~\ref{lem:decomp} the whole term still meets its top
+requirements, so by Corollary~\ref{cor:it-matching} it is still a
+solution.  Consequently at a hole with requirement set $J$ we may assume
+that, for each simple type $\sigma$, the live variables of type $\sigma$
+have pairwise $\subseteq$-incomparable vectors
+$(\Delta(v))_{(\Delta\vdash\hole{}:d)\in J}$, so there are at most
+\[
+  \bigl(2^{|\mathrm{Ty}_\sigma|}\bigr)^{|J|}
+\]
+of them.  Compared with Lemma~\ref{lem:merging}, the exponent is the
+number of requirements actually sent into the hole, not
+$|E|\cdot|D_{\vec w}|$, and the merging criterion is inclusion, not
+equality.  Variables with $\Delta(v)=\varnothing$ for all requirements
+are dead and can be dropped.
+
+\subsection{The open step}
+
+The bound depends on $|J|$, so everything reduces to bounding the number
+of distinct requirements sent into a hole.
+
+\begin{quote}
+\textbf{Conjecture (bounded requirements).} For every type $A$ and every
+finite set of top requirements there is a computable $B$ such that every
+term meeting them meets them via derivations in which every hole of the
+cellular decomposition receives at most $B$ distinct requirements.
+\end{quote}
+
+The conjecture together with Lemma~\ref{lem:typed-merge} bounds the live
+variables, hence the slots, and Corollary~\ref{cor:cellular-decidable}
+then gives decidability.  Remarks:
+\begin{enumerate}
+\item Along a path of cells the requirements multiply: the cell rule
+  sends, for each requirement at the parent, one requirement per type in
+  each $S_j$.  But $J$ is a \emph{set}: requirements that coincide
+  collapse.  A requirement is $\Delta\vdash\hole{}:d$, and after merging
+  $\Delta$ ranges over assignments to a bounded number of variables, so
+  the number of distinct requirements is bounded by a function of the
+  slot numbers.  The task is to break the circularity between the slot
+  bound and the requirement bound.
+\item The transducer view suggests pumping on requirements: if along a
+  path two holes receive the \emph{same} requirement set (up to renaming
+  of slots), the segment between them can be cut, as in
+  Proposition~\ref{prop:semstretch}, but for derivations instead of
+  values.  This removes repetitions but does not by itself bound $|J|$.
+\item Requirements on variables bound far above a hole are inherited
+  unchanged ($\Gamma$ is passed down), so one may try to count only
+  requirements on variables bound in the last few cells and to merge
+  inherited variables at the level where they are bound.
+\item One may choose derivations minimal in a suitable sense (e.g.\ with
+  the fewest distinct requirements), since the conjecture only asks for
+  the existence of good derivations.
+\end{enumerate}
+
 \section{What remains}
 
 By Corollary~\ref{cor:cellular-decidable} and Lemma~\ref{lem:semicell},
@@ -785,11 +983,10 @@ Remarks on the conjecture.
   has the same environment type as its outside; in cellular terms this
   holds for every layer, which is why the slot renaming $c\,\rho$ is
   essential.
+\item Section~\ref{sec:itypes} replaces values by intersection-type
+  requirements, so that only what a context actually sends into a hole
+  counts; the main conjecture then follows from the bounded-requirements
+  conjecture stated there.
 \end{enumerate}
 
 \end{document}
-
-%%% Local Variables:
-%%% mode: latex
-%%% TeX-master: t
-%%% End:
