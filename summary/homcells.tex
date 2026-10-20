@@ -17,433 +17,76 @@
 \newcommand{\ObsLeq}{\mathrel{\lesssim}\xspace}
 \newcommand{\hole}[1]{[\,]_{#1}}
 \newcommand{\arity}{\operatorname{ar}}
-\newcommand{\mctx}{\mathcal C}
 \newcommand{\mcell}{\Sigma}
-\newcommand{\subst}[2]{[#1/#2]}
-
-\newtheorem{definition}{Definition}
-\newtheorem{lemma}{Lemma}
-\newtheorem{proposition}{Proposition}
-\newtheorem{remark}{Remark}
-\newtheorem{theorem}{Theorem}
-\newtheorem{corollary}{Corollary}
 \newcommand{\sem}[1]{\llbracket #1\rrbracket}
+\newcommand{\Def}{\mathrm{Def}}
+\newcommand{\Ty}{\mathrm{Ty}}
 
-\title{Contextual Equivalence, Cells, and Semi-Cellular Terms\\
-       \large A parametrized formulation (revised: observations $\mathcal M$, semi-cellular terms, finite model, merging, intersection types)}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{conjecture}[theorem]{Conjecture}
+\theoremstyle{definition}
+\newtheorem{definition}[theorem]{Definition}
+\newtheorem{remark}[theorem]{Remark}
+\newtheorem{example}[theorem]{Example}
+
+\title{Cells and Semi-Cellular Terms for Higher-Order Matching\\
+       \large Working notes}
 \author{}
 \date{}
 
 \begin{document}
 \maketitle
 
-\section{Setting}
+\section{Overview}
+
+The aim is an alternative proof of decidability of higher-order matching,
+in the spirit of Padovani's cells.  A matching problem asks for a closed
+term $t$ with $t\,\vec s_q=_\beta b_q$ for finitely many given closed
+argument tuples $\vec s_q$ and observable values $b_q$.  The notes are
+organised along the following chain of reductions.
+
+\begin{enumerate}
+\item \textbf{Observations.}  Contextual equivalence is parametrized by a
+  set of observations $\mathcal M$; a matching problem is a finite
+  applicative $\mathcal M$ (Section~\ref{sec:obs}).
+\item \textbf{A finite model.}  Observable behaviour is exactly the value
+  in a finite \emph{truncation model}; for finite applicative $\mathcal M$,
+  $\ObsEq_{\mathcal M}$ is equality of $\sem t$ at finitely many points
+  (Theorem~\ref{thm:semchar}).
+\item \textbf{Stretching.}  Repeated layers of a term can be removed or
+  inserted without changing observations (Section~\ref{sec:stretch}).
+\item \textbf{Cells.}  Terms with a bounded number of \emph{slots} for
+  variables are trees over a finite alphabet, and their semantics is a
+  finite tree automaton.  For fixed slot numbers, existence of a cellular
+  solution is decidable (Corollary~\ref{cor:cellular-decidable}).
+\item \textbf{Semi-cellular terms.}  A semi-cellular term is
+  $\ObsEq_{\mathcal M}$ to a cellular one (Lemma~\ref{lem:semicell}).
+\item \textbf{Main conjecture.}  Every term is semi-cellular for slot
+  numbers computable from the problem (Conjecture~\ref{conj:main}).
+  Steps 1--5 are proved; the conjecture is the open core.
+  Section~\ref{sec:bounding} develops tools for it: merging variables
+  using representatives, and contexts as transducers of intersection-type
+  requirements.
+\end{enumerate}
+
+\section{Setting and the truncation model}\label{sec:setting}
 
 We work in the simply typed $\lambda$-calculus with one ground type
 $\Ground$ over a finite signature of ground constants $a,b,\ldots$ and
 first-order symbols $f$ of arity $\arity(f)$.  We only \emph{observe}
 ground normal forms of depth at most $1$, i.e.\ first-order terms
-\[
-        f(a_1,\ldots,a_r)\qquad (r=\arity(f))
-\]
-with $a_1,\ldots,a_r$ ground constants (constants being the case $r=0$).
-The set of observable values of depth $0$ (constants) is written $\Val^0$,
-and of depth at most $1$ is written $\Val^1$.  Note that deeper ground
-normal forms, such as $f(f(a))$, exist but are not observable.
+$f(a_1,\ldots,a_r)$ with $r=\arity(f)$ and ground constants $a_j$
+(constants being the case $r=0$).  The set of observable values of depth
+$0$ (constants) is written $\Val^0$, and of depth at most $1$ is written
+$\Val^1$.  Deeper ground normal forms, such as $f(f(a))$, exist but are
+not observable.
 
-We assume that all terms are in $\eta$-long form.  As usual,
-\[
- \lambda x_1\ldots x_n.u
-\]
-is an abbreviation for
-$\lambda x_1.(\cdots(\lambda x_n.u)\cdots)$, with $u$ of ground type.
+All terms are in $\eta$-long form; $\lambda x_1\ldots x_n.u$ abbreviates
+$\lambda x_1.(\cdots(\lambda x_n.u)\cdots)$ with $u$ of ground type.
 $\NF(u)$ denotes the $\beta$-normal form of $u$.
-
-\section{Contextual equivalence under observations}
-
-Throughout this section $i\in\{0,1\}$ is fixed and $A$ is a type.
-
-\begin{definition}[Observations]
-A \emph{set of observations at type $A$} is a set $\mathcal M$ of
-contexts $C[-]$ such that, for every closed $t:A$, the term $C[t]$ is
-closed and of type $\Ground$.  We write $\mathcal M^{\mathrm{all}}_A$ for
-the set of all such contexts.
-
-An observation $C\in\mathcal M$ is \emph{applicative} if it has the form
-$C[-]=[-]\,s_1\ldots s_n$ with $s_1,\ldots,s_n$ closed; we then identify
-$C$ with the tuple $\vec s$.
-\end{definition}
-
-\begin{definition}[Contextual preorder and equivalence under $\mathcal M$]
-Let $t,t'$ be closed terms of type $A$ and $\mathcal M$ a set of
-observations at type $A$.  We write
-\[
-        t \ObsLeq^i_{\mathcal M} t'
-\]
-if for every $C\in\mathcal M$
-\[
-        \NF(C[t])\in\Val^i
-        \quad\Longrightarrow\quad
-        \NF(C[t])=\NF(C[t']).
-\]
-We write $t\ObsEq^i_{\mathcal M} t'$ when
-$t\ObsLeq^i_{\mathcal M} t'$ and $t'\ObsLeq^i_{\mathcal M} t$.
-We abbreviate $\ObsLeq^i_{\mathcal M^{\mathrm{all}}_A}$ to $\ObsLeq^i$
-and $\ObsEq^i_{\mathcal M^{\mathrm{all}}_A}$ to $\ObsEq^i$; these are the
-usual (unparametrized) contextual preorder and equivalence.
-\end{definition}
-
-Thus $t\ObsLeq^i_{\mathcal M}t'$ says: whenever an observation from
-$\mathcal M$ succeeds on $t$ (yields an observable value), it yields the
-same value on $t'$.  And $t\ObsEq^i_{\mathcal M}t'$ says: on every
-$C\in\mathcal M$ either both $C[t]$, $C[t']$ are unobservable, or both
-yield the same value of $\Val^i$.
-
-\begin{lemma}[Basic properties]\label{lem:basic}
-Let $\mathcal M,\mathcal M_1,\mathcal M_2$ be sets of observations at
-type $A$.
-\begin{enumerate}[label=(\alph*)]
-\item $\ObsLeq^i_{\mathcal M}$ is a preorder and $\ObsEq^i_{\mathcal M}$ is
-  an equivalence relation.
-\item (Antitonicity) If $\mathcal M_1\subseteq\mathcal M_2$, then
-  $t\ObsLeq^i_{\mathcal M_2}t'$ implies $t\ObsLeq^i_{\mathcal M_1}t'$.
-\item (Union) $t\ObsLeq^i_{\mathcal M_1\cup\mathcal M_2}t'$ iff
-  $t\ObsLeq^i_{\mathcal M_1}t'$ and $t\ObsLeq^i_{\mathcal M_2}t'$; the
-  same holds for $\ObsEq^i$.  More generally, for any family,
-  ${\ObsLeq^i_{\bigcup_j\mathcal M_j}}=\bigcap_j{\ObsLeq^i_{\mathcal M_j}}$.
-\item ($\beta$-invariance) If $t=_\beta t'$, then $t\ObsEq^i_{\mathcal M}t'$.
-\item $\ObsLeq^1_{\mathcal M}\subseteq\ObsLeq^0_{\mathcal M}$.
-\end{enumerate}
-\end{lemma}
-\begin{proof}
-(a) Reflexivity is clear.  For transitivity let
-$t\ObsLeq^i_{\mathcal M}t'\ObsLeq^i_{\mathcal M}t''$ and $C\in\mathcal M$
-with $\NF(C[t])\in\Val^i$.  Then $\NF(C[t'])=\NF(C[t])\in\Val^i$, hence
-$\NF(C[t''])=\NF(C[t'])=\NF(C[t])$.  (b), (c) are immediate since the
-definition is a conjunction over $C\in\mathcal M$.  (d) $C[t]=_\beta C[t']$
-and normal forms are unique.  (e) $\Val^0\subseteq\Val^1$.
-\end{proof}
-
-\begin{lemma}[Congruence]\label{lem:congruence}
-Let $D[-]$ be a context such that $D[t]$ is closed of type $B$ for closed
-$t:A$, let $\mathcal M$ be a set of observations at type $B$, and put
-\[
-  \mathcal M\circ D=\{\,C[D[-]]\mid C\in\mathcal M\,\}.
-\]
-If $t\ObsLeq^i_{\mathcal M\circ D}t'$, then
-$D[t]\ObsLeq^i_{\mathcal M}D[t']$; likewise for $\ObsEq^i$.  In particular
-$\ObsLeq^i$ and $\ObsEq^i$ are congruences: $t\ObsEq^i t'$ implies
-$D[t]\ObsEq^i D[t']$ for every such $D$.
-\end{lemma}
-\begin{proof}
-Immediate from the definition, since $C[D[t]]=(C\circ D)[t]$.  For the
-second part note $\mathcal M^{\mathrm{all}}_B\circ D\subseteq
-\mathcal M^{\mathrm{all}}_A$ and use Lemma~\ref{lem:basic}(b).
-\end{proof}
-
-\begin{lemma}[Context lemma]\label{lem:context}
-For closed $t,t':A_1\to\cdots\to A_n\to\Ground$,
-\[
-  t\ObsLeq^i t'
-  \iff
-  t\ObsLeq^i_{\mathcal M^{\mathrm{app}}_A}t',
-\]
-where $\mathcal M^{\mathrm{app}}_A$ is the set of all applicative
-observations $[-]\,s_1\ldots s_n$ with $s_j:A_j$ closed.
-\end{lemma}
-\begin{proof}[Proof idea]
-($\Rightarrow$) by Lemma~\ref{lem:basic}(b).  ($\Leftarrow$) is Milner's
-context lemma; in the simply typed, strongly normalizing setting it
-follows by induction on the length of the head reduction of $C[t]$,
-pulling out the first occurrence of $t$ in head position.
-\textbf{TODO:} check that the proof goes through for the preorder form
-with observable values restricted to $\Val^i$.
-\end{proof}
-
-\begin{remark}
-An observation $C$ on which $t$ is not observable
-($\NF(C[t])\notin\Val^i$) imposes nothing on $t\ObsLeq^i_{\{C\}}t'$.  For a closed ground term $t$ the only
-non-trivial observation is $[-]$, and $t\ObsLeq^i_{\{[-]\}}t'$ iff
-($\NF(t)\in\Val^i\Rightarrow\NF(t)=\NF(t')$).
-\end{remark}
-
-\begin{proposition}[Stretching lemma]\label{prop:stretch}
-Assume the signature has exactly one first-order symbol $f$, of arity $r$.
-Let
-$
-t = \lambda y_1 \ldots y_n.M[u]
-$
-be a closed term, where $M$ is a context with one hole of ground type,
-and assume the hole of $M$ is not in the scope of any $\lambda$ of $M$
-(so $\FV(u)\subseteq\{y_1,\ldots,y_n\}$).  Let $\mathcal M$ be a set of
-\emph{applicative} observations at the type of $t$.  Then
-$\mathcal M=\mathcal M_1\cup\bigcup_{\vec v}\mathcal M_{2,\vec v}$, where
-$\vec v$ ranges over the finitely many tuples
-$\vec v\in(\{u\}\cup\Val^0)^r$, and
-\begin{itemize}
-\item $t\ObsEq^1_{\mathcal M_1}\lambda y_1 \ldots y_n.M[M[u]]$;
-\item for every $\vec v=(v_1,\ldots,v_r)$,
-  $t\ObsEq^1_{\mathcal M_{2,\vec v}}\lambda y_1 \ldots y_n.\,f\,v_1\ldots v_r$;
-  moreover, if some $v_j=u$, then $\NF(u[\vec s/\vec y])\in\Val^0$ for
-  every $\vec s\in\mathcal M_{2,\vec v}$.
-\end{itemize}
-For $i=0$ no splitting is needed: $t\ObsEq^0_{\mathcal M}\lambda y_1\ldots y_n.M[M[u]]$
-(i.e.\ one may take $\mathcal M_1=\mathcal M$).
-\end{proposition}
-\begin{proof}
-Let $x$ be a fresh variable of type $\Ground$.  By the assumption on the
-hole, $M[u]=M[x][u/x]$ and $M[M[u]]=M[x][M[u]/x]$ without capture.
-Fix $\vec s\in\mathcal M$ and write $\sigma=[\vec s/\vec y]$.  Then
-$t\vec s=_\beta M[x]\sigma\,[u\sigma/x]$ and
-$(\lambda\vec y.M[M[u]])\vec s=_\beta M[x]\sigma\,[M[u]\sigma/x]$, where
-$u\sigma$ and $M[u]\sigma$ are closed of type $\Ground$.
-
-The term $P=\NF(M[x]\sigma)$ is a ground normal form whose only free
-variable is $x:\Ground$; hence $P$ is $x$, a constant $a$, or
-$f(p_1,\ldots,p_r)$ with each $p_j$ again such a normal form.  Since
-substituting a ground normal form for $x$ in $P$ yields a normal form, we
-have $\NF(M[x]\sigma\,[w/x])=P[\NF(w)/x]$ for every closed ground term $w$.
-\begin{itemize}
-\item $P=x$.  Then $\NF(t\vec s)=\NF(u\sigma)$ and
-  $\NF(M[M[u]]\sigma)=\NF(M[u]\sigma)=\NF(t\vec s)$.  Put $\vec s$ into
-  $\mathcal M_1$.
-\item $P=a$.  Then both sides normalize to $a$.  Put $\vec s$ into
-  $\mathcal M_1$.
-\item $P=f(p_1,\ldots,p_r)$.  If $\NF(t\vec s)\notin\Val^1$, then also
-  $\NF(M[M[u]]\sigma)=P[\NF(M[u]\sigma)/x]\notin\Val^1$: either some $p_j$
-  is neither $x$ nor a constant, or some $p_j=x$ and $w$ is not a constant,
-  and then $\NF(M[u]\sigma)=P[w/x]$ is not a constant either.  So both
-  sides are unobservable and $\vec s$ can be put into $\mathcal M_1$.  Otherwise
-  $\NF(t\vec s)=f(p_1[w/x],\ldots,p_r[w/x])\in\Val^1$ with
-  $w=\NF(u\sigma)$, so every $p_j[w/x]$ is a constant.  Hence each $p_j$
-  is either a constant or $x$, and if some $p_j=x$, then $w\in\Val^0$.
-  Let $v_j=p_j$ if $p_j$ is a constant and $v_j=u$ if $p_j=x$, and put
-  $\vec s$ into $\mathcal M_{2,\vec v}$.  Then
-  $\NF(t\vec s)=f(v_1\sigma,\ldots,v_r\sigma)$ after normalization, i.e.\
-  $t\vec s=_\beta(\lambda\vec y.f\,v_1\ldots v_r)\vec s$.
-\end{itemize}
-If $i=0$, in the third case $\NF(t\vec s)$ and $\NF(M[M[u]]\sigma)$
-both start with $f$, so neither lies in $\Val^0$; hence such $\vec s$
-impose nothing on $\ObsEq^0$ and all $\vec s$ go into $\mathcal M_1$.  The equivalences follow by
-Lemma~\ref{lem:basic}(c), since they hold for each single observation.
-\end{proof}
-
-\begin{remark}
-The restriction to applicative observations is essential in
-Proposition~\ref{prop:stretch}: a general context may use $t$ several
-times with different arguments, and then the case distinction is not a
-property of a single observation.  By Lemma~\ref{lem:context} this is no
-loss for $\mathcal M=\mathcal M^{\mathrm{all}}$.  The assumption that the
-hole of $M$ is not under a $\lambda$ of $M$ is needed for the
-substitution $M[u]=M[x][u/x]$; lifting it requires replacing $x$ by a
-variable of higher type applied to the variables bound above the hole.
-\end{remark}
-
-
-
-\section{Parametrized contexts and cells}
-
-We use three parameters:
-\[
-        m\quad\text{(initial variables)},\qquad
-        n\quad\text{(ordinary variables at level 1)},\qquad
-        k\quad\text{(ordinary variables at level 0)}.
-\]
-In addition we operate with an index $K$ that enumerates contextual holes.
-The distinction between the three classes is purely in the intent they
-are used for, but it is useful when imposing explicit bounds on the shape
-of terms.
-
-Let
-\[
- X = \{x_1,\ldots,x_m \},\quad X' = \{x'_1,\ldots,x'_m \},\qquad
- Y = \{ y_1,\ldots,y_n\},\quad Y' = \{ y'_1,\ldots,y'_n\},
-\]
-\[
- Z = \{ z_1,\ldots,z_k \},\quad Z' = \{ z'_1,\ldots,z'_k \}.
-\]
-We call the indices $1,\ldots,m$ (resp.\ $1,\ldots,n$, $1,\ldots,k$) the
-\emph{slots} of the corresponding class.  The unprimed variables are those
-bound outside a cell, the primed ones are their fresh copies bound by the
-arguments of a cell (see below).  All six sets are pairwise disjoint.
-Variables of $Z\cup Z'$ have type $\Ground$.
-\textbf{TODO:} fix the types of the variables of level~1 and of the
-initial variables.
-The holes
-\[
-        \hole{1},\ldots,\hole{K}
-\]
-are always of ground type.
-
-\begin{definition}[$(m,n,k)$-context]
-An $(m,n,k)$-context is a term context
-$
-        C\hole{1}\ldots\hole{K}
-$
-such that
-$
-        \FV(C)\subseteq X\cup X'\cup Y\cup Y'\cup Z\cup Z'
-$
-and each hole has ground type.  We write $\mathcal C_{m,n,k}$ for the
-set of all such contexts.
-\end{definition}
-
-\begin{definition}[$(m,n,k)$-cell]
-An $(m,n,k)$-cell is a context of the form
-\[
-\mcell\hole{1}\ldots\hole{K}
- =
- y\,(\lambda\vec w_1.\hole{1})\cdots(\lambda\vec w_K.\hole{K}),
-\]
-where $y\in X\cup Y$ and $\vec w_j\subseteq X'\cup Y'\cup Z'$.  In
-particular $\FV(\lambda\vec w_j.\hole{j})=\varnothing$ and $y$ is the
-unique head occurrence of the cell.
-\end{definition}
-
-The original definition of Padovani is recovered by taking $m=0$.
-
-\begin{definition}[Slot condition]
-Let $b$ be a term of type $\Ground$ occurring in a hole $\hole{j}$ of a
-cell $\mcell$ inside $\lambda\vec x.\mcell[\ldots]$, so that
-$\FV(b)\subseteq\vec x\cup\vec w_j$.  We say that $b$ \emph{fits the slots} if its free
-variables can be assigned slots so that distinct variables of the same
-class get distinct slots.  Then, renaming each free variable of $b$ by the
-unprimed variable of its slot, we obtain $M$ with
-\[
-   b = (\lambda\vec x\vec y\vec z.M)\,x''_1\ldots x''_m\,y''_1\ldots y''_n\,
-       z''_1\ldots z''_k
-   \quad(\text{modulo }\beta),
-\]
-where $x''_l\in\{x_l,x'_l\}$, $y''_l\in\{y_l,y'_l\}$,
-$z''_l\in\{z_l,z'_l\}$: the primed variable if the slot is occupied by a
-variable of $\vec w_j$, the unprimed one otherwise.  We call
-$c=\lambda\vec x\vec y\vec z.M$ the \emph{closure} of $b$ and
-$\rho=x''_1\ldots z''_k$ its \emph{slot vector}.  Note that $c$ is closed.
-\end{definition}
-
-The essential point is that each slot delivers either the outer or the
-freshly bound variable, never both: this is where the bounds $(m,n,k)$
-act.
-
-\begin{definition}[Cellular terms]\label{def:cellular}
-The set of $(m,n,k)$-cellular terms is the least set of closed terms
-containing
-\begin{itemize}
-\item $\lambda\vec x.a$, where $a$ is an allowed rhs
-  (\textbf{TODO:} define; at least constants, level-0 variables and
-  $f(a_1,\ldots,a_r)$);
-\item $\lambda\vec x.\,\mcell[c_1\rho_1]_1\ldots[c_K\rho_K]_K$, where
-  $\mcell$ is an $(m,n,k)$-cell, each $c_j$ is $(m,n,k)$-cellular and
-  each $\rho_j$ is a slot vector.
-\end{itemize}
-Note that the $c_j\rho_j$ are $\beta$-redexes: they record explicitly
-which variable occupies which slot.  Cellular terms are therefore not
-normal.
-\end{definition}
-
-\section{Semi-cellular terms}
-
-Let $t$ be closed with
-\[
-  \NF(t)=\lambda\vec x.\,y\,(\lambda\vec w_1.b_1)\cdots(\lambda\vec w_K.b_K),
-\]
-$y$ a variable (by $\eta$-longness each $b_j$ is of type $\Ground$).
-Then $\NF(t)=\lambda\vec x.\mcell[b_1]\ldots[b_K]$ for the cell
-$\mcell=y(\lambda\vec w_1.\hole{1})\cdots(\lambda\vec w_K.\hole{K})$,
-called the \emph{top cell} of $t$.  If every $b_j$ fits the slots, with
-closure $c'_j$ and slot vector $\rho_j$, we write, for closed terms
-$e_1,\ldots,e_K$ of the types of $c'_1,\ldots,c'_K$,
-\[
-  t\{e_1,\ldots,e_K\}
-  = \lambda\vec x.\,\mcell[e_1\rho_1]\ldots[e_K\rho_K].
-\]
-Thus $t=_\beta t\{c'_1,\ldots,c'_K\}$.  For $1\le j\le K$ and closed
-$e_1,\ldots,e_{j-1}$ we also use the context
-\[
-  D_j^{e_1\ldots e_{j-1}}[-]
-  = t\{e_1,\ldots,e_{j-1},[-],c'_{j+1},\ldots,c'_K\},
-\]
-and the \emph{induced observations}
-\[
-  \mathcal M_j^{e_1\ldots e_{j-1}}
-  = \mathcal M\circ D_j^{e_1\ldots e_{j-1}}
-\]
-at the type of $c'_j$ (notation of Lemma~\ref{lem:congruence}).  They
-describe how $\mathcal M$ observes the $j$-th hole once holes
-$1,\ldots,j-1$ have been replaced by $e_1,\ldots,e_{j-1}$.
-
-\begin{definition}[Semi-cellular under $\mathcal M$]\label{def:semicell}
-By induction on the size of $\NF(t)$: a closed term $t$ is
-$(m,n,k)$-semi-cellular under $\mathcal M$ (for $\ObsEq^i$) if
-\begin{enumerate}[label=(\roman*)]
-\item $t\ObsEq^i_{\mathcal M}\lambda\vec x.a$ for some allowed rhs $a$; or
-\item $\NF(t)$ has a top cell which is an $(m,n,k)$-cell, all $b_j$ fit
-  the slots, and for every $j\le K$ and all $(m,n,k)$-cellular
-  $e_1,\ldots,e_{j-1}$ with
-  $e_l\ObsEq^i_{\mathcal M_l^{e_1\ldots e_{l-1}}}c'_l$ $(l<j)$, the
-  closure $c'_j$ is $(m,n,k)$-semi-cellular under
-  $\mathcal M_j^{e_1\ldots e_{j-1}}$.
-\end{enumerate}
-\end{definition}
-
-Since $c'_j$ is a proper subterm of $\NF(t)$ up to renaming of free
-variables, the definition is well founded.
-
-\begin{lemma}\label{lem:semicell}
-Every term $t$ which is $(m,n,k)$-semi-cellular under $\mathcal M$ is
-equivalent under $\mathcal M$ to an $(m,n,k)$-cellular term: there is a
-cellular $e$ with $t\ObsEq^i_{\mathcal M}e$.
-\end{lemma}
-\begin{proof}
-By induction on the size of $\NF(t)$.  In case~(i) take
-$e=\lambda\vec x.a$.
-
-In case~(ii) we choose cellular $e_1,\ldots,e_K$ one after another.
-Assume $e_1,\ldots,e_{j-1}$ are chosen, cellular, with
-$e_l\ObsEq^i_{\mathcal M_l^{e_1\ldots e_{l-1}}}c'_l$ for $l<j$.  By
-Definition~\ref{def:semicell}(ii), $c'_j$ is semi-cellular under
-$\mathcal M_j^{e_1\ldots e_{j-1}}$, and $\NF(c'_j)$ is smaller than
-$\NF(t)$, so by the induction hypothesis there is a cellular $e_j$ with
-$c'_j\ObsEq^i_{\mathcal M_j^{e_1\ldots e_{j-1}}}e_j$.
-
-Put $t_j=t\{e_1,\ldots,e_j,c'_{j+1},\ldots,c'_K\}$, so $t_0=_\beta t$ and
-$t_K=t\{e_1,\ldots,e_K\}$.  Since
-$t_{j-1}=D_j^{e_1\ldots e_{j-1}}[c'_j]$ and
-$t_j=D_j^{e_1\ldots e_{j-1}}[e_j]$, Lemma~\ref{lem:congruence} gives
-$t_{j-1}\ObsEq^i_{\mathcal M}t_j$.  By Lemma~\ref{lem:basic}(a),(d),
-\[
-  t\ObsEq^i_{\mathcal M}t_0\ObsEq^i_{\mathcal M}t_1
-  \ObsEq^i_{\mathcal M}\cdots\ObsEq^i_{\mathcal M}t_K,
-\]
-and $t_K$ is cellular by Definition~\ref{def:cellular}.
-\end{proof}
-
-\begin{remark}[Why the holes are treated one after another]
-It would be more natural to require only that each $c'_j$ be
-semi-cellular under $\mathcal M\circ D_j$ with all other holes left
-original, and then replace all holes at once.  This does not work in
-general: the head $y$ is instantiated by an observation with a term that
-may pass the closure of one hole as (part of) an argument to the closure
-of another.  Replacing $c'_l$ by an $e_l$ that agrees with it only on the
-observations of $\mathcal M_l$ changes the arguments that $c'_j$ receives,
-so $c'_j\ObsEq e_j$ on the old observations says nothing about the new
-ones.  Definition~\ref{def:semicell} therefore quantifies over all
-admissible earlier replacements.  Even when $\mathcal M$ is applicative,
-the induced sets $\mathcal M_j^{\ldots}$ are in general not applicative,
-because $c'_j$ may be called several times inside one observation.
-\end{remark}
-
-\section{A finite-model approach}\label{sec:routeB}
-
-The case analysis in Proposition~\ref{prop:stretch} is per call: if an
-observation calls $t$ several times, different calls may fall into
-different cases and no single replacement term works.  Since the pure
-simply typed $\lambda$-calculus has no destructors for ground values, a
-term cannot ``detect'' its case.  We therefore replace the case analysis
-by an interpretation in a finite model, which is uniform over all calls.
-Throughout, the signature is finite.
-
-\subsection{The truncation model}
 
 \begin{definition}[Truncation model]
 Let $D_\Ground=\Val^1\cup\{\bot\}$ and $D_{A\to B}=D_B^{\,D_A}$ (all
@@ -466,14 +109,8 @@ $s=_\beta s'$ implies $\sem{s}_\eta=\sem{s'}_\eta$, and $\sem{\cdot}$ is
 compositional: $\sem{C[s]}$ depends on a closed $s$ only through $\sem{s}$.
 
 \begin{lemma}[Adequacy]\label{lem:adequacy}
-For every closed $N:\Ground$,
-\[
-  \sem{N}=
-  \begin{cases}
-    \NF(N) & \text{if } \NF(N)\in\Val^1,\\
-    \bot & \text{otherwise.}
-  \end{cases}
-\]
+For every closed $N:\Ground$, $\sem N=\NF(N)$ if $\NF(N)\in\Val^1$, and
+$\sem N=\bot$ otherwise.
 \end{lemma}
 \begin{proof}
 By $\beta$-soundness we may assume $N$ normal.  A closed normal term of
@@ -481,12 +118,73 @@ type $\Ground$ has a constant head, so it is a first-order ground term.
 Induction on $N$.  If $N=a$, then $\sem{N}=a\in\Val^0$.  If
 $N=f(N_1,\ldots,N_r)$, then by the induction hypothesis
 $\sem{N_j}\in\Val^0$ iff $N_j$ is a constant.  If all $N_j$ are
-constants, $\sem{N}=f(N_1,\ldots,N_r)=N\in\Val^1$.  Otherwise some
-$\sem{N_j}\notin\Val^0$, so $\sem{N}=\bot$, and $N$ has depth at least
-$2$, so $N\notin\Val^1$.
+constants, $\sem{N}=N\in\Val^1$.  Otherwise some $\sem{N_j}\notin\Val^0$,
+so $\sem{N}=\bot$, and $N$ has depth at least $2$, so $N\notin\Val^1$.
 \end{proof}
 
-\subsection{Observational equivalence, semantically}
+\section{Contextual equivalence under observations}\label{sec:obs}
+
+Throughout, $i\in\{0,1\}$ is fixed and $A$ is a type.
+
+\begin{definition}[Observations]
+A \emph{set of observations at type $A$} is a set $\mathcal M$ of
+contexts $C[-]$ such that, for every closed $t:A$, the term $C[t]$ is
+closed and of type $\Ground$.  We write $\mathcal M^{\mathrm{all}}_A$ for
+the set of all such contexts.  An observation is \emph{applicative} if it
+has the form $C[-]=[-]\,s_1\ldots s_n$ with $s_1,\ldots,s_n$ closed; we
+then identify $C$ with the tuple $\vec s$.
+\end{definition}
+
+\begin{definition}[Contextual preorder and equivalence under $\mathcal M$]
+For closed $t,t':A$ we write $t\ObsLeq^i_{\mathcal M}t'$ if for every
+$C\in\mathcal M$
+\[
+        \NF(C[t])\in\Val^i
+        \quad\Longrightarrow\quad
+        \NF(C[t])=\NF(C[t']),
+\]
+and $t\ObsEq^i_{\mathcal M}t'$ when $t\ObsLeq^i_{\mathcal M}t'$ and
+$t'\ObsLeq^i_{\mathcal M}t$.  For $\mathcal M=\mathcal M^{\mathrm{all}}_A$
+we write simply $\ObsLeq^i$ and $\ObsEq^i$.
+\end{definition}
+
+Thus $t\ObsEq^i_{\mathcal M}t'$ says: on every $C\in\mathcal M$ either
+both $C[t]$, $C[t']$ are unobservable, or both yield the same value of
+$\Val^i$.  A matching problem $\{t\,\vec s_q=_\beta b_q\}_q$ is the
+condition $t\ObsEq^1_{\mathcal M}t_0$ for the finite applicative
+$\mathcal M=\{\vec s_q\}_q$ and any $t_0$ with these values.
+
+\begin{lemma}[Basic properties]\label{lem:basic}
+\begin{enumerate}[label=(\alph*)]
+\item $\ObsLeq^i_{\mathcal M}$ is a preorder and $\ObsEq^i_{\mathcal M}$ is
+  an equivalence relation.
+\item If $\mathcal M_1\subseteq\mathcal M_2$, then
+  $t\ObsLeq^i_{\mathcal M_2}t'$ implies $t\ObsLeq^i_{\mathcal M_1}t'$.
+\item ${\ObsLeq^i_{\bigcup_j\mathcal M_j}}=\bigcap_j{\ObsLeq^i_{\mathcal M_j}}$,
+  and likewise for $\ObsEq^i$.
+\item If $t=_\beta t'$, then $t\ObsEq^i_{\mathcal M}t'$.
+\item $\ObsLeq^1_{\mathcal M}\subseteq\ObsLeq^0_{\mathcal M}$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+(a) For transitivity let $t\ObsLeq^i_{\mathcal M}t'\ObsLeq^i_{\mathcal M}t''$
+and $C\in\mathcal M$ with $\NF(C[t])\in\Val^i$.  Then
+$\NF(C[t'])=\NF(C[t])\in\Val^i$, hence $\NF(C[t''])=\NF(C[t])$.  (b),
+(c) hold since the definition is a conjunction over $C\in\mathcal M$.
+(d) Normal forms are unique.  (e) $\Val^0\subseteq\Val^1$.
+\end{proof}
+
+\begin{lemma}[Congruence]\label{lem:congruence}
+Let $D[-]$ be a context such that $D[t]$ is closed of type $B$ for closed
+$t:A$, let $\mathcal M$ be a set of observations at type $B$, and put
+$\mathcal M\circ D=\{\,C[D[-]]\mid C\in\mathcal M\,\}$.  If
+$t\ObsLeq^i_{\mathcal M\circ D}t'$, then $D[t]\ObsLeq^i_{\mathcal M}D[t']$;
+likewise for $\ObsEq^i$.  In particular $\ObsEq^i$ is a congruence.
+\end{lemma}
+\begin{proof}
+$C[D[t]]=(C\circ D)[t]$; for the second part note
+$\mathcal M^{\mathrm{all}}_B\circ D\subseteq\mathcal M^{\mathrm{all}}_A$.
+\end{proof}
 
 For an observation $C$ at type $A$ let $\sem{C}=\sem{\lambda g.C[g]}\in
 D_{A\to\Ground}$.  Since $t$ is closed, $C[t]=_\beta(\lambda g.C[g])\,t$,
@@ -505,488 +203,551 @@ For closed $t,t':A$ and a set of observations $\mathcal M$ at type $A$:
   $\pi(\sem{C}(\sem t))=\pi(\sem{C}(\sem{t'}))$ for every $C\in\mathcal M$.
 \end{enumerate}
 In particular $\sem t=\sem{t'}$ implies $t\ObsEq^i_{\mathcal M}t'$ for
-every $\mathcal M$ and $i$.  If $\mathcal M=\{\vec s_1,\ldots,\vec s_p\}$
-is applicative, then $t\ObsEq^1_{\mathcal M}t'$ iff
-$\sem t(\sem{\vec s_q})=\sem{t'}(\sem{\vec s_q})$ for $q=1,\ldots,p$,
-i.e.\ $\ObsEq^1_{\mathcal M}$ is equality of $\sem t$ on finitely many
-points.
+every $\mathcal M$.  For applicative $\mathcal M=\{\vec s_1,\ldots,\vec s_p\}$,
+$t\ObsEq^1_{\mathcal M}t'$ iff $\sem t(\sem{\vec s_q})=\sem{t'}(\sem{\vec s_q})$
+for all $q$; so a matching problem is the condition
+$\sem t(\sem{\vec s_q})=b_q$, with computable points $\sem{\vec s_q}$.
 \end{theorem}
 \begin{proof}
 By Lemma~\ref{lem:adequacy}, $\NF(C[t])\in\Val^1$ iff
 $\sem{C[t]}\neq\bot$, and then $\NF(C[t])=\sem{C[t]}$.  Unfolding the
-definitions of $\ObsLeq^1_{\{C\}}$ and $\ObsEq^1_{\{C\}}$ gives (a) and
-(b) for a single $C$; for $\mathcal M$ use Lemma~\ref{lem:basic}(c).
-For (c), $\NF(C[t])\in\Val^0$ iff $\pi(\sem{C[t]})\neq\bot$.
+definitions gives (a) and (b) for a single $C$; for $\mathcal M$ use
+Lemma~\ref{lem:basic}(c).  For (c), $\NF(C[t])\in\Val^0$ iff
+$\pi(\sem{C[t]})\neq\bot$.
 \end{proof}
 
-\begin{remark}
-In particular the matching problem
-$t\,\vec s_q=_\beta b_q$ ($q=1,\ldots,p$, $b_q\in\Val^1$) is the
-condition $\sem t(\sem{\vec s_q})=b_q$, and the points $\sem{\vec s_q}$
-are computable.  Equality in the model is only a \emph{sufficient}
-condition for $\ObsEq^1$ over all contexts, because $D$ contains
-non-definable elements.
+Equality in the model is only a \emph{sufficient} condition for
+$\ObsEq^1$ over all contexts, because $D$ contains non-definable elements.
+
+\begin{lemma}[Context lemma]\label{lem:context}
+For closed $t,t':A_1\to\cdots\to A_n\to\Ground$,
+$t\ObsLeq^i t'$ iff $t\ObsLeq^i_{\mathcal M^{\mathrm{app}}_A}t'$, where
+$\mathcal M^{\mathrm{app}}_A$ is the set of all applicative observations.
+\end{lemma}
+\begin{proof}[Proof idea]
+($\Rightarrow$) by Lemma~\ref{lem:basic}(b).  ($\Leftarrow$) is Milner's
+context lemma, by induction on the length of the head reduction of
+$C[t]$.  \textbf{TODO:} check the preorder form with values restricted to
+$\Val^i$.
+\end{proof}
+
+\section{Stretching}\label{sec:stretch}
+
+\subsection{The concrete stretching lemma}
+
+\begin{proposition}[Stretching lemma]\label{prop:stretch}
+Assume the signature has exactly one first-order symbol $f$, of arity $r$.
+Let $t=\lambda y_1\ldots y_n.M[u]$ be closed, where $M$ is a context with
+one hole of ground type which is not in the scope of any $\lambda$ of $M$
+(so $\FV(u)\subseteq\{\vec y\}$), and let $\mathcal M$ be a set of
+\emph{applicative} observations.  Then
+$\mathcal M=\mathcal M_1\cup\bigcup_{\vec v}\mathcal M_{2,\vec v}$, where
+$\vec v$ ranges over the finitely many tuples in $(\{u\}\cup\Val^0)^r$,
+and
+\begin{itemize}
+\item $t\ObsEq^1_{\mathcal M_1}\lambda\vec y.M[M[u]]$;
+\item $t\ObsEq^1_{\mathcal M_{2,\vec v}}\lambda\vec y.\,f\,v_1\ldots v_r$;
+  moreover, if some $v_j=u$, then $\NF(u[\vec s/\vec y])\in\Val^0$ for
+  every $\vec s\in\mathcal M_{2,\vec v}$.
+\end{itemize}
+For $i=0$ no splitting is needed: $t\ObsEq^0_{\mathcal M}\lambda\vec y.M[M[u]]$.
+\end{proposition}
+\begin{proof}
+Let $x$ be a fresh variable of type $\Ground$.  By the assumption on the
+hole, $M[u]=M[x][u/x]$ and $M[M[u]]=M[x][M[u]/x]$ without capture.
+Fix $\vec s\in\mathcal M$ and write $\sigma=[\vec s/\vec y]$.  Then
+$t\vec s=_\beta M[x]\sigma\,[u\sigma/x]$ and
+$(\lambda\vec y.M[M[u]])\vec s=_\beta M[x]\sigma\,[M[u]\sigma/x]$, where
+$u\sigma$ and $M[u]\sigma$ are closed of type $\Ground$.
+
+$P=\NF(M[x]\sigma)$ is a ground normal form whose only free variable is
+$x$; hence $P$ is $x$, a constant $a$, or $f(p_1,\ldots,p_r)$ with each
+$p_j$ again such a normal form, and $\NF(M[x]\sigma\,[w/x])=P[\NF(w)/x]$
+for every closed ground $w$.  Let $w=\NF(u\sigma)$.
+\begin{itemize}
+\item $P=x$.  Then $\NF(t\vec s)=w$ and
+  $\NF(M[M[u]]\sigma)=\NF(M[u]\sigma)=\NF(t\vec s)$.  Put $\vec s$ into
+  $\mathcal M_1$.
+\item $P=a$.  Both sides normalize to $a$.  Put $\vec s$ into
+  $\mathcal M_1$.
+\item $P=f(p_1,\ldots,p_r)$.  If $\NF(t\vec s)\notin\Val^1$, then either
+  some $p_j$ is neither $x$ nor a constant, or some $p_j=x$ and $w$ is not
+  a constant, and then $\NF(M[u]\sigma)=P[w/x]$ is not a constant either;
+  so $\NF(M[M[u]]\sigma)\notin\Val^1$, both sides are unobservable, and
+  $\vec s$ goes into $\mathcal M_1$.  Otherwise every $p_j[w/x]$ is a
+  constant, so each $p_j$ is a constant or $x$, and if some $p_j=x$, then
+  $w\in\Val^0$.  Let $v_j=p_j$ if $p_j$ is a constant and $v_j=u$ if
+  $p_j=x$, and put $\vec s$ into $\mathcal M_{2,\vec v}$.  Then
+  $t\vec s=_\beta(\lambda\vec y.f\,v_1\ldots v_r)\vec s$.
+\end{itemize}
+If $i=0$, in the third case both sides start with $f$, so neither lies in
+$\Val^0$, and all $\vec s$ go into $\mathcal M_1$.  Conclude by
+Lemma~\ref{lem:basic}(c).
+\end{proof}
+
+\begin{remark}\label{rem:multicall}
+The two restrictions in Proposition~\ref{prop:stretch} are essential for
+its proof.  A non-applicative observation may call $t$ several times, and
+the calls may fall into different cases; e.g.\ for
+$t=\lambda y_1y_2.\,y_1y_2$ and $C[-]=[-]\,F\,([-]\,I\,a)$ with
+$F=\lambda z.f\,z\,a$, $I=\lambda z.z$, neither replacement is equivalent
+to $t$ on $C$.  Since the calculus has no destructors for ground values, no
+single term can switch between the cases.  The same happens when the hole
+of $M$ lies under a $\lambda$: then $u$ is evaluated several times within
+one observation.  Both problems disappear in the semantic version below.
 \end{remark}
 
-\subsection{Semantic stretching lemma}
-
-The following replaces Proposition~\ref{prop:stretch}; it needs neither
-applicative observations nor the assumption that the hole of $M$ is not
-under a $\lambda$.
+\subsection{Semantic stretching}
 
 Let $t=\lambda\vec y.M[u]$ with $M$ a context with one hole of type
 $\Ground$, and let $\vec z$ be the variables bound in $M$ above the hole,
-so $\FV(u)\subseteq\vec y\cup\vec z$.  Let $\tau=\vec\tau_y\to\vec\tau_z
-\to\Ground$ be the type of $\hat u=\lambda\vec y\vec z.u$ and let $h:\tau$
-be fresh, and let $\vec z'$ be fresh dummy variables of the types of
-$\vec z$.  Define $\Phi_M:D_\tau\to D_\tau$ by
+so $\FV(u)\subseteq\vec y\cup\vec z$.  Let $\tau$ be the type of
+$\hat u=\lambda\vec y\vec z.u$, let $h:\tau$ be fresh and $\vec z'$ fresh
+dummy variables of the types of $\vec z$.  Define $\Phi_M:D_\tau\to D_\tau$
+by
 \[
-  \Phi_M(\varphi)=\sem{\lambda\vec y\vec z'.\,M[h\,\vec y\,\vec z]}_{h:=\varphi}
+  \Phi_M(\varphi)=\sem{\lambda\vec y\vec z'.\,M[h\,\vec y\,\vec z]}_{h:=\varphi},
 \]
-(the $\vec z$ in the hole are bound by $M$; the result does not depend on
-the dummy arguments $\vec z'$).  Write
-$M^1=M$ and $M^{k+1}[\,]=M[M^k[\,]]$.
+and write $M^1=M$, $M^{k+1}[\,]=M[M^k[\,]]$.
 
 \begin{proposition}[Semantic stretching]\label{prop:semstretch}
-For every $k\ge 1$ and every $u$ as above,
-$\sem{\lambda\vec y\vec z'.M^k[u]}=\Phi_M^k(\sem{\hat u})$.  Consequently,
-if $\Phi_M^a=\Phi_M^b$ for some $1\le a<b$, then for every $u$
-\[
-  \sem{\lambda\vec y.M^a[u]}=\sem{\lambda\vec y.M^b[u]},
-\]
-hence $\lambda\vec y.M^a[u]\ObsEq^i_{\mathcal M}\lambda\vec y.M^b[u]$ for
-every $\mathcal M$.  Such $a<b\le|D_\tau|^{|D_\tau|}+1$ always exist.
+For every $k\ge1$, $\sem{\lambda\vec y\vec z'.M^k[u]}=\Phi_M^k(\sem{\hat u})$.
+Consequently, if $\Phi_M^a=\Phi_M^b$ for some $1\le a<b$, then
+$\sem{\lambda\vec y.M^a[u]}=\sem{\lambda\vec y.M^b[u]}$ for every $u$, hence
+$\lambda\vec y.M^a[u]\ObsEq^i_{\mathcal M}\lambda\vec y.M^b[u]$ for every
+$\mathcal M$.  Such $a<b\le|D_\tau|^{|D_\tau|}+1$ always exist.
 \end{proposition}
 \begin{proof}
-For $k=1$: $M[u]=_\beta M[\hat u\,\vec y\,\vec z]$, and the claim follows
-by compositionality.  For $k+1$: $M^k[u]$ has free variables among
-$\vec y$ only (the $\vec z$ of $u$ are bound by the innermost copy of
-$M$), so it may be placed in the hole of $M$ without capture, and
-$\lambda\vec y\vec z'.M^k[u]$ denotes $\Phi_M^k(\sem{\hat u})$ by the
-induction hypothesis.  Then
+For $k=1$: $M[u]=_\beta M[\hat u\,\vec y\,\vec z]$ and compositionality.
+For $k+1$: $M^k[u]$ has free variables among $\vec y$ only, so it may be
+placed in the hole of $M$ without capture, and
 $\sem{\lambda\vec y\vec z'.M[M^k[u]]}=\Phi_M(\Phi_M^k(\sem{\hat u}))$.
-The second statement follows by dropping the dummy arguments $\vec z'$ and
-Theorem~\ref{thm:semchar}.  The last one is the pigeonhole principle in the
-finite monoid $D_\tau^{D_\tau}$.
+The rest follows from Theorem~\ref{thm:semchar} and the pigeonhole
+principle in the finite monoid $D_\tau^{D_\tau}$.
 \end{proof}
 
-Proposition~\ref{prop:stretch} is the special case of the shape of
-$\Phi_M(\varphi)$ at a single argument: identity ($P=x$), constant
-($P=a$), or $f$ applied to the argument and constants ($P=f(\ldots)$).
+Proposition~\ref{prop:stretch} describes $\Phi_M$ at a single argument:
+identity ($P=x$), constant ($P=a$), or $f$ applied to the argument and
+constants ($P=f(\ldots)$).
 
-\subsection{Cellular terms as a tree automaton}
+\section{Cells}\label{sec:cells}
 
-Assume (refining Section~3) that every slot has a fixed type: the
-initial slots $x_1,\ldots,x_m$ have the argument types of $A$, and there
-are $n_\sigma$ slots for each type $\sigma$ in the finite set $T(A)$ of
-types of variables that can be bound in an $\eta$-long normal form of
-type $A$.  Let $\tau$ be the type
-$\vec\tau_X\to\vec\tau_Y\to\vec\tau_Z\to\Ground$ of all closures $c_j$
-in Definition~\ref{def:cellular}.  Extend cells by the head-constant
-cells $f(\hole{1},\ldots,\hole{r})$.
+\subsection{Slots}
+
+Fix the type $A=A_1\to\cdots\to A_m\to\Ground$ of the solution.  Let
+$T(A)$ be the smallest set of types containing $A_1,\ldots,A_m$ and
+closed under taking argument types; it contains the types of all
+variables bound in $\eta$-long normal forms of type $A$, and it is finite.
+
+Variables are organised in \emph{slots}, each with a fixed type:
+\begin{itemize}
+\item the \emph{initial variables} $X=\{x_1,\ldots,x_m\}$, $x_l:A_l$;
+\item for each $\sigma\in T(A)$, $n_\sigma$ slots with variables
+  $Y_\sigma=\{y^\sigma_1,\ldots,y^\sigma_{n_\sigma}\}$ and fresh copies
+  $Y'_\sigma=\{y'^\sigma_1,\ldots\}$.
+\end{itemize}
+Write $Y=\bigcup_\sigma Y_\sigma$, $Y'=\bigcup_\sigma Y'_\sigma$.  The
+variables of $Y_\Ground$ are the \emph{level-0} variables (written
+$z_1,\ldots,z_k$ earlier, $k=n_\Ground$), the others the \emph{level-1}
+variables (earlier $n=\sum_{\sigma\neq\Ground}n_\sigma$).  Unprimed
+variables are bound outside a cell, primed ones by the arguments of a cell.
+Initial variables are bound only at the root and never rebound, so they
+need no primed copies.  Let
+\[
+  \tau=A_1\to\cdots\to A_m\to\vec\sigma_Y\to\Ground
+\]
+be the type of $\lambda\vec x\vec y.M$ with $\vec y$ an enumeration of
+$Y$.  All holes are of type $\Ground$.
+
+\subsection{Cells and cellular terms}
+
+\begin{definition}[Cell]
+A \emph{cell} is a context of one of the forms
+\[
+\mcell\hole1\ldots\hole K=y\,(\lambda\vec w_1.\hole1)\cdots(\lambda\vec w_K.\hole K)
+\qquad\text{or}\qquad
+\mcell\hole1\ldots\hole r=f(\hole1,\ldots,\hole r),
+\]
+where $y\in X\cup Y$ and the binders $\vec w_j$ are taken from $Y'$
+according to their types.  In particular each $\lambda\vec w_j.\hole j$ is
+closed apart from the hole, and $y$ is the unique head of the cell.
+Padovani's cells are the case $m=0$.
+\end{definition}
+
+\begin{definition}[Slot condition]
+Let $b$ be a term of type $\Ground$ in hole $j$ of a cell, so that
+$\FV(b)\subseteq X\cup Y\cup\vec w_j$.  It \emph{fits the slots} if its
+free variables can be assigned slots of their types so that distinct
+variables get distinct slots.  Renaming each free variable by the
+unprimed variable of its slot gives $M$ with
+\[
+   b =_\beta (\lambda\vec x\vec y.M)\,\vec x\,y''_1\ldots,
+   \qquad y''_l\in\{y_l,y'_l\},
+\]
+where $y''_l$ is primed iff slot $l$ is occupied by a variable of
+$\vec w_j$.  We call $c=\lambda\vec x\vec y.M:\tau$ the \emph{closure} of
+$b$ and $\rho=\vec x\,y''_1\ldots$ its \emph{slot vector}.
+\end{definition}
+
+Each slot delivers either the outer or the freshly bound variable, never
+both: this is where the slot numbers bound the term.
+
+\begin{definition}[Cellular closures and terms]\label{def:cellular}
+The \emph{cellular closures} form the least set of closed terms of type
+$\tau$ containing
+\begin{itemize}
+\item $\lambda\vec x\vec y.\,a$ and $\lambda\vec x\vec y.\,z$ for constants
+  $a$ and $z\in Y_\Ground$ (the \emph{allowed right-hand sides});
+\item $\lambda\vec x\vec y.\,\mcell[c_1\rho_1]\ldots[c_K\rho_K]$ for a cell
+  $\mcell$, cellular closures $c_j$ and slot vectors $\rho_j$.
+\end{itemize}
+A closed $t=\lambda\vec x.M:A$ is \emph{cellular} if $\lambda\vec x\vec y.M$
+is a cellular closure in which no unprimed $y\in Y$ occurs free.  The
+$c_j\rho_j$ are $\beta$-redexes recording which variable occupies which
+slot, so cellular terms are not normal.
+\end{definition}
+
+\subsection{Cellular terms form a regular set}
 
 \begin{lemma}[Cells as finite operations]\label{lem:automaton}
-There is a finite ranked alphabet $\Gamma$ whose symbols of rank $K$ are
-pairs $(\mcell,(\rho_1,\ldots,\rho_K))$ of a cell with $K$ holes and slot
-vectors, and of rank $0$ the allowed right-hand sides.  Every cellular
-closure is a tree over $\Gamma$, and
+For fixed slot numbers there is a finite ranked alphabet $\Gamma$, with
+symbols $(\mcell,\rho_1,\ldots,\rho_K)$ of rank $K$ and the allowed
+right-hand sides of rank $0$, such that cellular closures are exactly the
+trees over $\Gamma$ and
 \[
-  \sem{\lambda\vec x\vec y\vec z.\,\mcell[c_1\rho_1]\ldots[c_K\rho_K]}
+  \sem{\lambda\vec x\vec y.\,\mcell[c_1\rho_1]\ldots[c_K\rho_K]}
   =\hat\mcell_{\vec\rho}(\sem{c_1},\ldots,\sem{c_K}),
+  \qquad
+  \hat\mcell_{\vec\rho}(\vec\varphi)
+  =\sem{\lambda\vec x\vec y.\,\mcell[h_1\rho_1]\ldots[h_K\rho_K]}_{h_j:=\varphi_j}.
 \]
-where
-$\hat\mcell_{\vec\rho}(\varphi_1,\ldots,\varphi_K)
-=\sem{\lambda\vec x\vec y\vec z.\,\mcell[h_1\rho_1]\ldots[h_K\rho_K]}_{h_j:=\varphi_j}$.
 Thus $c\mapsto\sem c$ is computed by a deterministic bottom-up tree
 automaton with the finite state set $D_\tau$.
 \end{lemma}
 \begin{proof}
-Finiteness: the head of a cell is one of finitely many slot variables or
-symbols $f$; its number of holes is bounded by the arity of its type; the
-binders $\vec w_j$ and the slot vectors range over finite sets once the
-slots are fixed.  The equation is compositionality of $\sem\cdot$.
+The head of a cell is one of finitely many slot variables or symbols $f$;
+the number of holes is bounded by the arity of its type; binders and slot
+vectors range over finite sets.  The equation is compositionality.
 \end{proof}
 
 \begin{corollary}\label{cor:cellular-decidable}
-For fixed slot numbers, it is decidable whether a matching problem
-$\{\,t\,\vec s_q=b_q\,\}_q$ has a cellular solution; if it has one, it
-has one of depth at most $|D_\tau|$.
+For fixed slot numbers it is decidable whether a matching problem has a
+cellular solution, and if it has one, it has one of depth at most
+$|D_\tau|$.
 \end{corollary}
 \begin{proof}
-By Theorem~\ref{thm:semchar} the cellular solutions form the language
-of the automaton of Lemma~\ref{lem:automaton} with the accepting states
-$\{\varphi\mid\varphi(\sem{\vec s_q})=b_q\text{ for all }q\}$ (after the
-root step).  Emptiness of tree automata is decidable, and a non-empty
-language contains a tree of depth at most the number of states.
+By Theorem~\ref{thm:semchar} the cellular solutions are recognized by the
+automaton of Lemma~\ref{lem:automaton} with accepting states
+$\{\varphi\mid\varphi(\sem{\vec s_q},\vec d)=b_q\text{ for all }q\}$
+(the values $\vec d$ of the unused $\vec y$ are irrelevant).  Emptiness
+of tree automata is decidable, and a non-empty language contains a tree
+of depth at most the number of states.
 \end{proof}
 
-Note that the corollary bounds the depth without any explicit pumping:
-the automaton performs it.
+The corollary bounds the depth without explicit pumping: the automaton
+performs it, and Proposition~\ref{prop:semstretch} is the special case of
+a single repeated layer.  It also shows that, once the slots are bounded,
+minimal solutions are built from finitely many ``representative'' closures
+(one per reachable state).
 
-\section{Merging variables}\label{sec:merge}
+\section{Semi-cellular terms}\label{sec:semicell}
 
-\subsection{Definable values and representatives}
+Let $t$ be closed with
+$\NF(t)=\lambda\vec x.\,y\,(\lambda\vec w_1.b_1)\cdots(\lambda\vec w_K.b_K)$,
+so $\NF(t)=\lambda\vec x.\mcell[b_1]\ldots[b_K]$ for its \emph{top cell}
+$\mcell$.  If every $b_j$ fits the slots, with closure $c'_j$ and slot
+vector $\rho_j$, we write for closed $e_1,\ldots,e_K:\tau$
+\[
+  t\{e_1,\ldots,e_K\}=\lambda\vec x.\,\mcell[e_1\rho_1]\ldots[e_K\rho_K],
+\]
+so $t=_\beta t\{c'_1,\ldots,c'_K\}$, and use the contexts and
+\emph{induced observations}
+\[
+  D_j^{e_1\ldots e_{j-1}}[-]=t\{e_1,\ldots,e_{j-1},[-],c'_{j+1},\ldots,c'_K\},
+  \qquad
+  \mathcal M_j^{e_1\ldots e_{j-1}}=\mathcal M\circ D_j^{e_1\ldots e_{j-1}}.
+\]
+They describe how $\mathcal M$ observes hole $j$ once holes
+$1,\ldots,j-1$ have been replaced by $e_1,\ldots,e_{j-1}$.  The same
+notation applies to closures $c:\tau$ in place of $t$.
 
-Let $\mathrm{Def}_\sigma\subseteq D_\sigma$ be the set of
-$\lambda$-definable elements, i.e.\ denotations of closed terms of type
-$\sigma$.  For every $\varphi\in\mathrm{Def}_\sigma$ we fix once and for
-all a closed term $R_\varphi$ with $\sem{R_\varphi}=\varphi$ (a
-\emph{representative}; we take it as it is, without any further
-assumption on its shape).  For an environment $\eta$ with definable
-values we write $R_\eta$ for the substitution $v\mapsto R_{\eta(v)}$.
-Every value that occurs when evaluating a closed term on closed arguments
-is definable, so representatives are always available.
+\begin{definition}[Semi-cellular under $\mathcal M$]\label{def:semicell}
+By induction on the size of $\NF(t)$: $t$ is semi-cellular under
+$\mathcal M$ if
+\begin{enumerate}[label=(\roman*)]
+\item $t\ObsEq^i_{\mathcal M}\lambda\vec x.a$ for an allowed right-hand
+  side $a$; or
+\item the top cell of $\NF(t)$ is a cell, all $b_j$ fit the slots, and for
+  every $j\le K$ and all cellular $e_1,\ldots,e_{j-1}$ with
+  $e_l\ObsEq^i_{\mathcal M_l^{e_1\ldots e_{l-1}}}c'_l$ $(l<j)$, the closure
+  $c'_j$ is semi-cellular under $\mathcal M_j^{e_1\ldots e_{j-1}}$.
+\end{enumerate}
+\end{definition}
 
-\begin{lemma}[Representatives]\label{lem:repr}
-If $\FV(u)\subseteq\vec v$ and $\eta$ is a definable environment for
-$\vec v$, then $\sem{u}_\eta=\sem{u[R_\eta]}$, and $u[R_\eta]$ is closed.
-In particular $\sem{\lambda\vec w.u}_\eta$ is definable.
+\begin{lemma}\label{lem:semicell}
+If $t$ is semi-cellular under $\mathcal M$, there is a cellular $e$ with
+$t\ObsEq^i_{\mathcal M}e$.
 \end{lemma}
 \begin{proof}
-Substitution lemma for $\sem\cdot$.
+By induction on the size of $\NF(t)$.  In case~(i) take
+$e=\lambda\vec x.a$.  In case~(ii) choose cellular $e_1,\ldots,e_K$ one
+after another: given $e_1,\ldots,e_{j-1}$, the closure $c'_j$ is smaller
+than $\NF(t)$ and semi-cellular under $\mathcal M_j^{e_1\ldots e_{j-1}}$,
+so by induction there is a cellular $e_j$ with
+$c'_j\ObsEq^i_{\mathcal M_j^{e_1\ldots e_{j-1}}}e_j$.  With
+$t_j=t\{e_1,\ldots,e_j,c'_{j+1},\ldots,c'_K\}$ we have
+$t_{j-1}=D_j^{e_1\ldots e_{j-1}}[c'_j]$ and
+$t_j=D_j^{e_1\ldots e_{j-1}}[e_j]$, so Lemma~\ref{lem:congruence} gives
+$t_{j-1}\ObsEq^i_{\mathcal M}t_j$, and
+$t=_\beta t_0\ObsEq^i_{\mathcal M}\cdots\ObsEq^i_{\mathcal M}t_K$, which
+is cellular.
 \end{proof}
 
+\begin{remark}
+The holes are replaced one after another because an observation may pass
+the closure of one hole inside an argument to another hole: replacing
+$c'_l$ by an $e_l$ that agrees with it only on $\mathcal M_l$ changes what
+$c'_j$ receives.  Even for applicative $\mathcal M$ the induced
+$\mathcal M_j$ are in general not applicative (Remark~\ref{rem:multicall}).
+\end{remark}
+
+\begin{conjecture}[Main conjecture]\label{conj:main}
+For every type $A$ and every finite applicative $\mathcal M$ at type $A$
+there are computable slot numbers such that every closed $t:A$ is
+semi-cellular under $\mathcal M$.
+\end{conjecture}
+
+By Lemma~\ref{lem:semicell}, Theorem~\ref{thm:semchar} and
+Corollary~\ref{cor:cellular-decidable}, the conjecture implies
+decidability of higher-order matching.  Equivalently: every
+$\lambda$-definable $\sem t$ agrees on the points $\sem{\vec s_q}$ with
+the denotation of a term using boundedly many live variables of each
+type.  The conjecture cannot be proved in the full model alone: by
+Loader's theorem $\lambda$-definability in finite full models is
+undecidable, so the proof must use that only finitely many points matter.
+Stirling's small-solution theorem implies the existential version
+(some solution is cellular); an independent proof is what we are after.
+
+\section{Towards the main conjecture: bounding the slots}\label{sec:bounding}
+
+\subsection{Representatives and merging}\label{sec:merge}
+
+Let $\Def_\sigma\subseteq D_\sigma$ be the set of $\lambda$-definable
+elements.  For every $\varphi\in\Def_\sigma$ we fix a closed term
+$R_\varphi$ with $\sem{R_\varphi}=\varphi$, taken as it is (a
+\emph{representative}).  For a definable environment $\eta$ write $R_\eta$
+for the substitution $v\mapsto R_{\eta(v)}$.  Every value that occurs
+when a closed term is evaluated on closed arguments is definable.
+
+\begin{lemma}[Representatives]\label{lem:repr}
+If $\FV(u)\subseteq\vec v$ and $\eta$ is definable, then
+$\sem u_\eta=\sem{u[R_\eta]}$; in particular $\sem{\lambda\vec w.u}_\eta$
+is definable.
+\end{lemma}
+
 \begin{definition}[Definable equivalence]
-Define $\approx_\sigma\subseteq\mathrm{Def}_\sigma\times\mathrm{Def}_\sigma$
-by: $\approx_\Ground$ is equality, and $\varphi\approx_{\sigma\to\tau}\psi$
-iff $\varphi\,a\approx_\tau\psi\,a'$ for all $a\approx_\sigma a'$.
+$\approx_\Ground$ is equality on $\Def_\Ground$, and
+$\varphi\approx_{\sigma\to\tau}\psi$ iff $\varphi\,a\approx_\tau\psi\,a'$
+for all $a\approx_\sigma a'$ in $\Def_\sigma$.
 \end{definition}
 
 \begin{lemma}[Fundamental lemma]\label{lem:fundamental}
-Every definable element is $\approx$-related to itself.  Consequently, if
-$F\in\mathrm{Def}_{\sigma_1\to\cdots\to\sigma_K\to\Ground}$ and
-$\varphi_j\approx\psi_j$, then $F\,\vec\varphi=F\,\vec\psi$.
+Every definable element is $\approx$-related to itself.  Hence, if $F$ is
+definable and $\varphi_j\approx\psi_j$, then $F\,\vec\varphi=F\,\vec\psi$.
+Moreover, definable $H,H':\vec\tau\to\Ground$ that agree on all definable
+arguments satisfy $H\approx H'$.
 \end{lemma}
 \begin{proof}[Proof sketch]
-The definable elements form a sub-applicative structure of the full model
-containing the interpretations of all closed terms, so the standard
-fundamental lemma of logical relations applies (induction on terms with
-$\approx$-related definable environments).
+The definable elements form a sub-applicative structure containing all
+closed-term denotations, so the fundamental lemma of logical relations
+applies.  For the last claim, $H\vec a=H\vec a'=H'\vec a'$ for
+$\vec a\approx\vec a'$.
 \end{proof}
-
-\begin{lemma}[Pointwise agreement suffices]\label{lem:pointwise}
-Let $H,H'\in\mathrm{Def}_{\vec\tau\to\Ground}$ with $H\,\vec a=H'\,\vec a$
-for all $\vec a\in\mathrm{Def}_{\vec\tau}$.  Then $H\approx H'$.
-\end{lemma}
-\begin{proof}
-For $\vec a\approx\vec a'$: $H\vec a=H\vec a'$ by
-Lemma~\ref{lem:fundamental} applied to $H$, and $H\vec a'=H'\vec a'$ by
-assumption.
-\end{proof}
-
-\subsection{Needed environments}
 
 Let $c=\lambda\vec v.\,y\,(\lambda\vec w_1.b_1)\cdots(\lambda\vec w_K.b_K)$
-be closed and normal at the top, $y\in\vec v$, and let
-$E\subseteq\mathrm{Def}_{\vec v}$ be a finite set of environments (the
-points at which the value of $c$ matters).  For $\eta\in E$ put
-$H^\eta_j=\sem{\lambda\vec w_j.b_j}_\eta$, which is definable by
-Lemma~\ref{lem:repr}.  Then
+and let $E\subseteq\Def_{\vec v}$ be a finite set of environments at which
+the value of $c$ matters.  The \emph{needed environments} of hole $j$ are
 \[
-  \sem c(\eta)=\eta(y)\bigl(H^\eta_1,\ldots,H^\eta_K\bigr).
+  E_j=\{\,(\eta,\vec a)\mid\eta\in E,\ \vec a\in\Def_{\vec w_j}\,\},
+  \qquad |E_j|\le|E|\cdot|D_{\vec w_j}|.
 \]
-
-\begin{definition}[Needed environments of a hole]
-\[
-  E_j=\{\,(\eta,\vec a)\mid \eta\in E,\ \vec a\in\mathrm{Def}_{\vec w_j}\,\}
-  \subseteq\mathrm{Def}_{\vec v\vec w_j}.
-\]
-\end{definition}
-
-Note $|E_j|\le|E|\cdot|D_{\vec w_j}|$, and $|D_{\vec w_j}|$ depends only
-on the type of $y$, hence only on $A$.
 
 \begin{lemma}[Local replacement]\label{lem:local}
-Let $b'_j$ ($j=1,\ldots,K$) be terms with
-$\FV(b'_j)\subseteq\vec v\cup\vec w_j$ and
-$\sem{b'_j}_e=\sem{b_j}_e$ for all $e\in E_j$.  Then
+If $\sem{b'_j}_e=\sem{b_j}_e$ for all $e\in E_j$ and all $j$, then
 $c'=\lambda\vec v.\,y\,(\lambda\vec w_1.b'_1)\cdots(\lambda\vec w_K.b'_K)$
-satisfies $\sem{c'}(\eta)=\sem{c}(\eta)$ for all $\eta\in E$.
+satisfies $\sem{c'}(\eta)=\sem c(\eta)$ for all $\eta\in E$.
 \end{lemma}
 \begin{proof}
-Fix $\eta\in E$.  $H'^\eta_j$ and $H^\eta_j$ are definable and agree on
-all definable points, so $H'^\eta_j\approx H^\eta_j$ by
-Lemma~\ref{lem:pointwise}.  Since $\eta(y)$ is definable,
-Lemma~\ref{lem:fundamental} gives
-$\eta(y)(\vec H'^\eta)=\eta(y)(\vec H^\eta)$.
+For $\eta\in E$, $\sem c(\eta)=\eta(y)(H^\eta_1,\ldots,H^\eta_K)$ with
+$H^\eta_j=\sem{\lambda\vec w_j.b_j}_\eta$ definable
+(Lemma~\ref{lem:repr}).  $H'^\eta_j$ and $H^\eta_j$ agree on all definable
+points, so they are $\approx$-related, and $\eta(y)$ is definable;
+apply Lemma~\ref{lem:fundamental}.
 \end{proof}
 
 \begin{lemma}[Merging]\label{lem:merging}
-In the situation above let $v,v'$ be two variables of $\vec v\cup\vec w_j$
-of the same type with $e(v)=e(v')$ for all $e\in E_j$.  Then
-$b'_j=b_j[v/v']$ satisfies the hypothesis of Lemma~\ref{lem:local}.
-Consequently, at hole $j$ one can assume that the live variables of
-type $\sigma$ have pairwise distinct value vectors in
-$D_\sigma^{E_j}$, so there are at most $|D_\sigma|^{|E_j|}$ of them.
+If $v,v'$ are variables of $\vec v\cup\vec w_j$ of the same type with
+$e(v)=e(v')$ for all $e\in E_j$, then $b'_j=b_j[v/v']$ satisfies the
+hypothesis of Lemma~\ref{lem:local}.  Hence at hole $j$ one may assume at
+most $|D_\sigma|^{|E_j|}$ live variables of type $\sigma$.
 \end{lemma}
 \begin{proof}
-Substitution lemma: $\sem{b_j[v/v']}_e=\sem{b_j}_{e[v':=e(v)]}=\sem{b_j}_e$.
-Merge repeatedly; each merge removes one live variable.
+$\sem{b_j[v/v']}_e=\sem{b_j}_{e[v':=e(v)]}=\sem{b_j}_e$.
 \end{proof}
 
-\subsection{Iterating}
+Applied top-down from $E^{(0)}=\{\sem{\vec s_q}\}_q$, the lemmas preserve
+the values on $E^{(0)}$, so the result is still a solution.  Passing a
+closure inside an argument to another hole does no harm, because $E_j$
+contains all definable points.  The bounds stay computable, since only
+$|\Def_\sigma|\le|D_\sigma|$ is used, although $\Def_\sigma$ itself is not
+computable.
 
-Starting from the root with $E^{(0)}=\{\sem{\vec s_1},\ldots,\sem{\vec s_p}\}$
-(the points of the matching problem) and applying
-Lemmas~\ref{lem:local} and~\ref{lem:merging} top-down, the hole contents
-are modified only on points that do not matter, so the final term has
-the same value on $E^{(0)}$, hence is a solution again
-(Theorem~\ref{thm:semchar}).  Two remarks:
-\begin{enumerate}
-\item The nested-call problem disappears: if the closure of one hole is
-  passed (inside an argument) to another hole, it is preserved up to
-  $\approx$ because $E_j$ contains \emph{all} definable points of
-  $\vec w_j$, not only the points actually queried.
-\item The sets $E^{(d)}$ at depth $d$ grow:
-  $|E^{(d+1)}|\le|E^{(d)}|\cdot\max|D_{\vec w}|$.  Hence the bound
-  $|D_\sigma|^{|E^{(d)}|}$ on live variables of type $\sigma$ depends on
-  $d$.  Counting instead $|E^{(d)}|\le|D_{\text{scope}}|$ does not help,
-  because the scope is what we are trying to bound:
-  $n\le|D_\sigma|^{|D|^{n}}$ does not close.  This is the remaining gap.
-\end{enumerate}
-Note also that $\mathrm{Def}_\sigma$ is not computable in general
-(Loader), but only $|\mathrm{Def}_\sigma|\le|D_\sigma|$ is used for the
-bounds, so the bounds stay computable.
+\begin{example}[The environments multiply]\label{ex:multiply}
+Let $x:(\Ground\to\Ground)\to\Ground$, $\mathcal M=\{s\}$ with
+$s=\lambda g.\,f\,(g\,a)\,(g\,b)$, and
+$t=\lambda x.\,x(\lambda z_1.\,x(\lambda z_2.\cdots x(\lambda z_d.\,M)\cdots))$.
+Each level calls the next one twice, so $M$ is evaluated in $2^d$
+environments, one for each $(z_1,\ldots,z_d)\in\{a,b\}^d$, and the value
+vectors of $z_1,\ldots,z_d$ are pairwise distinct.  The bound of
+Lemma~\ref{lem:merging} is $|D_\Ground|^{2^d}$: it depends on the depth.
+In general $|E^{(d+1)}|\le|E^{(d)}|\cdot\max|D_{\vec w}|$, and counting
+$|E^{(d)}|\le|D_{\mathrm{scope}}|$ instead is circular: $n\le|D|^{|D|^n}$
+does not close.
+\end{example}
 
-\section{Contexts as transducers: intersection types}\label{sec:itypes}
+\subsection{Contexts as transducers: intersection types}\label{sec:itypes}
 
-In Section~\ref{sec:merge} a hole had to be correct on \emph{all}
-definable values of its bound variables, because in the full model a
-context is only a function of the value of the hole and carries no
-information on which points it actually queries.  Here a context is
-treated as a transducer: from a requirement on the whole term it
-produces the requirements it sends into the hole.  The tool is a
-finitary intersection type system whose types are read in the model $D$.
-
-\subsection{Types refining the model}
+In Section~\ref{sec:merge} a hole had to be correct on all definable
+values of its bound variables, because in the full model a context is a
+function of the value of its hole and does not record which points it
+queries.  We now treat a context as a transducer that, from a requirement
+on the whole term, produces the requirements it actually sends into its
+holes.
 
 \begin{definition}[Refinement types]
-For every simple type $\sigma$ define the finite set $\mathrm{Ty}_\sigma$:
-\[
-  \mathrm{Ty}_\Ground=D_\Ground,\qquad
-  \mathrm{Ty}_{\sigma\to\tau}=\{\,S\to\theta\mid
-     S\subseteq\mathrm{Ty}_\sigma,\ \theta\in\mathrm{Ty}_\tau\,\}.
-\]
-A set $S\subseteq\mathrm{Ty}_\sigma$ is read as the intersection of its
-elements; $S=\varnothing$ is allowed.  The interpretation
-$\sem\theta\subseteq D_\sigma$ is
+$\Ty_\Ground=D_\Ground$ and
+$\Ty_{\sigma\to\tau}=\{\,S\to\theta\mid S\subseteq\Ty_\sigma,\ \theta\in\Ty_\tau\,\}$,
+with $S$ read as an intersection ($S=\varnothing$ allowed) and
 \[
   \sem d=\{d\},\qquad
-  \sem{S\to\theta}=\{\,\varphi\in D_{\sigma\to\tau}\mid
-     \forall a\in\textstyle\bigcap_{s\in S}\sem s.\ \varphi\,a\in\sem\theta\,\},
+  \sem{S\to\theta}=\{\,\varphi\mid
+     \forall a\in\textstyle\bigcap_{s\in S}\sem s.\ \varphi\,a\in\sem\theta\,\}.
 \]
-with $\bigcap\varnothing=D_\sigma$.
-\end{definition}
-
-A \emph{type environment} $\Delta$ assigns to finitely many variables
-$x:\sigma$ a set $\Delta(x)\subseteq\mathrm{Ty}_\sigma$ (absent variables
-get $\varnothing$).  Judgements are $\Delta\vdash M:\theta$.
-
-\begin{definition}[Typing rules]
+A type environment $\Delta$ assigns to variables $x:\sigma$ sets
+$\Delta(x)\subseteq\Ty_\sigma$.  The rules are
 \[
 \frac{\theta\in\Delta(x)}{\Delta\vdash x:\theta}
-\qquad
+\quad
 \frac{}{\Delta\vdash a:a}
-\qquad
-\frac{d_1,\ldots,d_r\in D_\Ground}
-     {\Delta\vdash f:\{d_1\}\to\cdots\to\{d_r\}\to\hat f(d_1,\ldots,d_r)}
-\]
-\[
+\quad
+\frac{}{\Delta\vdash f:\{d_1\}\to\cdots\to\{d_r\}\to\hat f(\vec d)}
+\quad
 \frac{\Delta,x:S\vdash M:\theta}{\Delta\vdash\lambda x.M:S\to\theta}
-\qquad
-\frac{\Delta\vdash M:S\to\theta\qquad
-      \Delta\vdash N:s\ \text{ for every } s\in S}
+\quad
+\frac{\Delta\vdash M:S\to\theta\quad\Delta\vdash N:s\ (s\in S)}
      {\Delta\vdash M\,N:\theta}
 \]
-(In the abstraction rule $x\notin\mathrm{dom}(\Delta)$; in the
-application rule $S=\varnothing$ means that $N$ is not typed at all.)
 \end{definition}
 
-\begin{lemma}[Soundness]\label{lem:it-sound}
-If $\Delta\vdash M:\theta$ and $\eta$ is an environment with
-$\eta(x)\in\bigcap_{s\in\Delta(x)}\sem s$ for all $x$, then
-$\sem M_\eta\in\sem\theta$.
-\end{lemma}
-\begin{proof}
-Induction on the derivation; each rule is the definition of
-$\sem{S\to\theta}$.
-\end{proof}
-
-\begin{lemma}[Completeness at ground type]\label{lem:it-complete}
-For closed $N:\Ground$: $\vdash N:d$ iff $\sem N=d$.
+\begin{lemma}[Soundness and ground completeness]\label{lem:it}
+If $\Delta\vdash M:\theta$ and $\eta(x)\in\bigcap_{s\in\Delta(x)}\sem s$
+for all $x$, then $\sem M_\eta\in\sem\theta$.  For closed $N:\Ground$,
+$\vdash N:d$ iff $\sem N=d$.  Hence $\sem{t\,\vec s_q}=b_q$ iff
+$\vdash t:S_1\to\cdots\to S_n\to b_q$ for some $S_i$ with
+$\vdash s_{q,i}:s$ for all $s\in S_i$.
 \end{lemma}
 \begin{proof}[Proof sketch]
-($\Rightarrow$) Lemma~\ref{lem:it-sound}.  ($\Leftarrow$) The system has
-subject expansion: if $M\to_\beta M'$ and $\Delta\vdash M':\theta$, then
-$\Delta\vdash M:\theta$ (the argument of the contracted redex is typed by
-the types at which the substituted variable was used, possibly none).
-$\NF(N)$ is a first-order ground term, and $\vdash\NF(N):\sem{\NF(N)}$
-is derived directly by the rules for $a$ and $f$.
-\end{proof}
-
-\begin{corollary}\label{cor:it-matching}
-For closed $t$ and $\vec s_q$:
-$\sem{t\,\vec s_q}=b_q$ iff there are
-$\theta_q=S_1\to\cdots\to S_n\to b_q$ with $\vdash t:\theta_q$ and
-$\vdash s_{q,i}:s$ for all $s\in S_i$.
-\end{corollary}
-\begin{proof}
-Lemma~\ref{lem:it-complete} and inversion of the application rule.
+Soundness by induction on derivations.  Completeness by subject expansion
+(the argument of a contracted redex is typed at the types at which the
+substituted variable was used, possibly none) and a direct derivation for
+the first-order normal form.  The last claim is inversion of the
+application rule.
 \end{proof}
 
 So a matching problem becomes a finite set of \emph{top requirements}
-$\vdash t:\theta_q$.
-
-\subsection{Contexts as transducers}
-
-Let $L$ be a context with one hole of type $\Ground$ and let $\vec v$
-be the variables in scope at the hole.  A \emph{hole requirement} is a
-judgement $\Delta\vdash\hole{}:d$ with $\mathrm{dom}(\Delta)\subseteq\vec v$.
-For a set $J$ of hole requirements, $\vdash_J$ is the system above
-extended by the axiom
-\[
-  \frac{(\Delta\vdash\hole{}:d)\in J}{\Delta'\vdash\hole{}:d}
-  \quad(\Delta\subseteq\Delta'\text{ pointwise}).
-\]
+$\vdash t:\theta_q$.  For a context $L$ with one hole and variables
+$\vec v$ in scope at the hole, a \emph{hole requirement} is a judgement
+$\Delta\vdash\hole{}:d$ with $\mathrm{dom}(\Delta)\subseteq\vec v$;
+$\vdash_J$ extends the rules by the axioms
+$\Delta'\vdash\hole{}:d$ for $(\Delta\vdash\hole{}:d)\in J$ and
+$\Delta\subseteq\Delta'$.
 
 \begin{lemma}[Decomposition]\label{lem:decomp}
 $\Gamma\vdash L[b]:\theta$ iff there is a finite set $J$ of hole
-requirements such that $\Gamma\vdash_J L:\theta$ and $\Delta\vdash b:d$ for
-every $(\Delta\vdash\hole{}:d)\in J$.
+requirements with $\Gamma\vdash_J L:\theta$ and $\Delta\vdash b:d$ for all
+$(\Delta\vdash\hole{}:d)\in J$.
 \end{lemma}
 \begin{proof}
-($\Rightarrow$) Take for $J$ the judgements of the subderivations for
-$b$ in the given derivation, and cut them off.  ($\Leftarrow$) Plug the
-derivations for $b$ into the leaves of $\vdash_J$; this needs the
-weakening $\Delta\subseteq\Delta'$, which is admissible in the system
-because the variable rule only asks $\theta\in\Delta(x)$.
+Cut the derivation at the subderivations for $b$, respectively plug them
+in, using admissible weakening.
 \end{proof}
 
-Thus $L$ acts as a nondeterministic transducer
-\[
-  T_L:\ (\Gamma\vdash\theta)\ \longmapsto\
-  \{\,J\mid \Gamma\vdash_J L:\theta\,\}:
-\]
-it receives a requirement from above and sends requirements into the
-hole.  Unlike the sets $E_j$ of Section~\ref{sec:merge}, $J$ contains
-only the requirements that the derivation actually uses: a variable
-that the context never applies to some value does not generate a
-requirement for that value.  For a cell
-$\mcell=y\,(\lambda\vec w_1.\hole1)\cdots(\lambda\vec w_K.\hole K)$
-the transducer is explicit: a requirement $\Gamma\vdash\Sigma:d$ is met by
-choosing $(S_1\to\cdots\to S_K\to d)\in\Gamma(y)$ and, for each $j$ and
-each $(R_1\to\cdots\to R_l\to d')\in S_j$, sending
-$\Gamma,\vec w_j:\vec R\vdash\hole j:d'$ into hole $j$.
-
-\subsection{Merging, typed}
+Thus $L$ is a nondeterministic transducer
+$(\Gamma\vdash\theta)\mapsto\{J\mid\Gamma\vdash_J L:\theta\}$.  For a cell
+$y\,(\lambda\vec w_1.\hole1)\cdots(\lambda\vec w_K.\hole K)$ it is explicit:
+a requirement $\Gamma\vdash\mcell:d$ is met by choosing
+$(S_1\to\cdots\to S_K\to d)\in\Gamma(y)$ and sending, for each
+$(R_1\to\cdots\to R_l\to d')\in S_j$, the requirement
+$\Gamma,\vec w_j:\vec R\vdash\hole j:d'$ into hole $j$.  Unlike $E_j$,
+the set $J$ contains only what is actually used.
 
 \begin{lemma}[Typed merging]\label{lem:typed-merge}
-Let $J$ be a set of hole requirements, $\Delta\vdash b:d$ for all
-$(\Delta\vdash\hole{}:d)\in J$, and $v,v'$ two variables of the same
-simple type with $\Delta(v')\subseteq\Delta(v)$ for every
-$(\Delta\vdash\hole{}:d)\in J$.  Then $\Delta\vdash b[v/v']:d$ for every
-such requirement.
+If $\Delta\vdash b:d$ for all $(\Delta\vdash\hole{}:d)\in J$ and
+$\Delta(v')\subseteq\Delta(v)$ for all of them, then
+$\Delta\vdash b[v/v']:d$ for all of them.  Hence at a hole with
+requirement set $J$ one may assume at most
+$(2^{|\Ty_\sigma|})^{|J|}$ live variables of type $\sigma$, and variables
+with $\Delta(v)=\varnothing$ throughout are dead.
 \end{lemma}
 \begin{proof}
-In each derivation of $\Delta\vdash b:d$ replace every use of $v'$ by
-$v$: the variable rule for $v'$ uses some $\theta\in\Delta(v')$, which
-lies in $\Delta(v)$.
+Replace each use of $v'$ by $v$; the type used for $v'$ lies in
+$\Delta(v)$.  The term still meets its top requirements by
+Lemma~\ref{lem:decomp}.
 \end{proof}
 
-By Lemma~\ref{lem:decomp} the whole term still meets its top
-requirements, so by Corollary~\ref{cor:it-matching} it is still a
-solution.  Consequently at a hole with requirement set $J$ we may assume
-that, for each simple type $\sigma$, the live variables of type $\sigma$
-have pairwise $\subseteq$-incomparable vectors
-$(\Delta(v))_{(\Delta\vdash\hole{}:d)\in J}$, so there are at most
-\[
-  \bigl(2^{|\mathrm{Ty}_\sigma|}\bigr)^{|J|}
-\]
-of them.  Compared with Lemma~\ref{lem:merging}, the exponent is the
-number of requirements actually sent into the hole, not
-$|E|\cdot|D_{\vec w}|$, and the merging criterion is inclusion, not
-equality.  Variables with $\Delta(v)=\varnothing$ for all requirements
-are dead and can be dropped.
+\begin{conjecture}[Bounded requirements]\label{conj:req}
+For every type $A$ and every finite set of top requirements there is a
+computable $B$ such that every term meeting them does so via derivations
+in which every hole of its cell decomposition receives at most $B$
+distinct requirements.
+\end{conjecture}
 
-\subsection{The open step}
+Conjecture~\ref{conj:req} and Lemma~\ref{lem:typed-merge} bound the live
+variables, which gives Conjecture~\ref{conj:main}.
 
-The bound depends on $|J|$, so everything reduces to bounding the number
-of distinct requirements sent into a hole.
+\section{Open problems and directions}\label{sec:open}
 
-\begin{quote}
-\textbf{Conjecture (bounded requirements).} For every type $A$ and every
-finite set of top requirements there is a computable $B$ such that every
-term meeting them meets them via derivations in which every hole of the
-cellular decomposition receives at most $B$ distinct requirements.
-\end{quote}
-
-The conjecture together with Lemma~\ref{lem:typed-merge} bounds the live
-variables, hence the slots, and Corollary~\ref{cor:cellular-decidable}
-then gives decidability.  Remarks:
 \begin{enumerate}
-\item Along a path of cells the requirements multiply: the cell rule
-  sends, for each requirement at the parent, one requirement per type in
-  each $S_j$.  But $J$ is a \emph{set}: requirements that coincide
-  collapse.  A requirement is $\Delta\vdash\hole{}:d$, and after merging
-  $\Delta$ ranges over assignments to a bounded number of variables, so
-  the number of distinct requirements is bounded by a function of the
-  slot numbers.  The task is to break the circularity between the slot
-  bound and the requirement bound.
-\item The transducer view suggests pumping on requirements: if along a
-  path two holes receive the \emph{same} requirement set (up to renaming
-  of slots), the segment between them can be cut, as in
-  Proposition~\ref{prop:semstretch}, but for derivations instead of
-  values.  This removes repetitions but does not by itself bound $|J|$.
-\item Requirements on variables bound far above a hole are inherited
-  unchanged ($\Gamma$ is passed down), so one may try to count only
-  requirements on variables bound in the last few cells and to merge
+\item \textbf{The circularity.}  Requirements multiply along a path of
+  cells (one per type in each $S_j$), but $J$ is a set, and after merging
+  the number of distinct requirements is bounded by a function of the slot
+  numbers.  The task is to break the circularity between the slot bound
+  and the requirement bound (Example~\ref{ex:multiply} shows that counting
+  coordinates alone does not).
+\item \textbf{Counting distinctions instead of coordinates.}  In
+  Example~\ref{ex:multiply} the variables $z_1,\ldots,z_d$ have distinct
+  vectors, but a ground leaf of depth at most $1$ uses at most $r$ of them.
+  The question is how many variables a subterm of higher type can carry
+  further down, i.e.\ how many it actually distinguishes on its calls.
+\item \textbf{Pumping on requirements.}  If two holes on a path receive the
+  same requirement set (up to renaming of slots), the segment between them
+  can be cut, as in Proposition~\ref{prop:semstretch} but for derivations.
+  This removes repetitions but does not by itself bound $|J|$.
+\item \textbf{Inherited requirements.}  Requirements on variables bound
+  far above a hole are passed down unchanged; one may try to merge
   inherited variables at the level where they are bound.
-\item One may choose derivations minimal in a suitable sense (e.g.\ with
-  the fewest distinct requirements), since the conjecture only asks for
-  the existence of good derivations.
-\end{enumerate}
-
-\section{What remains}
-
-By Corollary~\ref{cor:cellular-decidable} and Lemma~\ref{lem:semicell},
-decidability of higher-order matching follows from:
-
-\begin{quote}
-\textbf{Main conjecture.} For every type $A$ and every finite applicative
-$\mathcal M$ at type $A$ there are computable slot numbers such that
-every closed $t:A$ is semi-cellular under $\mathcal M$ (hence
-$\ObsEq^1_{\mathcal M}$ to a cellular term).
-\end{quote}
-
-By Theorem~\ref{thm:semchar} the conjecture says: every function
-$\sem t$ that is $\lambda$-definable agrees on the finitely many points
-$\sem{\vec s_q}$ with the denotation of a term using boundedly many live
-variables of each type.
-
-Remarks on the conjecture.
-\begin{enumerate}
-\item It cannot be proved by working in the full model alone: by
-  Loader's theorem, $\lambda$-definability of elements of finite full
-  models is undecidable, so the bound must use that only finitely many
-  points matter.
-\item A natural first attempt is to merge variables
-  (Section~\ref{sec:merge}).  At a hole, only the
-  environments that actually occur when evaluating $t$ on the points
-  $\sem{\vec s_q}$ matter; two live variables of the same type that have
-  equal values in all of these environments can be identified.  This
-  bounds the number of variables of type $\sigma$ by
-  $|D_\sigma|^{|E|}$, where $E$ is the set of occurring environments.
-  But $|E|$ itself grows with the number of variables in scope, so the
-  bound does not close.  This is where an argument specific to matching
-  (as in Padovani's order-4 proof or Stirling's games) is needed.
-\item Proposition~\ref{prop:semstretch} applies to any layer whose hole
-  has the same environment type as its outside; in cellular terms this
-  holds for every layer, which is why the slot renaming $c\,\rho$ is
-  essential.
-\item Section~\ref{sec:itypes} replaces values by intersection-type
-  requirements, so that only what a context actually sends into a hole
-  counts; the main conjecture then follows from the bounded-requirements
-  conjecture stated there.
+\item \textbf{Minimal derivations.}  Conjecture~\ref{conj:req} only asks
+  for good derivations to exist, so one may choose derivations with the
+  fewest distinct requirements.
+\item \textbf{Representatives of arguments.}  Replacing each argument of a
+  cell by a fixed representative of its class bounds the size of a
+  solution once the free variables of the arguments are bounded
+  (Corollary~\ref{cor:cellular-decidable}); without such a bound the
+  arguments are open terms whose closures have the order of $A$, so the
+  induction on order does not apply.
+\item \textbf{Technical TODOs.}  The context lemma in the preorder form
+  (Lemma~\ref{lem:context}); full proofs of Lemmas~\ref{lem:fundamental}
+  and~\ref{lem:it}.
 \end{enumerate}
 
 \end{document}
