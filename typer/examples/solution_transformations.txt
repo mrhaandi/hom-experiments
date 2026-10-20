@@ -1,0 +1,65 @@
+a : o
+b : o
+c : o
+c' : o
+d : o
+d' : o
+f : o -> o -> o -> o
+ff : o -> o
+
+K = fun x y. x
+K' = fun x y. y
+fK = fun z1 z2 x y. z1
+
+underx2 = fun x3 z1 z2 z3 z4.
+    x3 (fun z5 z6.
+      z1 (z4 (z5 (z5 c' c') c') (z5 z6 c))
+         (z5 (z4 d z6) d'))
+       z3
+       z2
+
+solution = fun x1 x2 x3.
+    x1 (fun z1 z2.
+      x2 (fun z3 z4.
+        underx2 x3 z1 z2 z3 z4))
+
+arg1 = fun y1.
+    y1 K (y1 K' a)
+
+arg2 = fun y1.
+    y1 (fun y2 y3. y2)
+       (fun y2 y3.
+         y1 (fK y2 y3) K')
+
+arg3 = fun y1 y2 y3.
+    y1 y2 y3
+
+solution' = fun x1 x2 x3.
+    x1 (fun z1 z2.
+      x2 (fun z3 z4.
+        underx2 x3 z1 z2
+          (fun u1 u2.
+            x2 (fun z3' z4'.
+              z4' (z3' e e') (z3' u2 e')))
+          z4))
+
+e : o
+e' : o
+
+deeper_arg2 = fun u1 u2. f a u1 u2
+
+higher_arg2 = fun u3 u4. f (f a d a) u3 u4
+
+ss = fun x.
+    x (fun z1.
+      fun z2. z2 (z1 a))
+
+arg = fun y.
+    y (fun z1.
+      y (fun z2. z2)
+        (fun z2. ff z1))
+      (fun z. z)
+
+res1 = NF(solution arg1 arg2 arg3)
+res2 = NF(solution' arg1 arg2 arg3)
+res3 = NF(ss arg)

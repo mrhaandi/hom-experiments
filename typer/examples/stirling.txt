@@ -1,0 +1,24 @@
+a : o
+b : o
+g : o -> o
+
+
+main_solution = fun x1 x2. x2 (fun z1 z2. x1 z1 (fun s1 s2. x1 b (fun u1 u2. z2 s1 s2)))
+
+main_solution' = fun x1 x2. x2 (fun z1 z2. x1 z1 (fun s1 s2. x1 b (fun u1 u2. z2 s1 s1)))
+
+main_solution'' = fun x1 x2. x2 (fun z1 z2. x1 z1 (fun s1 s2. x1 b (fun u1 u2. z2 s2 s1)))
+
+main_solution''' = fun x1 x2. x2 (fun z1 z2. x1 z1 (fun s1 s2. x1 b (fun u1 u2. z2 s2 s2)))
+
+arg1 = fun y1 y2. y2 y1 y1
+
+arg2 = fun y3. y3 (y3 a (fun w1 w2.w1)) (fun v1 v2. g v2)
+
+main_solution_args = NF(main_solution arg1 arg2)
+
+main_solution'_args = NF(main_solution' arg1 arg2)
+
+main_solution''_args = NF(main_solution'' arg1 arg2)
+
+main_solution'''_args = NF(main_solution''' arg1 arg2)
