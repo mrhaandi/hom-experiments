@@ -22,7 +22,9 @@ Options:
 
 ## Input format
 
-One statement per line, `#` starts a comment.
+`#` starts a comment. A statement may span several lines: it ends at a blank line, or where a
+line that is not indented starts a new statement (`name :`, `name =`, `cannonical:`), so
+one-line statements can follow each other directly. See `examples/solution_transformations.txt`.
 
     v : a /\ (a -> a)            # type declaration of a term variable
     M = fun x.fun y.x y          # term definition
@@ -88,9 +90,13 @@ same type (copies of a duplicated argument) as long as their types are exactly t
 
 With omega the type and the context are preserved by expansion. Without omega an erased argument
 is typed through its own normal form (atoms `b_{...}`, `c_{...}`, ...), so free variables of it
-enter the context, and the domain of a binder above the redex may grow. One case is not supported
-yet and is reported as an error: without omega, under cbv, when that growth would change the domain
-of an abstraction that is already applied to an argument.
+enter the context, and the domain of a binder above the redex may grow. Under cbv the redex can be
+inside an argument, and that growth can change the type of the argument. If the function applied to
+it has a variable as its head, the variable simply gets the new type. If the function is an
+abstraction that needs a new type for its argument, the argument is typed again at that type
+(through its normal form) when possible. When even that fails, the derivation of that term is
+obtained along its own normal order reduction (cbn) from the normal form, and the expansion along
+cbv continues from it; such derivations are labelled "expanded along cbn" in the output.
 
 ## Sequence types and the SIAM
 

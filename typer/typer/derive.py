@@ -66,7 +66,22 @@ def _dedup(types: list[Type], system: System) -> list[Type]:
     return out
 
 
+_CONTEXTS: dict[tuple[int, System], tuple[Deriv, Context]] = {}
+
+
 def context(d: Deriv, system: System) -> Context:
+    """The context of the conclusion of d (a fresh dict; results are cached per node)."""
+    key = (id(d), system)
+    hit = _CONTEXTS.get(key)
+    if hit is None or hit[0] is not d:  # ids of dead objects may be reused
+        hit = (d, _context(d, system))
+        if len(_CONTEXTS) > 200_000:
+            _CONTEXTS.clear()
+        _CONTEXTS[key] = hit
+    return {x: list(ts) for x, ts in hit[1].items()}
+
+
+def _context(d: Deriv, system: System) -> Context:
     match d.rule:
         case "lamstar":
             return {}
@@ -250,6 +265,10 @@ class Expander:
     strategy: str = "cbn"
     max_steps: int = DEFAULT_MAX_STEPS
     _prefixes: "count[int]" = field(default_factory=lambda: count(1))
+    # Atoms instantiated during the current expansion (see _erased); applied to the whole result.
+    _sub: dict[str, Type] = field(default_factory=dict)
+    # Terms of the last `along` whose derivation was not expanded from the next one.
+    restarts: list[int] = field(default_factory=list)
 
     def fresh_prefix(self) -> str:
         n = next(self._prefixes)
@@ -264,8 +283,25 @@ class Expander:
         ds = [canonical(trace.result, self.system)]
         if declarations:
             ds[0] = fit_declarations(ds[0], declarations, self.system)
+        self.restarts = []
         for i in range(trace.steps - 1, -1, -1):
-            ds.append(self.expand(ds[-1], trace.terms[i], trace.redexes[i]))
+            try:
+                ds.append(self.expand(ds[-1], trace.terms[i], trace.redexes[i]))
+            except TyperError:
+                if self.strategy == "cbn":
+                    raise
+                # Without omega an expansion step of cbv can need types the derivation of the
+                # reduct does not have. Start again from term i: its derivation is expanded
+                # along its own normal order reduction, and the expansion goes on from there.
+                again = Expander(self.system, "cbn", self.max_steps, self._prefixes).along(
+                    normalize(trace.terms[i], "cbn", self.max_steps), declarations
+                )
+                ds.append(again[0])
+                self.restarts.append(i)
+                self._sub = {}
+                continue
+            if self._sub:  # keep the atoms of the derivations computed so far consistent
+                ds[:-1] = [subst_deriv(e, self._sub) for e in ds[:-1]]
         ds.reverse()
         return ds
 
@@ -277,6 +313,10 @@ class Expander:
         Otherwise the domain of that binder may have to grow (see _erased).
         """
         binders: dict[str, Deriv] = {}
+        self._sub = {}
+
+        def same(old: Type, new: Type) -> bool:
+            return subst_type(old, self._sub) == subst_type(new, self._sub)
 
         def go(d: Deriv, t: Term, pos: Position) -> Deriv:
             if not pos:
@@ -294,46 +334,74 @@ class Expander:
                     return Deriv("app", t, d.type, (fun, *self._extra_args(d.premises[0], fun, d.premises[1:], a)))
                 case "a", App(f, a), "app":
                     args = tuple(go(p, a, rest) for p in d.premises[1:])
-                    if any(p.type != q.type for p, q in zip(args, d.premises[1:])):
+                    if all(same(q.type, p.type) for p, q in zip(args, d.premises[1:])):
+                        return Deriv("app", t, d.type, (d.premises[0], *args))
+                    # Without omega an erased argument may add uses of a variable bound inside
+                    # the argument, so its type changes. A function with a variable as its head
+                    # just takes the new type: its head variable gets a different axiom type.
+                    dom = domain([subst_type(p.type, self._sub) for p in args], self.system)
+                    fun = _retype_head(subst_deriv(d.premises[0], self._sub), dom)
+                    if fun is None:
                         raise TyperError(
                             f"without omega, expanding inside the argument {show_term(a)} changed its type; "
                             f"this case is not supported yet"
                         )
-                    return Deriv("app", t, d.type, (d.premises[0], *args))
+                    return Deriv("app", t, d.type, (fun, *args))
             raise AssertionError(f"derivation does not follow the term at {step}")
 
-        return go(d, t, pos)
+        out = go(d, t, pos)
+        return subst_deriv(out, self._sub) if self._sub else out
 
     def _extra_args(self, old: Deriv, new: Deriv, args: tuple[Deriv, ...], arg: Term) -> tuple[Deriv, ...]:
-        """Arguments for a function whose domain grew from old.type to new.type, reusing derivations."""
+        """Arguments for a function whose domain changed from old.type to new.type.
+
+        Every component of the new domain reuses a derivation of the argument with
+        that type; without one, the argument is typed again at that component
+        (see _type_at).
+        """
+        if self._sub:
+            old = subst_deriv(old, self._sub)
+            new = subst_deriv(new, self._sub)
+            args = tuple(subst_deriv(p, self._sub) for p in args)
         if old.type == new.type:
             return args
-        old_c, new_c = components(old.type.dom), components(new.type.dom)
+        new_c = components(new.type.dom) if new.type.dom != OMEGA else []
+        if self.system.idempotent and self.system.equal(domain(components(old.type.dom), self.system), domain(new_c, self.system)):
+            return args
         if self.system.idempotent:
-            if self.system.equal(domain(old_c, self.system), domain(new_c, self.system)):
-                return args
-            missing = [c for c in new_c if not any(self.system.equal(c, o) for o in old_c)]
-        else:
-            missing = list(new_c)
-            for o in old_c:
-                i = next((i for i, c in enumerate(missing) if self.system.equal(c, o)), None)
-                if i is None:
-                    missing = None
-                    break
-                missing.pop(i)
-        extra = []
-        for c in missing or []:
-            reuse = next((p for p in args if self.system.equal(p.type, c)), None)
-            if reuse is None:
-                missing = None
-                break
-            extra.append(reuse)
-        if missing is None:
-            raise TyperError(
-                f"without omega, the domain of a function applied to {show_term(arg)} had to change "
-                f"from {show_type(old.type.dom)} to {show_type(new.type.dom)}; this case is not supported yet"
-            )
-        return (*args, *extra)
+            new_c = _dedup(new_c, self.system)
+        left, out = list(args), []
+        for c in new_c:
+            i = next((i for i, p in enumerate(left) if self.system.equal(p.type, c)), None)
+            if i is not None:
+                out.append(left[i] if self.system.idempotent else left.pop(i))
+                continue
+            d = self._type_at(arg, c)
+            if d is None:
+                raise TyperError(
+                    f"without omega, the domain of a function applied to {show_term(arg)} had to change "
+                    f"from {show_type(old.type.dom)} to {show_type(new.type.dom)}, and the argument "
+                    f"cannot be typed with {show_type(c)}"
+                )
+            out.append(d)
+        return tuple(out)
+
+    def _type_at(self, n: Term, ty: Type) -> Deriv | None:
+        """A derivation of the closed term n with the type ty: of its normal form, expanded back."""
+        if free_vars(n):
+            return None
+        try:
+            trace = normalize(n, self.strategy, self.max_steps)
+        except TyperError:
+            return None
+        d = next(_type_nf(trace.result, ty, self.system, {}), None)
+        if d is None:
+            return None
+        sub = Expander(self.system, self.strategy, self.max_steps, self._prefixes)
+        d = d[0]
+        for i in range(trace.steps - 1, -1, -1):
+            d = sub.expand(d, trace.terms[i], trace.redexes[i])
+        return d
 
     def _expand_redex(self, d: Deriv, redex: Term, binders: dict[str, Deriv]) -> Deriv:
         assert isinstance(redex, App) and isinstance(redex.fun, Lam)
@@ -392,10 +460,95 @@ class Expander:
             ctx = context(d, self.system)
             needed = [t for q in captured for t in ctx[q]]
             avail = [components(binders[q].type.dom) for q in captured for _ in ctx[q]]
+            avail = [[subst_type(a, self._sub) for a in av] for av in avail]
             sub_ = _unify_choices(needed, avail, lambda a: a.name.startswith(prefix + "_{"))
+            if sub_ is None:
+                # The atoms of the derivation being expanded are arbitrary too: instantiating
+                # one everywhere (e.g. the type of an unused variable) keeps it a derivation.
+                sub_ = _unify_choices(needed, avail, _generated)
+                if sub_ is not None:
+                    self._sub = _compose(self._sub, sub_)
             if sub_ is not None:
                 d = subst_deriv(d, sub_)
         return d
+
+
+def _type_nf(t: Term, ty: Type, system: System, avail: dict[str, tuple[list[Type], list[Type]]]):
+    """All derivations of the normal form t with the type ty, with the remaining avail.
+
+    avail maps every bound variable to (its domain, the components not used yet);
+    in non-idempotent systems each component is used exactly once, in idempotent
+    ones at least once. Yields (derivation, avail after it).
+    """
+    if isinstance(t, Lam):
+        if not isinstance(ty, Arrow):
+            return
+        comps = components(ty.dom) if ty.dom != OMEGA else []
+        for body, after in _type_nf(t.body, ty.cod, system, {**avail, t.var: (comps, list(comps))}):
+            used = t.var in context(body, system)
+            if (used and not after[t.var][1]) or (not used and (not comps if system.omega else len(comps) == 1)):
+                rest = {x: v for x, v in after.items() if x != t.var}
+                if t.var in avail:
+                    rest[t.var] = avail[t.var]
+                yield Deriv("abs", t, ty, (body,)), rest
+        return
+    head, args = spine(t)
+    if not isinstance(head, Var) or head.name not in avail:
+        return
+    dom, unused = avail[head.name]
+    for c in _dedup(dom, system) if system.idempotent else dom:
+        params, r = [], c
+        for _ in args:
+            if not isinstance(r, Arrow):
+                break
+            params.append(r.dom)
+            r = r.cod
+        if len(params) != len(args) or not system.equal(r, ty):
+            continue
+        if system.idempotent:
+            left = [u for u in unused if not system.equal(u, c)]
+        elif c in unused:
+            left = list(unused)
+            left.remove(c)
+        else:
+            continue
+        start = {**avail, head.name: (dom, left)}
+        goals = [(m, p) for m, d in zip(args, params) for p in (components(d) if d != OMEGA else [])]
+        if any(d == OMEGA for d in params) and not system.omega:
+            continue
+
+        def go(i: int, state):
+            if i == len(goals):
+                yield [], state
+                return
+            m, p = goals[i]
+            for dm, s2 in _type_nf(m, p, system, state):
+                for rest, s3 in go(i + 1, s2):
+                    yield [dm, *rest], s3
+
+        for arg_ds, after in go(0, start):
+            d = Deriv("var", head, c)
+            k = 0
+            for m, p in zip(args, params):
+                n = len(components(p)) if p != OMEGA else 0
+                d = Deriv("app", App(d.term, m), d.type.cod, (d, *arg_ds[k:k + n]))
+                k += n
+            yield d, after
+
+
+def _retype_head(d: Deriv, dom: Type) -> Deriv | None:
+    """d derives x M1 ... Mk : A -> B with x a variable; the same with domain `dom` instead of A, or None."""
+
+    def go(d: Deriv, ty: Type) -> Deriv | None:
+        match d.rule:
+            case "var":
+                return Deriv("var", d.term, ty)
+            case "app":
+                fun = go(d.premises[0], Arrow(d.premises[0].type.dom, ty))
+                return None if fun is None else Deriv("app", d.term, ty, (fun, *d.premises[1:]))
+        return None
+
+    return go(d, Arrow(dom, d.type.cod))
 
 
 # --- type substitution and unification --------------------------------------------
@@ -443,6 +596,16 @@ def _unify_inter(xs: list[Type], ys: list[Type], sub, is_var):
             if s3 is not None:
                 return s3
     return None
+
+
+def _generated(a: Atom) -> bool:
+    """Atoms made by canonical (a_{...}, b_{...}, ...), as opposed to declared ones."""
+    head, sep, _ = a.name.partition("_{")
+    return bool(sep) and head.isalnum() and a.name.endswith("}")
+
+
+def _compose(first: dict[str, Type], then: dict[str, Type]) -> dict[str, Type]:
+    return {**{k: subst_type(v, then) for k, v in first.items()}, **then}
 
 
 def _occurs(name: str, t: Type) -> bool:

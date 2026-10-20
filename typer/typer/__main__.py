@@ -57,11 +57,17 @@ def print_reductions(ev: Evaluated, mark_redex: bool) -> None:
         print(f"cannonical: {c.source} = {show_term(t)}")
 
 
+# name -> terms whose derivation was obtained along normal order (see Expander.along)
+RESTARTS: dict[str, list[int]] = {}
+
+
 def derivations(ev: Evaluated, name: str, fit: bool = False) -> list[Deriv]:
     """Derivations of the numbered terms of `name`: canonical for the normal form, expanded before it."""
     declarations = ev.program.env if fit else None
     if name in ev.traces:
-        ds = Expander(ev.system, ev.strategy, ev.max_steps).along(ev.traces[name], declarations)
+        expander = Expander(ev.system, ev.strategy, ev.max_steps)
+        ds = expander.along(ev.traces[name], declarations)
+        RESTARTS[name] = expander.restarts
     elif name in ev.defs:
         ds = [canonical(ev.defs[name], ev.system)]
         if declarations:
@@ -91,7 +97,13 @@ def selected_derivations(ev: Evaluated, specs: list[str], fit: bool):
         for i in idx if idx is not None else range(len(ds)):
             if not 0 <= i < len(ds):
                 raise TyperError(f"--show {spec}: {name} has terms 0..{len(ds) - 1}")
-            yield name, i, "canonical" if i == len(ds) - 1 else "expanded", ds[i]
+            if i == len(ds) - 1:
+                kind = "canonical"
+            elif i in RESTARTS.get(name, []):
+                kind = "expanded along cbn"
+            else:
+                kind = "expanded"
+            yield name, i, kind, ds[i]
 
 
 def print_derivations(ev: Evaluated, specs: list[str], fit: bool, mark_redex: bool) -> None:

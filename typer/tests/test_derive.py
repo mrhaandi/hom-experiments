@@ -89,6 +89,29 @@ class Expansion(unittest.TestCase):
             run("(fun x y. y) ((fun x. x x) (fun x. x x))", "idem", "cbn")
 
 
+class CbvWithoutOmega(unittest.TestCase):
+    """Under cbv an argument can be reduced first, and expanding it can change its type."""
+
+    def expand(self, term: str, system: str):
+        tr = normalize(T(term), "cbv")
+        e = Expander(get_system(system), "cbv")
+        ds = e.along(tr)
+        for d in ds:
+            check(d, get_system(system))
+        return ds, e.restarts
+
+    def test_variable_head_takes_the_new_type(self):
+        for system in ("idem", "nonidem"):
+            _, restarts = self.expand("fun g. g (fun z. (fun y. z) (z b))", system)
+            self.assertEqual(restarts, [])
+
+    def test_applied_abstraction_restarts_along_normal_order(self):
+        for system in ("idem", "nonidem"):
+            ds, restarts = self.expand("(fun f. f (f a)) (fun z. (fun y. z) (z b))", system)
+            self.assertEqual(restarts, [0])
+            self.assertEqual(ds[0].type, ds[-1].type)
+
+
 class Checker(unittest.TestCase):
     def test_rejects_wrong_domain(self):
         s = get_system("nonidem")

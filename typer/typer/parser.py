@@ -64,7 +64,7 @@ CANONICAL_KEYWORDS = {"cannonical", "canonical"}
 
 _TOKEN_RE = re.compile(
     r"""
-    (?P<ws>[ \t]+)
+    (?P<ws>[ \t\n]+)
   | (?P<arrow>->|→)
   | (?P<inter>/\\|∧)
   | (?P<lam>\\|λ)
@@ -81,24 +81,31 @@ class Tok:
     kind: str  # ident, arrow, inter, lam, omega, punct, eof
     text: str
     col: int
+    line: int = 0
 
 
 def tokenize(text: str, line: int) -> list[Tok]:
+    """`text` may span several lines; `line` is the number of its first line."""
+
+    def where(pos: int) -> tuple[int, int]:
+        return line + text.count("\n", 0, pos), pos - (text.rfind("\n", 0, pos) + 1) + 1
+
     toks, pos = [], 0
     while pos < len(text):
         m = _TOKEN_RE.match(text, pos)
         if not m:
-            raise TyperError(f"unexpected character {text[pos]!r}", line, pos + 1)
+            raise TyperError(f"unexpected character {text[pos]!r}", *where(pos))
         kind = m.lastgroup
         if kind != "ws":
-            tok = Tok(kind, m.group(), pos + 1)
+            ln, col = where(pos)
+            tok = Tok(kind, m.group(), col, ln)
             if kind == "ident" and tok.text == "fun":
                 tok.kind = "lam"
             elif kind == "ident" and tok.text == "omega":
                 tok.kind = "omega"
             toks.append(tok)
         pos = m.end()
-    toks.append(Tok("eof", "", len(text) + 1))
+    toks.append(Tok("eof", "", *reversed(where(len(text)))))
     return toks
 
 
@@ -119,8 +126,8 @@ class _Parser:
 
     def error(self, msg: str, tok: Tok | None = None) -> TyperError:
         tok = tok or self.peek
-        found = "end of line" if tok.kind == "eof" else repr(tok.text)
-        return TyperError(f"{msg}, found {found}", self.line, tok.col)
+        found = "end of the statement" if tok.kind == "eof" else repr(tok.text)
+        return TyperError(f"{msg}, found {found}", tok.line, tok.col)
 
     def expect(self, text: str) -> Tok:
         if self.peek.text != text or self.peek.kind not in ("punct", "lam"):
@@ -267,13 +274,33 @@ def _strip_comment(line: str) -> str:
     return line if i < 0 else line[:i]
 
 
-def parse_program(text: str) -> Program:
-    statements = []
+_STATEMENT_START = re.compile(r"^[A-Za-z_][A-Za-z0-9_']*\s*[:=]")
+
+
+def statement_blocks(text: str) -> list[tuple[int, str]]:
+    """Splits a file into statements: (number of the first line, text).
+
+    A statement may span several lines. It ends at a blank line, or where a
+    line that is not indented starts a new statement (`name :`, `name =`,
+    `cannonical:`), so consecutive one-line statements need no blank lines.
+    """
+    blocks: list[tuple[int, list[str]]] = []
+    current: tuple[int, list[str]] | None = None
     for n, raw in enumerate(text.splitlines(), start=1):
-        line = _strip_comment(raw)
-        if line.strip():
-            statements.append(parse_statement(line, n))
-    return resolve(statements)
+        line = _strip_comment(raw).rstrip()
+        if not line.strip():
+            current = None
+            continue
+        starts = not line[0].isspace() and _STATEMENT_START.match(line)
+        if current is None or starts:
+            current = (n, [])
+            blocks.append(current)
+        current[1].append(line)
+    return [(n, "\n".join(lines)) for n, lines in blocks]
+
+
+def parse_program(text: str) -> Program:
+    return resolve([parse_statement(t, n) for n, t in statement_blocks(text)])
 
 
 def resolve(statements: list[Statement]) -> Program:

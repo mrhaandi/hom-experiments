@@ -125,3 +125,31 @@ cannonical: M2
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class MultiLine(unittest.TestCase):
+    def test_indented_continuation_lines(self):
+        p = parse_program("a : o\nb : o\n\nM = fun x y.\n    x (fun z.\n      z y)\n      a\n\nN = M b\n")
+        self.assertEqual(p.defs["M"], parse_term("fun x y. x (fun z. z y) a"))
+        self.assertEqual(list(p.env), ["a", "b"])
+
+    def test_blank_line_ends_a_statement(self):
+        p = parse_program("M = fun x.\nx\n\nN = M\n")
+        self.assertEqual(p.defs["M"], parse_term("fun x. x"))
+
+    def test_unindented_new_statement_ends_the_previous_one(self):
+        p = parse_program("M = fun x.\n  x\nN = M\nv : o ->\n  o\n")
+        self.assertEqual(p.defs["N"], parse_term("fun x. x"))
+        self.assertEqual(str(p.env["v"]), "o -> o")
+
+    def test_comments_inside_a_statement(self):
+        p = parse_program("M = fun x.   # the identity\n  x\n")
+        self.assertEqual(p.defs["M"], parse_term("fun x. x"))
+
+    def test_errors_report_the_right_line_and_column(self):
+        with self.assertRaises(TyperError) as cm:
+            parse_program("a : o\n\nM = fun x.\n    x (fun z.\n      z ) )\n")
+        self.assertEqual((cm.exception.line, cm.exception.col), (5, 11))
+        with self.assertRaises(TyperError) as cm:
+            parse_program("M = fun x.\n")
+        self.assertEqual(cm.exception.line, 1)
