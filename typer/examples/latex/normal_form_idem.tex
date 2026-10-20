@@ -1,0 +1,157 @@
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{bussproofs}
+\setlength{\parindent}{0pt}
+\begin{document}
+\section*{Source}
+\begin{align*}
+C &= \lambda f\,x\,y.\,f\,y\,x \\
+W &= \lambda a\,b.\,a\,(b\,b) \\
+I &= \lambda z.\,z \\
+M_{1} &= C\,W\,(I\,I) \\
+M_{2} &= \mathrm{NF}(M_{1}) \\
+&\textbf{canonical: } M_{2}
+\end{align*}
+
+\section*{$M_{2} = \mathrm{NF}(M_{1})$ \quad \normalsize(cbn, 7 steps)}
+\begin{description}
+  \item[0:] $\underline{(\lambda f\,x\,y.\,f\,y\,x)\,(\lambda a\,b.\,a\,(b\,b))}\,((\lambda z.\,z)\,(\lambda z.\,z))$
+  \item[1:] $\underline{(\lambda x\,y.\,(\lambda a\,b.\,a\,(b\,b))\,y\,x)\,((\lambda z.\,z)\,(\lambda z.\,z))}$
+  \item[2:] $\lambda y.\,\underline{(\lambda a\,b.\,a\,(b\,b))\,y}\,((\lambda z.\,z)\,(\lambda z.\,z))$
+  \item[3:] $\lambda y.\,\underline{(\lambda b.\,y\,(b\,b))\,((\lambda z.\,z)\,(\lambda z.\,z))}$
+  \item[4:] $\lambda y.\,y\,(\underline{(\lambda z.\,z)\,(\lambda z.\,z)}\,((\lambda z.\,z)\,(\lambda z.\,z)))$
+  \item[5:] $\lambda y.\,y\,(\underline{(\lambda z.\,z)\,((\lambda z.\,z)\,(\lambda z.\,z))})$
+  \item[6:] $\lambda y.\,y\,(\underline{(\lambda z.\,z)\,(\lambda z.\,z)})$
+  \item[7:] $\lambda y.\,y\,(\lambda z.\,z)$
+\end{description}
+
+\subsection*{$M_{2}$ [0] \quad \normalsize(expanded, idem, cbn)}
+
+\[  \vdash (\lambda f\,x\,y.\,f\,y\,x)\,(\lambda a\,b.\,a\,(b\,b))\,((\lambda z.\,z)\,(\lambda z.\,z)) : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to \alpha_{2} \]
+
+\begin{center}\small
+\AxiomC{$\textsf{tree1}$}
+\AxiomC{$\textsf{tree2}$}
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$z : \alpha_{1} \to \alpha_{1} \vdash z : \alpha_{1} \to \alpha_{1}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$ \vdash \lambda z.\,z : (\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}$}
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$z : \alpha_{1} \vdash z : \alpha_{1}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$ \vdash \lambda z.\,z : \alpha_{1} \to \alpha_{1}$}
+\RightLabel{\scriptsize app}
+\BinaryInfC{$ \vdash (\lambda z.\,z)\,(\lambda z.\,z) : \alpha_{1} \to \alpha_{1}$}
+\RightLabel{\scriptsize app}
+\TrinaryInfC{$ \vdash (\lambda f\,x\,y.\,f\,y\,x)\,(\lambda a\,b.\,a\,(b\,b))\,((\lambda z.\,z)\,(\lambda z.\,z)) : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to \alpha_{2}$}
+\DisplayProof
+\end{center}
+
+\noindent $\textsf{tree1}$:
+\begin{center}\small
+\AxiomC{$\textsf{tree3}$}
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$a : (\alpha_{1} \to \alpha_{1}) \to \alpha_{2} \vdash a : (\alpha_{1} \to \alpha_{1}) \to \alpha_{2}$}
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$b : (\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1} \vdash b : (\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}$}
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$b : \alpha_{1} \to \alpha_{1} \vdash b : \alpha_{1} \to \alpha_{1}$}
+\RightLabel{\scriptsize app}
+\BinaryInfC{$b : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1}) \vdash b\,b : \alpha_{1} \to \alpha_{1}$}
+\RightLabel{\scriptsize app}
+\BinaryInfC{$a : (\alpha_{1} \to \alpha_{1}) \to \alpha_{2}, b : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1}) \vdash a\,(b\,b) : \alpha_{2}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$a : (\alpha_{1} \to \alpha_{1}) \to \alpha_{2} \vdash \lambda b.\,a\,(b\,b) : (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to \alpha_{2}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$ \vdash \lambda a\,b.\,a\,(b\,b) : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to \alpha_{2}$}
+\RightLabel{\scriptsize app}
+\BinaryInfC{$ \vdash (\lambda f\,x\,y.\,f\,y\,x)\,(\lambda a\,b.\,a\,(b\,b)) : (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to \alpha_{2}$}
+\DisplayProof
+\end{center}
+
+\noindent $\textsf{tree2}$:
+\begin{center}\small
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$z : (\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1} \vdash z : (\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$ \vdash \lambda z.\,z : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \to (\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}$}
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$z : \alpha_{1} \to \alpha_{1} \vdash z : \alpha_{1} \to \alpha_{1}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$ \vdash \lambda z.\,z : (\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}$}
+\RightLabel{\scriptsize app}
+\BinaryInfC{$ \vdash (\lambda z.\,z)\,(\lambda z.\,z) : (\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}$}
+\DisplayProof
+\end{center}
+
+\noindent $\textsf{tree3}$:
+\begin{center}\small
+\AxiomC{$\textsf{tree4}$}
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$x : (\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1} \vdash x : (\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}$}
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$x : \alpha_{1} \to \alpha_{1} \vdash x : \alpha_{1} \to \alpha_{1}$}
+\RightLabel{\scriptsize app}
+\TrinaryInfC{$f : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to \alpha_{2}, x : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1}), y : (\alpha_{1} \to \alpha_{1}) \to \alpha_{2} \vdash f\,y\,x : \alpha_{2}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$f : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to \alpha_{2}, x : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1}) \vdash \lambda y.\,f\,y\,x : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to \alpha_{2}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$f : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to \alpha_{2} \vdash \lambda x\,y.\,f\,y\,x : (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to \alpha_{2}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$ \vdash \lambda f\,x\,y.\,f\,y\,x : (((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to \alpha_{2}) \to (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to \alpha_{2}$}
+\DisplayProof
+\end{center}
+
+\noindent $\textsf{tree4}$:
+\begin{center}\small
+\AxiomC{$\textsf{tree5}$}
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$y : (\alpha_{1} \to \alpha_{1}) \to \alpha_{2} \vdash y : (\alpha_{1} \to \alpha_{1}) \to \alpha_{2}$}
+\RightLabel{\scriptsize app}
+\BinaryInfC{$f : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to \alpha_{2}, y : (\alpha_{1} \to \alpha_{1}) \to \alpha_{2} \vdash f\,y : (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to \alpha_{2}$}
+\DisplayProof
+\end{center}
+
+\noindent $\textsf{tree5}$:
+\begin{center}\small
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$f : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to \alpha_{2} \vdash f : ((\alpha_{1} \to \alpha_{1}) \to \alpha_{2}) \to (((\alpha_{1} \to \alpha_{1}) \to \alpha_{1} \to \alpha_{1}) \cap (\alpha_{1} \to \alpha_{1})) \to \alpha_{2}$}
+\DisplayProof
+\end{center}
+
+\noindent where
+\[ \alpha_{1} = a_{0,1,0},\quad \alpha_{2} = a_{0} \]
+
+\subsection*{$M_{2}$ [7] \quad \normalsize(canonical, idem, cbn)}
+
+\[  \vdash \lambda y.\,y\,(\lambda z.\,z) : ((a_{0,1,0} \to a_{0,1,0}) \to a_{0}) \to a_{0} \]
+
+\begin{center}\small
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$y : (a_{0,1,0} \to a_{0,1,0}) \to a_{0} \vdash y : (a_{0,1,0} \to a_{0,1,0}) \to a_{0}$}
+\AxiomC{}
+\RightLabel{\scriptsize var}
+\UnaryInfC{$z : a_{0,1,0} \vdash z : a_{0,1,0}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$ \vdash \lambda z.\,z : a_{0,1,0} \to a_{0,1,0}$}
+\RightLabel{\scriptsize app}
+\BinaryInfC{$y : (a_{0,1,0} \to a_{0,1,0}) \to a_{0} \vdash y\,(\lambda z.\,z) : a_{0}$}
+\RightLabel{\scriptsize abs}
+\UnaryInfC{$ \vdash \lambda y.\,y\,(\lambda z.\,z) : ((a_{0,1,0} \to a_{0,1,0}) \to a_{0}) \to a_{0}$}
+\DisplayProof
+\end{center}
+
+\end{document}

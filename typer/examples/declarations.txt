@@ -1,0 +1,10 @@
+# Declared types and the canonical typing.
+#   python3 -m typer examples/declarations.txt --show N1 --system nonidem
+#   python3 -m typer examples/declarations.txt --show N1 --system nonidem --fit-declarations
+#   python3 -m typer examples/declarations.txt --show M2 --fit-declarations
+v : a /\ (a -> a)
+u : (b -> b) -> c
+N1 = v v
+M1 = (fun x. u (fun y. x y)) (fun z. z)
+M2 = NF(M1)
+cannonical: M2

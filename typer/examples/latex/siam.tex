@@ -1,0 +1,46 @@
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{bussproofs}
+\usepackage{xcolor}
+\setlength{\parindent}{0pt}
+\begin{document}
+\section*{Source}
+\begin{align*}
+I &= \lambda z.\,z \\
+M &= (\lambda y\,x.\,x\,y)\,I\,I
+\end{align*}
+
+\subsection*{$M$ [0] \quad \normalsize(SIAM)}
+
+19 states; 19 occurrences of $\star$ (the $\lambda$IAM weight); each visited exactly once: yes
+
+\begin{center}\small
+\AxiomC{}
+\RightLabel{\scriptsize T-Var}
+\UnaryInfC{$x : [[\star] \to \star] \vdash x : [\star_{\textcolor{blue}{\downarrow16}}] \to \star_{\textcolor{red}{\uparrow6}}$}
+\AxiomC{}
+\RightLabel{\scriptsize T-Var}
+\UnaryInfC{$y : [\star] \vdash y : \star_{\textcolor{red}{\uparrow17}}$}
+\RightLabel{\scriptsize T-@}
+\BinaryInfC{$x : [[\star] \to \star], y : [\star] \vdash x\,y : \star_{\textcolor{red}{\uparrow5}}$}
+\RightLabel{\scriptsize T-$\lambda$}
+\UnaryInfC{$y : [\star] \vdash \lambda x.\,x\,y : [[\star_{\textcolor{red}{\uparrow15}}] \to \star_{\textcolor{blue}{\downarrow7}}] \to \star_{\textcolor{red}{\uparrow4}}$}
+\RightLabel{\scriptsize T-$\lambda$}
+\UnaryInfC{$ \vdash \lambda y\,x.\,x\,y : [\star_{\textcolor{blue}{\downarrow18}}] \to [[\star_{\textcolor{red}{\uparrow14}}] \to \star_{\textcolor{blue}{\downarrow8}}] \to \star_{\textcolor{red}{\uparrow3}}$}
+\AxiomC{}
+\RightLabel{\scriptsize T-$\lambda_\star$}
+\UnaryInfC{$ \vdash \lambda z.\,z : \star_{\textcolor{red}{\uparrow19}}$}
+\RightLabel{\scriptsize T-@}
+\BinaryInfC{$ \vdash (\lambda y\,x.\,x\,y)\,(\lambda z.\,z) : [[\star_{\textcolor{red}{\uparrow13}}] \to \star_{\textcolor{blue}{\downarrow9}}] \to \star_{\textcolor{red}{\uparrow2}}$}
+\AxiomC{}
+\RightLabel{\scriptsize T-Var}
+\UnaryInfC{$z : [\star] \vdash z : \star_{\textcolor{red}{\uparrow11}}$}
+\RightLabel{\scriptsize T-$\lambda$}
+\UnaryInfC{$ \vdash \lambda z.\,z : [\star_{\textcolor{blue}{\downarrow12}}] \to \star_{\textcolor{red}{\uparrow10}}$}
+\RightLabel{\scriptsize T-@}
+\BinaryInfC{$ \vdash (\lambda y\,x.\,x\,y)\,(\lambda z.\,z)\,(\lambda z.\,z) : \star_{\textcolor{red}{\uparrow1}}$}
+\DisplayProof
+\end{center}
+
+\end{document}

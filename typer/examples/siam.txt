@@ -1,0 +1,5 @@
+# The example of section 13 of Accattoli, Dal Lago and Vanoni, "The (In)Efficiency of Interaction".
+#   python3 -m typer examples/siam.txt --siam M
+#   python3 -m typer examples/siam.txt --siam M --format latex -o siam.tex
+I = fun z. z
+M = (fun y x. x y) I I

@@ -1,0 +1,9 @@
+# Example from the thread (with M2 = NF(M1) instead of NF(M2)).
+v : a /\ (a -> a)
+
+M = fun x.fun y.x y
+N = fun x y. a x y
+N1 = v v
+M1 = (fun x.x)(fun y.y)
+M2 = NF(M1)
+cannonical: M2

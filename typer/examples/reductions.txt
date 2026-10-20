@@ -1,0 +1,11 @@
+# C = NF(K I O) has a normal form under cbn but loops under cbv.
+v : a /\ (a -> a)
+K = fun x y. x
+I = fun x. x
+D = fun x. x x
+two = fun f x. f (f x)
+O = (fun x. x x)(fun x. x x)
+A = NF(two two I)
+B = NF(K I (D I))
+C = NF(K I O)
+cannonical: A

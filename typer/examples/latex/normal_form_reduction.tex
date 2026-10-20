@@ -1,0 +1,29 @@
+\documentclass[a4paper,landscape]{article}
+\usepackage[margin=1.5cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{bussproofs}
+\setlength{\parindent}{0pt}
+\begin{document}
+\section*{Source}
+\begin{align*}
+C &= \lambda f\,x\,y.\,f\,y\,x \\
+W &= \lambda a\,b.\,a\,(b\,b) \\
+I &= \lambda z.\,z \\
+M_{1} &= C\,W\,(I\,I) \\
+M_{2} &= \mathrm{NF}(M_{1}) \\
+&\textbf{canonical: } M_{2}
+\end{align*}
+
+\section*{$M_{2} = \mathrm{NF}(M_{1})$ \quad \normalsize(cbn, 7 steps)}
+\begin{description}
+  \item[0:] $\underline{(\lambda f\,x\,y.\,f\,y\,x)\,(\lambda a\,b.\,a\,(b\,b))}\,((\lambda z.\,z)\,(\lambda z.\,z))$
+  \item[1:] $\underline{(\lambda x\,y.\,(\lambda a\,b.\,a\,(b\,b))\,y\,x)\,((\lambda z.\,z)\,(\lambda z.\,z))}$
+  \item[2:] $\lambda y.\,\underline{(\lambda a\,b.\,a\,(b\,b))\,y}\,((\lambda z.\,z)\,(\lambda z.\,z))$
+  \item[3:] $\lambda y.\,\underline{(\lambda b.\,y\,(b\,b))\,((\lambda z.\,z)\,(\lambda z.\,z))}$
+  \item[4:] $\lambda y.\,y\,(\underline{(\lambda z.\,z)\,(\lambda z.\,z)}\,((\lambda z.\,z)\,(\lambda z.\,z)))$
+  \item[5:] $\lambda y.\,y\,(\underline{(\lambda z.\,z)\,((\lambda z.\,z)\,(\lambda z.\,z))})$
+  \item[6:] $\lambda y.\,y\,(\underline{(\lambda z.\,z)\,(\lambda z.\,z)})$
+  \item[7:] $\lambda y.\,y\,(\lambda z.\,z)$
+\end{description}
+
+\end{document}

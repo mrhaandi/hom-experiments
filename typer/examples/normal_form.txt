@@ -1,0 +1,10 @@
+# Reduction to normal form, then the canonical term and its subterm addresses.
+#   python3 -m typer examples/normal_form.txt --mark-redex
+#   python3 -m typer examples/normal_form.txt --strategy cbv --mark-redex
+#   python3 -m typer examples/normal_form.txt --addresses
+C = fun f x y. f y x
+W = fun a b. a (b b)
+I = fun z. z
+M1 = C W (I I)
+M2 = NF(M1)
+cannonical: M2

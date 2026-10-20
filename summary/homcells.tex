@@ -637,14 +637,15 @@ A type environment $\Delta$ assigns to variables $x:\sigma$ sets
 $\Delta(x)\subseteq\Ty_\sigma$.  The rules are
 \[
 \frac{\theta\in\Delta(x)}{\Delta\vdash x:\theta}
-\quad
+\qquad
 \frac{}{\Delta\vdash a:a}
-\quad
+\qquad
 \frac{}{\Delta\vdash f:\{d_1\}\to\cdots\to\{d_r\}\to\hat f(\vec d)}
-\quad
+\]
+\[
 \frac{\Delta,x:S\vdash M:\theta}{\Delta\vdash\lambda x.M:S\to\theta}
-\quad
-\frac{\Delta\vdash M:S\to\theta\quad\Delta\vdash N:s\ (s\in S)}
+\qquad
+\frac{\Delta\vdash M:S\to\theta\qquad\Delta\vdash N:s\ \text{for all } s\in S}
      {\Delta\vdash M\,N:\theta}
 \]
 \end{definition}

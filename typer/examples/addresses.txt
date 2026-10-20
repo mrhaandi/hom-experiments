@@ -1,0 +1,3 @@
+# Subterm addresses of a normal form: python3 -m typer examples/addresses.txt --addresses
+M = fun x y. x (fun z. z y) y
+cannonical: M
