@@ -1,0 +1,11 @@
+-Q . HOM
+Syntax.v
+Lambda.v
+ITree.v
+Game.v
+GameLemmas.v
+Transform.v
+Uniformity.v
+Section6.v
+Small.v
+All.v
