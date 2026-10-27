@@ -202,19 +202,22 @@ Definition T1_applicable (E : ieq) (t : lnf) (n : node) : Prop :=
   in_t n /\ (var_node E t n \/ pos_cst_node E t n) /\
   forall pi j, play E t pi -> j < length pi -> nd E pi j <> n.
 
-Definition T1 (E : ieq) (t : lnf) (n : node) : lnf :=
-  replace t n (Lam [] (HCst (cb E)) []).
+(** [t[c/n]] for a constant [c : 0]; the paper uses [c = b]. *)
+Definition T1c (t : lnf) (n : node) (c : cst) : lnf :=
+  replace t n (Lam [] (HCst c) []).
 
-Theorem T1_sound : forall E t n, WF E t -> T1_applicable E t n ->
-  solves E t -> solves E (T1 E t n).
+Definition T1 (E : ieq) (t : lnf) (n : node) : lnf := T1c t n (cb E).
+
+Theorem T1c_sound : forall E t n c, ctyp c = base -> WF E t ->
+  T1_applicable E t n -> solves E t -> solves E (T1c t n c).
 Proof.
-  intros E t n HWF [[p ->] [_ Hnv]] Hsol.
-  assert (HWF' : WF E (T1 E t (1 :: p))).
-  { destruct HWF as [Hwf Hc]. split; auto.
-    unfold cand, T1, replace. apply wt_repl; auto. }
+  intros E t n c Hc HWF [[p ->] [_ Hnv]] Hsol.
+  assert (HWF' : WF E (T1c t (1 :: p) c)).
+  { destruct HWF as [Hwf Hct]. split; auto.
+    unfold cand, T1c, replace. apply wt_repl; auto. }
   apply (G1_characterisation E _ HWF').
   apply (G1_characterisation E _ HWF) in Hsol.
-  assert (Hplays : forall pi, play E (T1 E t (1 :: p)) pi <-> play E t pi).
+  assert (Hplays : forall pi, play E (T1c t (1 :: p) c) pi <-> play E t pi).
   { apply locality; auto.
     intros pi j Hpl Hj. symmetry. apply label_at_replace.
     intro Hab. destruct (ancestors_visited E t pi j (1 :: p) HWF Hpl Hj Hab)
@@ -222,3 +225,7 @@ Proof.
     exact (Hnv pi i Hpl ltac:(lia) Hi). }
   intros pi Hpl. apply Hsol. now apply Hplays.
 Qed.
+
+Theorem T1_sound : forall E t n, WF E t -> T1_applicable E t n ->
+  solves E t -> solves E (T1 E t n).
+Proof. intros. apply T1c_sound; auto. Qed.
