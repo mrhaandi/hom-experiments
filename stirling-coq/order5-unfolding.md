@@ -64,6 +64,19 @@ In the linear case this cannot happen: only N₁ enters n.j, because x_j occurs 
 
 The paper's argument also has a per-play/per-visit problem, Gap 4(iii) in the notes: two visits of the same node can get different enlarged combs.
 
+### 3a. What the non-linear case computes
+
+With H_i = x_j B̄ and x_j free in B̄:
+- N = z_i Ā ≡ S_j{ȳ := B̄{x̄:=Ā}}, and B̄{x̄:=Ā} contains A_j again.
+- So S_j has *instances*:
+  - the head instance, where ȳ ↦ B̄{Ā};
+  - one instance for each x_j-occurrence x_j C̄ inside B̄ that the evaluation reaches, where ȳ ↦ C̄{Ā, v̄:=…}.
+- The instances form a tree whose depth is at most the nesting depth of x_j in w_i. That depth is a constant of E, but the number of instances is not bounded.
+
+A one-copy unfolding at ny agrees with the head instance and disagrees with the others. Two directions remain open:
+1. **Game-relative unfolding.** Show that in a smallest solution the plays that reach ny through a re-entry instance can be dealt with first, e.g. that they never reach ny, or reach it with the same continuation. This is a statement about plays and needs the G/U layer.
+2. **Separating head and re-entry.** Transform E so that the head occurrence and the inner occurrences of x_j become different parameters, and transfer small solutions back. The naive version (w_i′ = λx̄x′. x_j B̄[x′/x_j]) loses the constraint that both copies of A_j coincide.
+
 ## 4. Coq (done 2026-10-27)
 
 - `coq/Confluence.v` proves confluence of β on raw terms (Takahashi: parallel reduction, complete development, strip lemma). It also proves `red_to_normal` and `normal_fo2tm`.
@@ -79,3 +92,112 @@ The paper's argument also has a per-play/per-visit problem, Gap 4(iii) in the no
 1. The lnf version of `unfold_sound`.
 2. Paper: the non-linear case. Either find a sound unfolding for it, or show that the bound at order 5 needs unfolding only at linear heads (T1/T2 together with Prop. 32 handling the rest).
 3. Then the counting for order ≤ 5 (Gap 5 with p = 2).
+
+## 6. Unfolding followed by T2, as one step (2026-10-27)
+
+For k = 2 with a linear head, unfolding followed by T2 on the enlarged comb replaces y_l R̄ at ny by the continuation of stage N₂. That continuation is R_s if N₂ returns through v_s, or the subtree under n.h if N₂ returns through x_h and that subtree does not use ȳ_h.
+
+This direct cut never applies to a **smallest** solution t, because it would shrink t. So the proof of Thm 37 does not get its small term by cutting t. It gets it as follows:
+- The partition tree unrolls t along the plays: every visit (stage) has its own comb.
+- Unfolding and T2 act on this unrolled tree, per visit.
+- The small term is reassembled from the result. Separators make sure that one leaf receives the same subterm from every edge entering it.
+
+The non-linear obstruction sits exactly at this level. In the enlarged comb (c₁c₂), the copy of the leaf n.j is entered twice by the same play:
+- once from the head x_j, at the end of N₁, where it must lead to c₂;
+- once through a re-entry x_j inside B_l, at the end of N₂, where it must lead to the continuation, i.e. the root comb of S_j.
+
+Both entries go to the same λȳ′, so the two visits cannot get different subtrees. A fix has to change what the re-entry jumps to. One idea is a second copy of z_i for the re-entry; another is to unfold N₂ further before attaching the continuation. Only a change of that kind makes the two visits distinguishable.
+
+## 7. Example (2026-11-02): re-entry absorbed by recurrence
+
+E: X w = g (g a), with w = λx. x (λv. x (λv'. v)) (non-linear head) and t = λz. z (λy. g (y a)).
+
+The single play visits the y-node twice. Stages:
+- S1 = π[1,2];
+- S2 = π[3,6], the z-stage, non-contributing;
+- S3 = π[7,8], the stage at g;
+- S4 = π[9,18], the y-stage: the chain π11, π16 has the recurrence property, since π[12,15] corresponds to π[6,9], so the re-entry lies inside S4;
+- S5 = π[19,20], final.
+
+S4 contributes, so Def. 47 does not apply here. The obstruction of §3 needs a re-entry excursion that is **not** complementary to an earlier interval and a stage that does not contribute. No such example is known yet; it may be impossible. The naive term-level unfolding is still unsound here: t′ w = g a.
+
+## 8. Example where the obstruction really occurs (2026-11-02)
+
+E: X w = f (f a d) d, with w = λx. x (λv. x (λv'. v)) as in §7 and t = λz. z (λy. f (y a) d). Here f : (0,0,0) and a, d : 0.
+
+t solves E: S{y := K_v} = f v d, hence y a ↦ f a d and t w = f (f a d) d.
+
+Nodes:
+- t: (1)λz, (2)z, (3)λy, (4)f, (5)λ, (6)y, (7)λ, (8)a, (9)λ, (10)d;
+- w: (11)λx, (12)x, (13)λv, (14)x, (15)λv', (16)v.
+
+Play B: ∀ chooses branch 1 at the root f and branch 2 at the re-entry.
+```
+1 (0)  2 (1)  3 (2)z  4 (11)  5 (12)x  6 (3)  7 (4)f[f(fad)d]  8 (5)[fad]
+9 (6)y  10 (13)  11 (14)x  12 (3)  13 (4)f[fad]  14 (9)[d]  15 (10)d  16 (10)[∃]
+```
+Stages of play B:
+- S1 = π[1,2];
+- S2 = π[3,6], the z-stage, ending at (3);
+- S3 = π[7,8], f, contributes;
+- **S4 = π[9,12], y.** The chain from π11 is empty: in this play nothing returns to a child of π11. So p = 0 and S4 ends at (3) = n.1 through the re-entry. It does not contribute.
+- S5 = π[13,14], f, contributes; S5 → S2;
+- S6 = π[15,16], final.
+
+S2 unfolded into S4 satisfies Def. 47 (a)–(d):
+- (a) same family, no contribution;
+- (b) distinct combs (2) and (6), distinct paths (11)(12) and (13)(14);
+- (c) S3 → S2 and S5 → S2;
+- (d) (13) is a successor of (12).
+
+In (c₁c₂), the copy of (3) carries the copy of (6). Redirecting S5 puts the comb (4) under the same copy of (3), so the result is not a term.
+
+In play A (branch 1 at the re-entry) the same y-stage absorbs the re-entry through recurrence and contributes, as in §7. So whether the obstruction occurs depends on the play.
+
+## 9. Proposed fix: a new definition of stages (2026-11-02)
+
+The fix changes **Def. 43** (stages), specifically when a stage absorbs a re-entry. It follows LMCS 2009, Def. 8.13. It does not change Def. 47.
+
+**Why the old definition fails.**
+- The chain of Def. 21–23 requires π_{j₂ₘ} to be a *child* of π_{j₂ₘ₋₁}.
+- In play B (§8) the re-entry into (3) is followed by f, where ∀ chooses another branch. π14 is not a child of the x at π11, so the chain is empty and S4 ends at (3).
+- Complementarity has a clause (b) for divergence at a constant, but a chain never gets to use it.
+
+**Definition 43′ (stage at a variable node).** Let the stage start at π_i, at a variable node n, and let π_{i+1} be the jump into some w_q. Follow the play. The stage ends at the first position π_j that satisfies one of the following.
+- **(E1)** π_j is a child of π_i: a λ-node, successor of n, with the table of π_i. This is the ordinary return.
+- **(E2)** π_j is a jump from a variable node of w_q into a λ-node m of t, and no position before π_j is at m. This is a *new* entry.
+- **(E3)** The play leaves a skipped corresponding interval (see below) because ∀ chooses a different branch at a constant. Then π_j is the λ-position right after that choice, a leaf of the constant's comb.
+- **(F)** π_j is final.
+
+If π_j is a jump into a λ-node m of t that *was* visited earlier, at π_{j′} say, the stage does not end. Instead it skips the maximal interval π[j, j+h] that corresponds to π[j′, j′+h] (Def. 32), and then continues with the same rules. Correspondence may break at a jump (the tables differ) or at a ∀-choice (E3).
+
+Constant stages and stage 1 are as before.
+
+**Play B recomputed.**
+- S1 = π[1,2]; S2 = π[3,6] (z, ends at (3)); S3 = π[7,8] (f).
+- **S4 = π[9,14] (y).**
+  - π12 is a re-entry into (3), which was visited at π6.
+  - π[12,13] = (3)(4) corresponds to π[6,7]. ∀ then chooses branch 2 where it chose 1 before.
+  - By (E3) S4 ends at π14 = (9), a leaf of the comb (4).
+  - S4 contributes, since [fad] becomes [d].
+- S5 = π[15,16], d, final. Its edge goes to the comb (4) at the leaf (9), where the play actually is.
+
+Def. 47(a) now forbids unfolding S2 into S4, so nothing has to be attached under the copy of (3).
+
+**Play A** (branch 1 at the re-entry): π[12,15] corresponds to π[6,9]. Correspondence breaks at the jump π16 = (15) versus π10 = (13). The stage continues and ends at π18 = (7) by (E1). This is the same S4 = π[9,18] as before; it contributes.
+
+**Lemma (sketch, not proved).** In an unfolding (N₁…N_k) built from stages of Def. 43′, the copy of a leaf receives at most one subtree.
+
+*Argument.* For a conflict, some N_i must end, without contributing, at a leaf L of some c_{i′} under which a comb is already attached.
+- (E3) always contributes: a ∀-choice at a constant of positive arity changes the state.
+- (F) is the last stage, allowed by Def. 47(c).
+- (E1) ends at N_i's own leaf, where nothing has been attached yet.
+- (E2) ends at a node m visited for the first time. But a comb is attached under the copy of L only if an earlier N_{i″} ended at L, so L was visited before. Hence (E2) cannot end at an occupied leaf either.
+
+**What it costs.**
+1. A stage can end at a leaf of a foreign comb, as S4 does at (9). Def. 46 must attach the next stage where the play actually is, like the edges ←π in LMCS.
+2. Uniqueness of the partition (Fact 33) must be proved again for Def. 43′.
+3. Prop. 34 changes: (2) and (3) talk about children of π_i, and (E2)/(E3) endings are new.
+4. Fact 36 must be re-checked: the play of (N₁…N_j) has to skip the same corresponding intervals.
+5. The count of contributing stages does not get worse, because one stage may now contain several changes of the right term.
+6. Linear heads are affected too: a return through x_h to an n.h that was visited before is now absorbed instead of ending the stage.
