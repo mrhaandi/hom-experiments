@@ -159,7 +159,7 @@ In play A (branch 1 at the re-entry) the same y-stage absorbs the re-entry throu
 The fix changes **Def. 43** (stages), specifically when a stage absorbs a re-entry. It follows LMCS 2009, Def. 8.13. It does not change Def. 47.
 
 **Why the old definition fails.**
-- The chain of Def. 21–23 requires π_{j₂ₘ} to be a *child* of π_{j₂ₘ₋₁}.
+- The chain of Def. 21–23 requires π(j\_2m) to be a *child* of π(j\_{2m−1}).
 - In play B (§8) the re-entry into (3) is followed by f, where ∀ chooses another branch. π14 is not a child of the x at π11, so the chain is empty and S4 ends at (3).
 - Complementarity has a clause (b) for divergence at a constant, but a chain never gets to use it.
 
