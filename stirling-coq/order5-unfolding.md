@@ -201,3 +201,61 @@ Def. 47(a) now forbids unfolding S2 into S4, so nothing has to be attached under
 4. Fact 36 must be re-checked: the play of (N₁…N_j) has to skip the same corresponding intervals.
 5. The count of contributing stages does not get worse, because one stage may now contain several changes of the right term.
 6. Linear heads are affected too: a return through x_h to an n.h that was visited before is now absorbed instead of ending the stage.
+
+## 10. LMCS strategy, level 3: exclusion from unfolding (2026-11-09)
+
+This section uses the **old** Def. 43 for stages, without the fix of §9. Alx asked to try Stirling's third mechanism from LMCS 2009 (Def. 9.9, Fact 9.10, proof of Thm 9.11).
+
+### 10.1 Translation into the old paper
+
+- **Tree.** The partition tree has one node per stage (Def. 46). Its edge N′ → leaf L of comb c says that stage N′ starts under L.
+- **Extraction.** Hang every stage under the leaf its edge points to. Identify stages hanging under one leaf, then close under "children of identified stages hanging under the same leaf are identified". This is ≅ of LMCS Def. 9.9.
+- **Subterm property.** Identified stages carry the same comb. If this holds, the extraction is a term (Fact 9.10).
+- **Exclusion.** Run the unfoldings (Def. 47). Suppose the result fails the subterm property because of two tiles τ_k, τ_l with the same comb and an edge to the same leaf, one of which lies in an unfolded part. Then forbid unfolding of the stage they both depend on, and run the whole sequence again. Each exclusion leaves one more stage that T2 cannot remove, so it costs one term in the bound.
+
+### 10.2 The example of §8
+
+Before unfolding, play B has these edges:
+- S3 = f(4) and S5 = f(4) both hang under the leaf (3) of S2 = z(2);
+- S4 = y(6) hangs under (5) of S3;
+- S6 = d(10) hangs under (9) of S5.
+
+S3 ≅ S5, and their children are compatible: (5) → y, (9) → d. So the extraction gives t back, and the subterm property holds.
+
+Unfolding S2 at S4 replaces S4 by z(λy′. y′ □). S5 must now hang under the copy λy′, which already carries y′. The subterm property fails.
+
+In Stirling's diagnosis, τ_k and τ_l are S3 and S5: the same comb f(4) with edges to the same leaf (3), S5 lying in the unfolded part. Both depend on S2. **Exclusion forbids unfolding S2.** Nothing else is unfoldable. The extraction is t, which solves E. So the strategy works on the example, though trivially.
+
+### 10.3 Exclusion is not needed here if (a) is read over the tree
+
+Def. 47(a) asks that the stages do not contribute. In §8 this was checked in play B alone. But plays A and B coincide up to π11, so S4 is **one node** of the partition tree for both plays, and S4 contributes in play A.
+
+If (a) is read as in LMCS Def. 9.1 and 9.5(3), "non-contributing in every play through this node", then S2 is not unfoldable and the conflict never arises. This needs no change to Def. 43.
+
+**Claim.** At order ≤ 5, with the old Def. 43: if N₂ ends at a re-entry into n.j without contributing in some play B, then N₂ contributes in some play A that passes the same node of the partition tree. So the tree-wide (a) blocks every unfolding that could lead to the conflict of §3/§8.
+
+*Argument (sketch; it relies on the absorption by a recurrent chain working as in §7).*
+1. Let π_e be the re-entry into n.j in B, i.e. the jump from the inner x_j (at position π_x) into n.j. Let π_s be the earlier visit of n.j (the end of N₁), after which the play reached the node of N₂.
+2. The re-entry instance has the same bindings as the earlier visit for every variable except ȳ: free variables of S_j other than ȳ are z's, or ȳ′ of ancestors of n, and the re-entry comes in through the closure of A_j. So the instance copies the earlier play from π_s until (i) a ∀-choice at a constant that differs, or (ii) a ȳ-node.
+3. In case (ii) the ȳ-node jumps into some C_m, which is a child of π_x. The interval from π_e copies the one from π_s, which gives the recurrence property, so the chain is non-empty and N₂ does not end at the re-entry. Since B's N₂ does end there, B's first departure is of kind (i), at a constant c of arity > 0, and no ȳ-node comes before c.
+4. Let A be the play equal to B up to c, which then copies the earlier choices. Such a play exists because the head constant at each node agrees with the state (t solves E), so the same branch index is available. A copies the earlier play up to the node of N₂, which is a ȳ-node. So A gets a recurrent chain, N₂ is absorbed as in §7, and N₂ passes c. Hence N₂ contributes in A.
+5. A and B share N₂'s node, because they coincide up to c and c comes after the start of N₂.
+
+So the "different binding of ȳ" case cannot end a stage at a re-entry: reaching a ȳ-node creates the chain. At order ≤ 5 the conflict comes only from ∀-choices, and these are always caught by a play A.
+
+### 10.4 The bound: where Stirling's count is unclear
+
+Stirling bounds the excluded tiles by (δ+p)·N(n), as "x-special or dependents of x-special tiles". In §10.2 the excluded tile S2 is neither of these. It is the **binding ancestor** (family root) of tiles that hang under it.
+
+A count that does work, provided every excluded tile is a family ancestor of an x-special tile, is the following. Each tile has at most p (≤ 2 at order 5) family ancestors, so there are at most p·(δ+p) excluded tiles. This proviso is exactly what LMCS does not prove ("Both these tiles are dependents of the same tile in T_j").
+
+### 10.5 Consequence and next steps
+
+If the Claim holds, then at order ≤ 5 neither Def. 43′ (§9) nor exclusion (§10.1) is needed. It is enough to read Def. 47(a) over the tree of all plays: a stage counts as contributing if it contributes in some play passing its node. This matches LMCS Def. 9.1(1) and 9.5(3).
+
+What this reading costs:
+1. The counting must use the tree-wide notion. Contributing nodes are still at most |u| per play, and at most |u|·(number of plays) ≤ |u|² overall, so the bound gets worse only polynomially.
+2. Point 3 of the argument needs the precise old definition of chains and recurrence (Defs. 21–23, 32) to be checked against "the interval copies the earlier one". So far this is shown only on §7.
+3. Fact 36 and the separators must be re-checked with the tree-wide (a).
+
+Next: check point 2 against Defs. 21–23. Then, if Alx agrees, replace (a) and redo the counting of thm37-dowod.md §6.
