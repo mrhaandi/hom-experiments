@@ -68,8 +68,8 @@ in corrected form, or marked as open.  It collects in one place the
 material of \texttt{stirling-formal.tex}, \texttt{thm37-dowod.md} and
 \texttt{order5-unfolding.md} (\S\S1--10), including the analysis of
 non-linear heads and the generalisation of Proposition~24.
-Section~5 of the paper (tree automata) is stated without proofs, since
-the decidability proof does not use it.
+Section~5 of the paper (tree automata) is omitted, since the
+decidability proof does not use it.
 \end{abstract}
 
 \tableofcontents
@@ -505,108 +505,6 @@ closed.
 \end{proof}
 
 %======================================================================
-\section{Tree automata revisited [S, \S5]}\label{sec:automata}
-%======================================================================
-
-This section is not used by the decidability proof.  We record the
-definitions and the statements; proofs are as in the paper and have not
-been re-checked here.
-
-\begin{definition}[Variable profiles, modes; S, Def.~25]
-Let $V$ be a finite set of variables.  For $y\in V$ the set $\Gamma(y)$
-of \emph{$y$-profiles} is defined by induction on the type of $y$.
-\begin{itemize}
-\item If $y:\Ground$, then $\Gamma(y)=\{(y,r,\varnothing)\mid r\in\Sub(u)\}$.
-\item If $y:(B_1,\dots,B_p,\Ground)$, then
-  $\Gamma(y)=\{(y,r,\Gamma)\mid r\in\Sub(u),\
-  \Gamma\subseteq\bigcup_{i\le p}\bigcup_{z:B_i\in V}\Gamma(z)\}$.
-\end{itemize}
-A \emph{mode} is a pair $(r,\Gamma)$ with $r\in\Sub(u)$ and
-$\Gamma\subseteq\bigcup_{y\in V}\Gamma(y)$.  A profile abstracts a position
-at a $y$-node together with the profiles of the children of the next
-position.
-\end{definition}
-
-\begin{definition}[The automaton $A_E$; S, Def.~26]
-Fix a finite alphabet $\Sigma$ and well-named interpolation
-$\Sigma$-trees.  $A_E=(Q,\Sigma,F,\Delta)$ is a bottom-up tree automaton.
-Its states are finite sets of modes, and its accepting set is
-$F=\{\{(u,\varnothing)\}\}$.  The transitions are given by cases on the
-label.
-\begin{itemize}
-\item $a\Rightarrow\Lambda$ for $\Lambda\subseteq\{(a,\varnothing)\}$.
-\item $y:\Ground$: $y\Rightarrow\Lambda$ for
-  $\Lambda\subseteq\{(r,\{(y,r,\varnothing)\})\}$.
-\item $f\Lambda_1\dots\Lambda_p\Rightarrow\Lambda$ when:
-  \begin{itemize}
-  \item each $(r,\Gamma)\in\Lambda$ has $r=f\,r_1\dots r_p$, with
-    $(r_i,\Gamma_i)\in\Lambda_i$ and $\Gamma=\bigcup\Gamma_i$;
-  \item conversely, each $(r_i,\Gamma_i)\in\Lambda_i$ arises in this way.
-  \end{itemize}
-\item $y\Lambda_1\dots\Lambda_p\Rightarrow\Lambda$ for $y$ of higher type
-  when:
-  \begin{itemize}
-  \item each $(r,\Gamma)\in\Lambda$ contains a profile $(y,r,\Gamma')$
-    whose sub-profiles $(z_i,r_{ij},\Gamma'_{ij})$ are matched by modes
-    $(r_{ij},\Gamma'_{ij}\cup\Sigma_{ij})\in\Lambda_i$, with
-    $\Gamma=\bigcup\Sigma_{ij}\cup\{(y,r,\Gamma')\}$;
-  \item conversely, each mode of $\Lambda_i$ arises in this way.
-  \end{itemize}
-\item $\lambda\vec y\,\Lambda\Rightarrow\Lambda$.
-\item $@\Lambda_1\dots\Lambda_{k+1}\Rightarrow\{(u,\varnothing)\}$ when
-  $\Lambda_1=\{(u,\Gamma)\}$, every $(z,r',\Gamma')\in\Gamma$ has $z=x_i$
-  and $(r',\Gamma')\in\Lambda_{i+1}$, and conversely.
-\end{itemize}
-\end{definition}
-
-\begin{theorem}[S, Thm.~20]
-\Paper{} For a fixed finite alphabet and a well-named $\Sigma$-tree,
-$A_E$ accepts $@\,t\,w_1\dots w_k$ iff $t$ solves $E$.
-\end{theorem}
-
-\begin{definition}[Dependency tree automata; S, Defs.~27--28]
-$A=(Q,\Sigma,q_0,\Delta)$ with $\Sigma=\Sigma_1\cup\Sigma_2\cup\Sigma_3$
-(binders, bound variables, other symbols) is a top-down automaton with
-rules of three forms:
-\begin{enumerate}
-\item $qs\Rightarrow(q_1,\dots,q_k)$ for $s\in\Sigma_2\cup\Sigma_3$ of arity
-  $k$;
-\item $qs\Rightarrow q's'$ for $s\in\Sigma_1$, $s'\in\Sigma_3$;
-\item $(q',q)s\Rightarrow q_1x$ for $s\in\Sigma_1$, $x\in\Sigma_2$.
-\end{enumerate}
-In a rule of the third form, $q'$ is the state at the binder of $x$.
-A run labels nodes top-down from $(\varepsilon,q_0)$.  It is accepting
-if it reaches every leaf.
-\end{definition}
-
-\begin{theorem}[S, Thm.~21]
-\Paper{} For dependency tree automata, non-emptiness is decidable in
-time $O(n^4)$, and the languages are closed under intersection and
-union.
-\end{theorem}
-
-\begin{definition}[Alternating dependency automata, $A_E$; S, Defs.~29--31]
-Rule~1 becomes $qs\Rightarrow(Q_1,\dots,Q_k)$ with $Q_i\subseteq Q$.  A
-run spawns one copy at $\suc ni$ for each $q'\in Q_i$.  For $E$, the
-states are the modes, $q_0=(u,\varnothing)$, and the rules follow the
-game:
-\begin{itemize}
-\item $@$ chooses the profiles of the $x_i$;
-\item a lambda above a variable $z_i$ reads a $z_i$-profile from the
-  state at its binder;
-\item a variable of positive arity spawns the profiles of its arguments;
-\item a constant $f$ splits $f\,r_1\dots r_k$ into the $r_i$.
-\end{itemize}
-\end{definition}
-
-\begin{theorem}[S, Thm.~22]
-\Paper{} The alternating dependency automaton $A_E$ accepts the binding
-tree $@\,t\,w_1\dots w_k$ iff $t$ solves $E$.  Non-emptiness of
-alternating dependency automata is undecidable in general (Ong and
-Tzevelekos), so this does not by itself give decidability.
-\end{theorem}
-
-%======================================================================
 \section{Uniformity of game playing [S, \S6.1]}\label{sec:uniformity}
 %======================================================================
 
@@ -888,29 +786,81 @@ alone, so the choice matters.
 %======================================================================
 
 \begin{definition}[Replacement, size; S, \S6.2]
-For a variable or constant node $n$ of $t$ and $s:\Ground$, $t[s/n]$
-replaces the subtree at $n$ by $s$.  The size measure is
-$\mu(t)=(|t|,\nu(t))$, ordered lexicographically: $|t|$ is the number of
-nodes (dummy lambdas included) and $\nu(t)$ the number of variable
-nodes.  A solution in $T_A(\CE)$ is \emph{smallest} if it is
-$\mu$-minimal.
+\Fixed{} For a variable or constant node $n$ of $t$ and $s:\Ground$,
+$t[s/n]$ replaces the subtree at $n$ by $s$.  The size measure is
+$\mu(t)=(|t|,\nu(t),\kappa(t))$, ordered lexicographically:
+\begin{itemize}
+\item $|t|$ is the number of nodes, dummy lambdas included;
+\item $\nu(t)$ is the number of variable nodes;
+\item $\kappa(t)$ is the number of nodes labelled by a constant other
+  than $b$.
+\end{itemize}
+A solution in $T_A(\CE)$ is \emph{smallest} if it is $\mu$-minimal.
 \end{definition}
 
-\begin{definition}[$T_1$; S, Def.~38]
-If $n$ is a variable node or a constant node of positive arity and no
-play of $\Gm(t,E)$ is ever at $n$, then $t\,T_1\,t[b/n]$.
+\begin{definition}[$T_1$; S, Def.~38]\label{def:T1}
+\Fixed{} If $n$ is a variable node or a constant node other than $b$,
+and no play of $\Gm(t,E)$ is ever at $n$, then $t\,T_1\,t[b/n]$.
 \end{definition}
+
+\begin{remark}
+The paper applies $T_1$ only to variables and to constants of positive
+arity, and measures size by $(|t|,\nu(t))$.  A smallest solution may
+then keep unvisited leaves $\lambda.\,a$ with $a\ne b$ of arity~$0$.
+Adding the 0-ary constants other than $b$, and the third component
+$\kappa$, removes them.  This gives the clean statement of
+Corollary~\ref{cor:visited}.  The rest of the proof only uses $\mu$
+through ``$T_1$ and $T_2$ make $t$ smaller'', so nothing else changes.
+\end{remark}
 
 \begin{proposition}[S, Fact~30]\label{prop:T1}
-\Paper{} \Coq{} If $t$ solves $E$ and $t\,T_1\,t'$, then $t'$ solves $E$
+\Fixed{} \Coq{} If $t$ solves $E$ and $t\,T_1\,t'$, then $t'$ solves $E$
 and $\mu(t')<\mu(t)$.
 \end{proposition}
 \begin{proof}
 By Lemma~\ref{lem:ancestors} no play visits a node below $n$ either.
 Let $X$ be the set of nodes not below $n$.  Lemma~\ref{lem:locality}
-gives $\Gm(t',E)=\Gm(t,E)$, and Theorem~\ref{thm:game} concludes.  If
-the removed subtree has one node, it is a variable $y:\Ground$ and
-$\nu$ drops; otherwise $|t|$ drops.
+gives $\Gm(t',E)=\Gm(t,E)$, and Theorem~\ref{thm:game} concludes.  For
+the size:
+\begin{itemize}
+\item if the removed subtree has more than one node, $|t|$ drops;
+\item if it is a single variable $y:\Ground$, $|t|$ stays and $\nu$
+  drops;
+\item if it is a single constant $a\ne b$ of arity $0$, $|t|$ and $\nu$
+  stay and $\kappa$ drops.
+\end{itemize}
+The Coq proof (\texttt{T1\_sound}) covers the paper's version of $T_1$;
+the extension to 0-ary constants is not yet in Coq.
+\end{proof}
+
+\begin{lemma}[$b$ is never visited]\label{lem:bnotvisited}
+\New{} If $t$ solves $E$, no play of $\Gm(t,E)$ is at a node labelled
+$b$, nor at the dummy lambda directly above such a node.
+\end{lemma}
+\begin{proof}
+$b$ does not occur in $u$.  A position at a $b$-node has a state $[r]$
+with $r\in\Sub(u)$, so $r\ne b$, and the $a$-move gives $[\forall]$,
+contradicting Theorem~\ref{thm:game}.  A position at the lambda above
+is always followed by a position at its unique successor, the $b$-node.
+\end{proof}
+
+\begin{corollary}[Visited nodes of a smallest solution]\label{cor:visited}
+\New{} Let $t$ be a smallest solution.  A node of $t$ is visited by
+some play iff it is neither a $b$-node nor the dummy lambda directly
+above a $b$-node.
+\end{corollary}
+\begin{proof}
+($\Rightarrow$) Lemma~\ref{lem:bnotvisited}.
+
+($\Leftarrow$) Let $n$ be unvisited.
+\begin{itemize}
+\item If $n$ is a variable node or a constant node other than $b$, then
+  $T_1$ applies and gives a smaller solution, contradicting minimality.
+\item Otherwise $n$ is a lambda node.  Its successor $n'$ is not visited
+  either, since a position at $n'$ is preceded by one at $n$
+  (Lemma~\ref{lem:pred}).  By the first case $n'$ is a $b$-node.
+\end{itemize}
+The root of $t$ is visited at $\pi_2$, so these are all the cases.
 \end{proof}
 
 \begin{lemma}[Disjoint contributions]\label{lem:disjoint}
@@ -1476,7 +1426,7 @@ arities too.  For $p=2$ (order~$\le5$) the bound is $16q^2|u|$, and for
 [S, Example~12] ($q=2$, $|u|=2$) it is $128$.
 \end{remark}
 
-\subsection{Proof architecture}
+\subsection{Proof architecture}\label{sec:architecture}
 
 Let $t$ be a smallest solution.  The paper's argument has the following
 steps; ``O'' marks simple observations.
@@ -1485,15 +1435,18 @@ steps; ``O'' marks simple observations.
 \item \Paper{} Nodes of $t$ have level $\le p$ (Lemma~\ref{lem:levels}).
   Branching and binder length are at most~$q$.
 \item \Paper{} If a binder binds $(k+1)q$ nodes on one path, then at
-  least $k$ of them are embedded nodes carrying the same variable.  The
-  binder binds $\le q$ variables, so one variable occurs $\ge k+1$
+  least $k$ of them are embedded nodes carrying the same variable.  Here
+  a \emph{binder} is one binding node $\lambda y_1\dots y_r$ with its whole
+  list of variables, and $r\le q$.  The binder binds $\le q$ variables, so one variable occurs $\ge k+1$
   times, and all occurrences but the highest are embedded.
 \item \Paper{} Level-$p$ nodes are end.
 \item \Paper{} There are $\br(u)\le|u|$ plays (Fact~\ref{fact:branches}).
-\item \Paper{} $T_1$ and $T_2$ do not apply to $t$.  Hence every variable
-  node and every constant node of positive arity is visited, and on each
-  path at most $\depth(u)$ constants of positive arity occur
-  (Lemma~\ref{lem:constants}).  This depends on Gap~\ref{gap:T2}.
+\item \Fixed{} $T_1$ and $T_2$ do not apply to $t$.  Hence every node
+  of $t$ except the $b$-leaves and the dummy lambdas above them is
+  visited (Corollary~\ref{cor:visited}).  On each path at most
+  $\depth(u)$ constants of positive arity occur
+  (Lemma~\ref{lem:constants}).  The use of $T_2$ depends on
+  Gap~\ref{gap:T2}.
 \end{enumerate}
 
 \paragraph{Construction.}
@@ -1510,21 +1463,91 @@ to and including $N$ but finish $N$ at different nodes.  Separators must
 be kept, so that a node entered from several later stages receives one
 subterm.
 
-\paragraph{Pigeonhole (S, p.~53).}
-\Sketch{} Fix $k$ and take the least $j$ such that some path of $t$ has
-$\ge(k+1)q^j$ level-$j$ nodes.
-\begin{itemize}
-\item If $k$ of them are embedded end nodes with the same variable, then
-  $k\le\depth(u)+1$ (Proposition~\ref{prop:stacking}).
-\item If they are not end and $k>q$, then some $N_1$ unfolds into $N_2$
-  with $(N_1N_2)$ c-embedded.  The reconstruction: there are $\le q$
-  ``shapes'' (which successor and which variable leads to $N_2$), so two
-  repetitions have the same shape.
-\item If $k>q^l$, then $N_1$ unfolds into a c-embedded $(N_2\dots N_r)$
-  with $r\le l+1$.
-\end{itemize}
-Assuming that no $N_j$ in an unfolding is embedded because of an
-earlier $N_i$, an enlarged comb has depth $\le2pq^{p-1}$: the layers
+\paragraph{Counting nodes on a path (replaces the pigeonhole of S, p.~53).}
+The paper takes ``the least $j$ such that some path has $\ge(k+1)q^j$
+level-$j$ nodes''.  This does not work for $j\ge2$: level-$j$ nodes on
+one path can be bound by up to $(k+1)q^{j-1}$ different binders, so the
+threshold does not force $k$ occurrences of one variable of one binder
+(Gap~\ref{gap:count}(iii)).  We separate the argument into a
+combinatorial lemma and a bound on strips.
+
+\begin{definition}[Strips]\label{def:strip}
+Fix a path $P$ of $t$ from the root.  $L_j(P)$ is the number of
+level-$j$ variable nodes on $P$, with $L_0(P)=1$.  A \emph{strip} is a
+set of nodes on $P$ carrying the same variable with the same binder.
+$s_j(P)$ is the size of the largest strip of level-$j$ nodes on $P$.
+\end{definition}
+
+\begin{lemma}[Path counting]\label{lem:pathcount}
+\New{} For every path $P$ and $j\ge1$, $L_j(P)\le q\cdot s_j(P)\cdot
+L_{j-1}(P)$.  Hence
+\[
+L_j(P)\le q^j\prod_{i\le j}s_i(P),
+\qquad
+\depth(t)\le 2\Bigl(\sum_{j\le p}L_j(P)+\depth(u)+1\Bigr)
+\]
+for a longest path $P$.
+\end{lemma}
+\begin{proof}
+Let $n$ be a level-$j$ node on $P$ and $m$ its binder.  $m$ is an
+ancestor of $n$, so it lies on $P$.  For $j=1$, $m$ is the root of $t$.
+For $j\ge2$, $m$ is a successor of a level-$(j-1)$ node, and that node
+is the parent of $m$, so it also lies on $P$.  (Constants bind nothing,
+since they are first order.)  So there are at most $L_{j-1}(P)$
+binders, each with at most $q$ variables, and each pair (binder,
+variable) labels at most $s_j(P)$ nodes on $P$.
+
+For the depth: the nodes of $P$ are variable nodes (at most
+$\sum_jL_j(P)$, by Lemma~\ref{lem:levels}), constant nodes of positive
+arity (at most $\depth(u)$, Lemma~\ref{lem:constants}), one leaf, and
+one lambda node above each of these.
+\end{proof}
+
+The product $q^j\prod s_i$ replaces the paper's $(k+1)q^j$.  With a
+uniform bound $s_i\le K$ it gives $(Kq)^j$; the number of binders
+grows multiplicatively, so no tower of exponents is needed.
+
+\begin{proposition}[Strip bound]\label{prop:stripbound}
+\begin{enumerate}
+\item \Sketch{} If all level-$j$ nodes are end (e.g.\ $j=p$), then
+  $s_j(P)\le\depth(u)+1$.  This is Proposition~\ref{prop:stacking},
+  and it depends on Gap~\ref{gap:stacking}.
+\item \Open{} For non-end levels: after exhaustive unfolding and
+  $T_1,T_2$, every strip has size at most some $K$ computable from
+  $E$.  This is the content of the paper's ``if they are not end nodes
+  and $k>q$ then some $N_1$ can be unfolded'' (Gap~\ref{gap:count}).
+\end{enumerate}
+\end{proposition}
+
+Lemma~\ref{lem:pathcount} and Proposition~\ref{prop:stripbound} give a
+depth bound.  The size of the bound is not $4p^2q^{2p-2}|u|$, but it is
+explicit, and decidability (Corollary~\ref{cor:decidable}) needs only
+some computable bound.
+
+\paragraph{Order $5$.}
+Here $p=2$, so the levels are $1$ and $2$; there is no level~$0$.
+Level-$2$ nodes are end (Lemma~\ref{lem:shape5}), so
+\[
+L_1\le q\,s_1,\qquad L_2\le q^2(\depth(u)+1)\,s_1 .
+\]
+Everything reduces to one number: $s_1$, how many times the same $z_i$
+can stand one below another on a path.  This is the only place where
+unfolding is needed.
+
+The unfoldings at order~$5$ have a simple shape.  A level-$2$ comb is a
+node $y:\Ground\to\cdots\to\Ground$ with dummy lambdas below it, so it
+binds nothing.  In a c-embedded $(c_1\dots c_k)$ the head of each $c_j$,
+$j\ge2$, is bound in some earlier $c_i$, hence in $c_1$, by the binder
+$\lambda\vec y$ at the successor of the root of $c_1$ through which the
+path continues.  So $c_2,\dots,c_k$ are level-$2$ combs placed one below another on one
+path.  If no $N_j$ is embedded because of an earlier $N_i$, their
+variables are pairwise distinct, so $k\le q+1$.  In the paper's terms
+the escalation stops at $l=1$, and the depth of an enlarged comb is at
+most $2(q+1)\le4q=2pq^{p-1}$.
+
+\paragraph{Depth of enlarged combs.}
+\Sketch{} Assuming that no $N_j$ in an unfolding is embedded because of
+an earlier $N_i$, an enlarged comb has depth $\le2pq^{p-1}$: the layers
 contribute $1+q+\dots+q^{p-1}\le pq^{p-1}$, times~$2$ for the lambda
 nodes.
 
@@ -1547,10 +1570,14 @@ depth $\le2pq^{p-1}$, which gives $4p^2q^{2p-2}|u|$.
 \begin{enumerate}[(i)]
 \item Termination of the interleaving ``unfolding grows the term,
   $T_1,T_2$ shrink it''.
-\item ``$k>q$ gives a c-embedded $(N_1N_2)$'': the shape pigeonhole is
-  not written in the paper.
-\item The least-$j$ argument: level-$j$ nodes on one path can be bound
-  by different binders.
+\item Proposition~\ref{prop:stripbound}(2): a bound on strips of
+  non-end nodes after unfolding.  The paper's ``$k>q$ gives a
+  c-embedded $(N_1N_2)$'' (a pigeonhole over $\le q$ shapes) is not
+  written out, and it still has to be turned into a bound on $s_j$.
+  At order~$5$ only $s_1$ is needed.
+\item The paper's least-$j$ argument fails for $j\ge2$, since level-$j$
+  nodes on one path can be bound by different binders.  It is replaced
+  by Lemma~\ref{lem:pathcount}, which is proved.
 \item The bounds $pq^{p-1}$ (item~2) and $pq^{p-1}|u|$ (item~3).
 \item That $T_2$ applies to \emph{all} remaining stages.  Redundancy is
   defined over all plays, but partition trees are per play.
@@ -1614,6 +1641,8 @@ Thm.~\ref{thm:linunfold} & --- & new; Coq (raw terms)\\
 Ex.~\ref{ex:obstruction} & Def.~47 & counterexample\\
 Prop.~\ref{prop:reentry}, Cor.~\ref{cor:crossvisit} & --- & new; partial, Gap~\ref{gap:unfold}\\
 Fact~\ref{fact:36} & Fact~36 & open\\
+Lemma~\ref{lem:pathcount} & p.~53 & new, proved (replaces pigeonhole)\\
+Prop.~\ref{prop:stripbound} & p.~53 & (1) sketch, (2) open\\
 Thm.~\ref{thm:small} & Thm.~37 & open, Gaps~\ref{gap:T2}--\ref{gap:count}\\
 Cor.~\ref{cor:decidable} & \S6 & proved from Thm.~37; Coq
 \end{tabular}
@@ -1635,12 +1664,34 @@ Cor.~\ref{cor:decidable} & \S6 & proved from Thm.~37; Coq
   written, Def.~47 can produce a non-term
   (Example~\ref{ex:obstruction}).
 \item Thm.~37: $q$ also bounds the arities of the constants of $u$.
+\item $T_1$ also replaces unvisited 0-ary constants other than $b$, with
+  size measure $(|t|,\nu,\kappa)$, so that in a smallest solution exactly
+  the $b$-leaves (with their lambdas) are unvisited
+  (Corollary~\ref{cor:visited}).
+\item The least-$j$ pigeonhole of Thm.~37 is replaced by
+  Lemma~\ref{lem:pathcount} ($L_j\le q\,s_j\,L_{j-1}$) and a bound on
+  strips (Proposition~\ref{prop:stripbound}).
 \end{enumerate}
 
+\paragraph{Where the gaps are.}
+\begin{center}
+\small
+\begin{tabular}{llll}
+Gap & Topic & Introduced in & Page\\\hline
+\ref{gap:T2} & $T_2$ simulation & \S\ref{sec:transformations}, after Prop.~\ref{prop:T2} & \pageref{gap:T2}\\
+\ref{gap:stacking} & Stacking & \S\ref{sec:transformations}, after Prop.~\ref{prop:stacking} & \pageref{gap:stacking}\\
+\ref{gap:ptree} & Partition tree & \S\ref{sec:partition}, after Def.~\ref{def:ptree2} & \pageref{gap:ptree}\\
+\ref{gap:unfold} & Unfolding & \S\ref{sec:nonlinear}, after Cor.~\ref{cor:crossvisit} & \pageref{gap:unfold}\\
+\ref{gap:count} & Counting & \S\ref{sec:architecture}, after the counting paragraph & \pageref{gap:count}
+\end{tabular}
+\end{center}
+
 \paragraph{Open, in order of importance.}
-Gap~\ref{gap:unfold} (unfolding: game, soundness, the remaining
-cross-visit case), Gap~\ref{gap:count} (counting), Gap~\ref{gap:T2}
-($T_2$ simulation), Gap~\ref{gap:ptree} (partition tree),
-Gap~\ref{gap:stacking} (stacking).
+Gap~\ref{gap:unfold} (\S\ref{sec:nonlinear}; unfolding: game, soundness,
+the remaining cross-visit case), Gap~\ref{gap:count}
+(\S\ref{sec:architecture}; counting), Gap~\ref{gap:T2}
+(\S\ref{sec:transformations}; $T_2$ simulation), Gap~\ref{gap:ptree}
+(\S\ref{sec:partition}; partition tree), Gap~\ref{gap:stacking}
+(\S\ref{sec:transformations}; stacking).
 
 \end{document}
