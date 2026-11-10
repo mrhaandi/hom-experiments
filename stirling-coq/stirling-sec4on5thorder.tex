@@ -51,7 +51,11 @@
 \newtheorem{example}[theorem]{Example}
 \theoremstyle{remark}
 \newtheorem{remark}[theorem]{Remark}
-\newtheorem{gap}{Gap}
+\newtheorem*{gapenv}{\gapname}
+\newcommand{\gapname}{Gap}
+\newcommand{\GapPartition}{\hyperref[gap:ptree]{[Gap-Partition]}}
+\newcommand{\GapUnfolding}{\hyperref[gap:unfold]{[Gap-Unfolding]}}
+\newcommand{\GapCounting}{\hyperref[gap:count]{[Gap-Counting]}}
 
 \title{Stirling's decidability proof for higher-order matching\\
 at order $5$: definitions and corrected proofs}
@@ -132,9 +136,9 @@ $\Ground\to\cdots\to\Ground\to\Ground$.
 
 \begin{definition}[Long normal form, interpolation; S, Defs.~6--9]
 A term of type $(A_1,\dots,A_n,\Ground)$ is in \emph{lnf} if it is
-$\lambda x_1\dots x_n.\,h\,s_1\dots s_m$ with $h$ a variable or a
+$\lambda y_1\dots y_n.\,h\,s_1\dots s_m$ with $h$ a variable or a
 constant and every $s_j$ in lnf.  An \emph{interpolation equation} $E$
-is $x\,w_1\dots w_k=u$ with $x:A=(A_1,\dots,A_k,\Ground)$, closed lnf
+is $X\,w_1\dots w_k=u$ with $X:A=(A_1,\dots,A_k,\Ground)$, closed lnf
 terms $w_i:A_i$, and a closed lnf goal $u:\Ground$.  A \emph{solution} is
 a closed lnf $t:A$ with $t\,w_1\dots w_k=_{\beta\eta}u$.  The order of
 $E$ is $\ord(A)$ and its arity is $\ar(A)$.
@@ -153,14 +157,14 @@ nodes and $\br(u)$ the number of leaves (branches) of $u$.
 \end{lemma}
 
 \begin{definition}[Trees; S, \S3.1]
-The tree of an lnf term uses dummy lambdas.  $\lambda\vec y.\,s$ with
-$s:\Ground$ ($\vec y$ possibly empty) is a node labelled $\lambda\vec y$
+The tree of an lnf term uses dummy lambdas.  $\lambda\vec z.\,s$ with
+$s:\Ground$ ($\vec z$ possibly empty) is a node labelled $\lambda\vec z$
 with one successor.  $h\,s_1\dots s_m$ is a node labelled $h$ with
 successors $s_1,\dots,s_m$.  $\suc ni$ is the $i$-th successor of $n$.
 The \emph{binding relation} $n\bnd m$ holds when $n$ is labelled
-$\lambda y_1\dots y_p$ and binds the variable occurrence at $m$.  Nodes
+$\lambda z_1\dots z_p$ and binds the variable occurrence at $m$.  Nodes
 are \emph{lambda}, \emph{variable} or \emph{constant} nodes; a lambda
-node with non-empty $\vec y$ is a \emph{binding node}.
+node with non-empty $\vec z$ is a \emph{binding node}.
 
 The \emph{interpolation tree} $@\,t\,w_1\dots w_k$ has a root
 $\varepsilon$ labelled $@$ with successors $1,\dots,k+1$ carrying the
@@ -179,14 +183,14 @@ $A_i=(B_{i1},\dots,B_{im_i},\Ground)$ with $\ord(B_{ih})\le3$, and
 $B_{ih}=(C_1,\dots,C_r,\Ground)$ with $\ord(C_g)\le2$, so
 $C_g=(\Ground,\dots,\Ground,\Ground)$.
 \begin{itemize}
-\item In $t=\lambda z_1\dots z_k.\,S$: the \emph{$z$-variables}
-  $z_i:A_i$ (order $\le4$), bound by the root of $t$; and the
-  \emph{$y$-variables} $y:C_g$ (order $\le2$), bound by the successors
-  of $z$-nodes.
-\item In $w_i=\lambda x_1\dots x_{m_i}.\,H$: the \emph{$x$-variables}
-  $x_h:B_{ih}$ (order $\le3$), bound by the root of $w_i$; and the
+\item In $t=\lambda x_1\dots x_k.\,S$: the \emph{$x$-variables}
+  $x_i:A_i$ (order $\le4$), bound by the root of $t$; and the
+  \emph{$z$-variables} $z:C_g$ (order $\le2$), bound by the successors
+  of $x$-nodes.
+\item In $w_i=\lambda y_1\dots y_{m_i}.\,H$: the \emph{$y$-variables}
+  $y_h:B_{ih}$ (order $\le3$), bound by the root of $w_i$; and the
   \emph{$v$-variables} $v:\Ground$, bound by the successors of
-  $x$-nodes.
+  $y$-nodes.
 \end{itemize}
 $q$ bounds $k$, every $m_i$, every $r$, the arity of every $C_g$, and
 the arities of the constants of $u$.
@@ -194,21 +198,21 @@ the arities of the constants of $u$.
 
 \begin{lemma}[Shape of terms]\label{lem:shape}
 \New{} Every potential solution $t$ and every $w_i$ has the form below,
-where $\lambda\vec y$, $\lambda\vec v$ may be empty (dummy):
+where $\lambda\vec z$, $\lambda\vec v$ may be empty (dummy):
 \begin{align*}
-S&::=z_i\,(\lambda\vec y.\,S)\dots(\lambda\vec y.\,S)\mid
-     y\,(\lambda.\,S)\dots(\lambda.\,S)\mid f\,(\lambda.\,S)\dots(\lambda.\,S)\mid a,\\
-H&::=x_h\,(\lambda\vec v.\,H)\dots(\lambda\vec v.\,H)\mid v\mid
+S&::=x_i\,(\lambda\vec z.\,S)\dots(\lambda\vec z.\,S)\mid
+     z\,(\lambda.\,S)\dots(\lambda.\,S)\mid f\,(\lambda.\,S)\dots(\lambda.\,S)\mid a,\\
+H&::=y_h\,(\lambda\vec v.\,H)\dots(\lambda\vec v.\,H)\mid v\mid
      f\,(\lambda.\,H)\dots(\lambda.\,H)\mid a .
 \end{align*}
-Here $y$ and $v$ range over variables bound above, and the $f$, $a$ in
+Here $z$ and $v$ range over variables bound above, and the $f$, $a$ in
 $t$ are constants of $\CE$.
 \end{lemma}
 \begin{proof}
-The arguments of $z_i$ have the types $B_{ih}$, so they are
-$\lambda\vec y.\,S$ with $\vec y:C_1,\dots,C_r$.  The arguments of
-$y:C_g$ have base type, so they are dummy lambdas.  The arguments of
-$x_h:B_{ih}$ have the types $C_g$, so they are $\lambda\vec v.\,H$ with
+The arguments of $x_i$ have the types $B_{ih}$, so they are
+$\lambda\vec z.\,S$ with $\vec z:C_1,\dots,C_r$.  The arguments of
+$z:C_g$ have base type, so they are dummy lambdas.  The arguments of
+$y_h:B_{ih}$ have the types $C_g$, so they are $\lambda\vec v.\,H$ with
 $\vec v$ of base type, and $v$-nodes have no successors.  Constants are
 first order, so their successors are dummy lambdas.
 \end{proof}
@@ -217,32 +221,32 @@ first order, so their successors are dummy lambdas.
 \New{}
 \begin{enumerate}
 \item The binding nodes of the interpolation tree are the root of $t$
-  (binding $\vec z$), the successors of $z$-nodes (binding $\vec y$),
-  the roots of the $w_i$ (binding $\vec x$), and the successors of
-  $x$-nodes (binding $\vec v$).  Every other lambda node is a dummy.
-\item $z$- and $x$-nodes have level~$1$, $y$- and $v$-nodes have
+  (binding $\vec x$), the successors of $x$-nodes (binding $\vec z$),
+  the roots of the $w_i$ (binding $\vec y$), and the successors of
+  $y$-nodes (binding $\vec v$).  Every other lambda node is a dummy.
+\item $x$- and $y$-nodes have level~$1$, $z$- and $v$-nodes have
   level~$2$ (Definition~\ref{def:struct}).  There are no other levels.
-\item $y$- and $v$-nodes are end.  A $z$-node is end iff none of the
-  $y$-variables bound by its successors occurs; likewise for
-  $x$-nodes.
+\item $z$- and $v$-nodes are end.  An $x$-node is end iff none of the
+  $z$-variables bound by its successors occurs; likewise for
+  $y$-nodes.
 \end{enumerate}
 \end{corollary}
 \begin{proof}
 (1) and (2) are read off Lemma~\ref{lem:shape}.  (3) The successors of
-$y$- and $v$-nodes bind nothing.
+$z$- and $v$-nodes bind nothing.
 \end{proof}
 
 \begin{remark}
 In the general paper, levels go up to $p$ for order $2p$ or $2p+1$.
-Here $p=2$.  If $\ord(A)\le3$, all $\vec y$ are empty and there are no
-$y$-variables.
+Here $p=2$.  If $\ord(A)\le3$, all $\vec z$ are empty and there are no
+$z$-variables.
 \end{remark}
 
 %======================================================================
 \section{Games and interpolation [S, \S4]}\label{sec:games}
 %======================================================================
 
-Throughout, $E$ is $x\,w_1\dots w_k=u$ and $t:A$ is a closed lnf term
+Throughout, $E$ is $X\,w_1\dots w_k=u$ and $t:A$ is a closed lnf term
 (a \emph{potential solution}).
 
 \subsection{The game}
@@ -270,15 +274,15 @@ position depends on the label of $n$.
 \begin{description}
 \item[$@$:] $\suc n1[r]\theta'$ with
   $\theta'=\theta\{((\suc n2,\dots,\suc n{(k+1)}),\theta)/\suc n1\}$.
-\item[$\lambda\vec y$:] $\suc n1[r]\theta$.
+\item[$\lambda\vec z$:] $\suc n1[r]\theta$.
 \item[$a:\Ground$:] $n[\exists]\theta$ if $r=a$, and $n[\forall]\theta$
   otherwise.
 \item[$f$ of arity $p>0$:] if $r=f\,r_1\dots r_p$, then
   $\forall$ chooses $j\in\{1,\dots,p\}$ and the next position is
   $\suc nj[r_j]\theta$; otherwise it is $n[\forall]\theta$.
-\item[$y_j:\Ground$:] if $m\bnd n$ and $\theta(m)=((m_1,\dots,m_l),\theta')$
+\item[$z_j:\Ground$:] if $m\bnd n$ and $\theta(m)=((m_1,\dots,m_l),\theta')$
   then $m_j[r]\theta'$.
-\item[$y_j$ of type $(B_1,\dots,B_p,\Ground)$, $p>0$:]\ \\ if $m\bnd n$ and
+\item[$z_j$ of type $(B_1,\dots,B_p,\Ground)$, $p>0$:]\ \\ if $m\bnd n$ and
   $\theta(m)=((m_1,\dots,m_l),\theta')$ then $m_j[r]\theta''$ with
   $\theta''=\theta'\{((\suc n1,\dots,\suc np),\theta)/m_j\}$.
 \end{description}
@@ -305,7 +309,7 @@ $\theta_j(m)=((m_1,\dots,m_p),\theta')$.
 \item $\theta_j(n)$ is defined iff $n$ is a binding node above $n_j$.
 \item $\theta'(n)$ is defined iff $n$ is a binding node strictly above
   every $m_k$.
-\item $m$ is labelled $\lambda y_1\dots y_p$, and $y_k$ has the type of
+\item $m$ is labelled $\lambda z_1\dots z_p$, and $z_k$ has the type of
   $m_k$.
 \item $\theta'=\theta_i$ for some $i<j$, and either $i=1$ and
   $m_k=\suc{\varepsilon}{(k+1)}$, or $n_i$ is a variable node and
@@ -322,16 +326,16 @@ step, look at the move from $\pi_{j-1}$.
 \item $\lambda$, $a$, $f$: the table is unchanged and $n_j$ is not a
   binding node, or is the successor of a constant, which binds nothing
   since constants of $u$ are first order.
-\item jump at $y_q$ bound by $m$, with
+\item jump at $z_q$ bound by $m$, with
   $\theta_{j-1}(m)=((m_1,\dots,m_p),\theta')$: then $n_j=m_q$, and
   $\theta_j=\theta'$ or
   $\theta_j=\theta'\{((\suc{n_{j-1}}1,\dots),\theta_{j-1})/m_q\}$.  By the
   induction hypothesis~(2) for $\theta'$, the binding nodes above $m_q$
   are those strictly above $m_q$ (domain of $\theta'$), plus $m_q$
-  itself when $y_q$ has higher type.  This gives (1).  Entries of
+  itself when $z_q$ has higher type.  This gives (1).  Entries of
   $\theta'$ satisfy (2)--(4) by induction.  The new entry has inner
   table $\theta_{j-1}$, an earlier table, and arguments the successors
-  of the variable node $n_{j-1}$.  Its types match because $y_q$ and
+  of the variable node $n_{j-1}$.  Its types match because $z_q$ and
   $m_q$ have the same type, by induction~(3).  \qedhere
 \end{itemize}
 \end{proof}
@@ -344,26 +348,26 @@ of type $A$.
 \New{} At order $\le5$ every jump has one of the following forms.  Let
 play be at a variable node $n$ with table $\theta$.
 \begin{description}
-\item[$z$-jump ($t\to w$).] $n$ carries $z_i$.  Play goes to the root of
+\item[$x$-jump ($t\to w$).] $n$ carries $x_i$.  Play goes to the root of
   $w_i$, with the single entry $((\suc n1,\dots,\suc n{m_i}),\theta)$
   for it (no entry if $m_i=0$).
-\item[$x$-jump ($w\to t$).] $n$ carries $x_h$, bound by the root $\rho$
-  of $w_i$, and $\theta(\rho)=((\suc{n'}1,\dots),\theta')$ for a
-  $z_i$-node $n'$.  Play goes to $\suc{n'}h$ (a $\lambda\vec y$), with
+\item[$y$-jump ($w\to t$).] $n$ carries $y_h$, bound by the root $\rho$
+  of $w_i$, and $\theta(\rho)=((\suc{n'}1,\dots),\theta')$ for an
+  $x_i$-node $n'$.  Play goes to $\suc{n'}h$ (a $\lambda\vec z$), with
   table $\theta'$ extended by $((\suc n1,\dots),\theta)$ for
   $\suc{n'}h$.
-\item[$y$-jump ($t\to w$).] $n$ carries $y_g$, bound by $\suc{n'}h$, and
-  $\theta(\suc{n'}h)=((\suc{n''}1,\dots),\theta')$ for an $x$-node
+\item[$z$-jump ($t\to w$).] $n$ carries $z_g$, bound by $\suc{n'}h$, and
+  $\theta(\suc{n'}h)=((\suc{n''}1,\dots),\theta')$ for a $y$-node
   $n''$.  Play goes to $\suc{n''}g$ (a $\lambda\vec v$), with table
   $\theta'$ extended by $((\suc n1,\dots),\theta)$ for $\suc{n''}g$
-  if $y_g$ has arguments.
+  if $z_g$ has arguments.
 \item[$v$-jump ($w\to t$).] $n$ carries $v_e$, bound by $\suc{n''}g$, and
-  $\theta(\suc{n''}g)=((\suc{n'''}1,\dots),\theta')$ for a $y$-node
+  $\theta(\suc{n''}g)=((\suc{n'''}1,\dots),\theta')$ for a $z$-node
   $n'''$.  Play goes to the dummy lambda $\suc{n'''}e$ with table
   $\theta'$.
 \end{description}
 So play in $t$ visits the root, then alternates between $t$ and $w$:
-$z$- and $y$-jumps leave $t$, $x$- and $v$-jumps return to it.
+$x$- and $z$-jumps leave $t$, $y$- and $v$-jumps return to it.
 \end{corollary}
 \begin{proof}
 Definition~\ref{def:moves}, with the binders of
@@ -379,10 +383,10 @@ For a node $n$ and a table $\theta$, $\theta[n]$ is the term
 \item $a$ if $n$ is labelled $a$, and $f\,\theta[\suc n1]\dots\theta[\suc np]$
   if it is labelled $f$;
 \item $\theta[\suc n1]$ for a dummy lambda, and
-  $\lambda\vec z.\,\theta[\suc n1]$ for $\lambda\vec z$ with $\vec z$
+  $\lambda\vec x.\,\theta[\suc n1]$ for $\lambda\vec x$ with $\vec x$
   non-empty;
-\item for $y_j$ bound by $m$: $\theta'[m_j]\,\theta[\suc n1]\dots\theta[\suc nq]$
-  if $\theta(m)=((m_1,\dots),\theta')$, and $y_j\,\theta[\suc n1]\dots$
+\item for $z_j$ bound by $m$: $\theta'[m_j]\,\theta[\suc n1]\dots\theta[\suc nq]$
+  if $\theta(m)=((m_1,\dots),\theta')$, and $z_j\,\theta[\suc n1]\dots$
   if $\theta(m)$ is undefined.
 \end{itemize}
 \end{definition}
@@ -392,7 +396,7 @@ For a node $n$ and a table $\theta$, $\theta[n]$ is the term
 \end{theorem}
 \begin{proof}
 Use \emph{leftmost reduction sequences} with the rules
-$(\lambda y_1\dots y_p.s)\,s_1\dots s_p\to s\{s_1/y_1,\dots\}$ and
+$(\lambda z_1\dots z_p.s)\,s_1\dots s_p\to s\{s_1/z_1,\dots\}$ and
 $f\,s_1\dots s_p\to s_j$ (reduction under a constant, which commits to a
 branch).  A term is \emph{terminal} if neither rule applies.  A sequence
 $s_1\to\dots\to s_m$ is \emph{compatible} with a binder-free normal
@@ -414,13 +418,13 @@ has such a sequence.
 The proof is by induction on the length, by cases on the label of
 $n_{2s-1}$, which is never a lambda node (Fact~\ref{fact:parity}).
 \begin{itemize}
-\item $@$: $\theta_3[n_3]$ is the body of $t$ with $w_i$ for $x_i$.
+\item $@$: $\theta_3[n_3]$ is the body of $t$ with $w_i$ for $y_i$.
 \item $f$: $\forall$ follows the branch of the reduction step.
-\item $y_j$ of higher type: $\theta_{2s-1}[n_{2s-1}]=\theta'[m_j]\,\vec s$
-  is a redex $(\lambda\vec y.s')\vec s$.  The next odd position
-  represents $s'\{\vec s/\vec y\}$, because the new entry for $m_j$ maps
-  $\vec y$ to the successors of $n_{2s-1}$ under $\theta_{2s-1}$.
-\item $y_j:\Ground$: $\theta_{2s-1}[n_{2s-1}]=\theta'[m_j]$ and the play
+\item $z_j$ of higher type: $\theta_{2s-1}[n_{2s-1}]=\theta'[m_j]\,\vec s$
+  is a redex $(\lambda\vec z.s')\vec s$.  The next odd position
+  represents $s'\{\vec s/\vec z\}$, because the new entry for $m_j$ maps
+  $\vec z$ to the successors of $n_{2s-1}$ under $\theta_{2s-1}$.
+\item $z_j:\Ground$: $\theta_{2s-1}[n_{2s-1}]=\theta'[m_j]$ and the play
   moves on without a reduction step; insert a padding step.  Only
   finitely many paddings happen in a row, since each uses a table of
   an earlier position.
@@ -524,11 +528,11 @@ item~2, $n_j$ is a successor of $n_i$.
 \end{definition}
 
 \begin{remark}[Children at order $5$]
-By Corollary~\ref{cor:jumps}, a position at a $z$-node has its children
-at successors $\lambda\vec y$ of that node, entered by $x$-jumps.  A
-position at a $y$-node has its children at the dummy lambdas below it,
-entered by $v$-jumps.  Symmetrically in $w$: children of an $x$-position
-are entered by $y$-jumps, and $v$-nodes have no successors.  The
+By Corollary~\ref{cor:jumps}, a position at an $x$-node has its children
+at successors $\lambda\vec z$ of that node, entered by $y$-jumps.  A
+position at a $z$-node has its children at the dummy lambdas below it,
+entered by $v$-jumps.  Symmetrically in $w$: children of a $y$-position
+are entered by $z$-jumps, and $v$-nodes have no successors.  The
 children of a constant position are its successors, entered by the
 $f$-move.
 \end{remark}
@@ -574,7 +578,7 @@ then $\pi_{j_a}$ is the parent of $\pi_{j_b}$.
 \begin{itemize}
 \item $@$: $\theta_1=\varnothing$.
 \item Constant: $\theta_j=\theta_i$.
-\item Variable $z$: $\pi_{i+1}$ is the parent of $\pi_{j-1}$ (at $y_k$),
+\item Variable $x$: $\pi_{i+1}$ is the parent of $\pi_{j-1}$ (at $z_k$),
   so $\theta_{j-1}(n_{i+1})=\theta_{i+1}(n_{i+1})=((\dots),\theta_i)$.
   Hence $\theta_j=\theta_i$ or $\theta_i\{\dots/n_j\}$, and $\theta_i$
   has no entry for $n_j$ (Proposition~\ref{prop:tables}(1)).
@@ -646,6 +650,28 @@ only one child position.  For a variable node, apply the variable case
 to $\pi_{i+1}$, $\pi_{j-1}$, $\pi_{m-1}$.
 \end{proof}
 
+\begin{definition}[Excursion]\label{def:excursion}
+\New{} Let $\pi_j$ be at a variable node $n_j$, $j<l$.  The
+\emph{excursion} at $\pi_j$ is the interval $\iv{j+1}{j'-1}$, where
+$\pi_{j'}$ is the first position after $\pi_j$ that is a child of
+$\pi_j$; if there is none, it is $\iv{j+1}l$.  So the excursion is the
+part of the play between the jump out of $n_j$ and the first return to a
+successor of $n_j$ with the table of $\pi_j$.  The excursion
+\emph{returns} if $\pi_{j'}$ exists, and then it returns \emph{to}
+$\suc{n_j}h$ if $n_{j'}=\suc{n_j}h$.  It \emph{contributes} if
+$r_{j+1}\ne r_{j'-1}$ (resp.\ $r_l$).
+\end{definition}
+
+\begin{remark}
+At order~$5$ (Corollary~\ref{cor:jumps}): the excursion at an
+$x$-node of $t$ runs from the root of some $w_i$ until a $y$-jump back
+to a successor $\lambda\vec z$ of that node; the excursion at a
+$z$-node runs from a $\lambda\vec v$ in some $w_i$ until a $v$-jump back
+to a dummy lambda below that node.  Proposition~\ref{prop:24} compares
+initial segments of two excursions; the intervals in
+Definition~\ref{def:compl} are such segments.
+\end{remark}
+
 \begin{definition}[Correspondence; S, Def.~32]
 $\iv i{i+m}$ and $\iv j{j+m}$ \emph{correspond} if $n_{i+h}=n_{j+h}$ for
 $0\le h\le m$.
@@ -663,7 +689,7 @@ $\iv{j+1}{j+k}$ and $\iv{m+1}{m+k}$ correspond and either
 \end{enumerate}
 \end{proposition}
 \begin{proof}
-Write $\theta_i(n_i)=((m_1,\dots),\theta_l)$ and let $n_j,n_m$ carry $y_q$.
+Write $\theta_i(n_i)=((m_1,\dots),\theta_l)$ and let $n_j,n_m$ carry $z_q$.
 Then $n_{j+1}=n_{m+1}=m_q$ and
 \[
 \theta_{j+1}=\theta_l\{((\suc{n_j}1,\dots),\theta_j)/m_q\},\qquad
@@ -700,7 +726,7 @@ means that the two tables substitute the same subtrees, hereditarily.
 $\iv a{a+k}$ and $\iv b{b+k}$ correspond and one of the following
 holds.
 \begin{enumerate}
-\item[(1)] \emph{(binder split)} $n_{a+k}$ is a variable $y_q$ bound by
+\item[(1)] \emph{(binder split)} $n_{a+k}$ is a variable $z_q$ bound by
   $m$, and the entries $\theta_{a+k}(m)$, $\theta_{b+k}(m)$ are
   $\rho(m),\rho'(m)$ for a difference $(\rho,\rho',m)$ of
   $(\theta_a,\theta_b)$.  Then $\pi_{a+k+1}$ and $\pi_{b+k+1}$ are at the
@@ -731,7 +757,7 @@ $(\theta_{a+i},\theta_{b+i})\in\hat P$.  Check it move by move
 \item At $@$ (only at $a=b=1$, impossible since $a<b$) or at a
   higher-type jump, the new entry has $\vec n$ the successors of the
   common node and env the current pair, so the invariant is kept.
-\item At a variable $y_q$ bound by $m$:
+\item At a variable $z_q$ bound by $m$:
   \begin{itemize}
   \item if $\args(m)$ agree, the next nodes agree, and the new tables
     come from the env pair, which lies in $\hat P$;
@@ -745,7 +771,7 @@ Plays are finite, so $k$ exists.
 \end{proof}
 
 \begin{corollary}[24$'$: no common parent]\label{cor:24prime}
-\New{} Let $j<m$ and let $n_j,n_m$ carry the same variable $y_q$ of a
+\New{} Let $j<m$ and let $n_j,n_m$ carry the same variable $z_q$ of a
 binder $b$.  Let the parents of $\pi_j,\pi_m$ be visits $\pi_i,\pi_{i'}$
 of $b$ with $\theta_i(b)=((\vec m),\theta_l)$ and
 $\theta_{i'}(b)=((\vec m),\theta_{l'})$ (same arguments).
@@ -775,8 +801,8 @@ parent is required.
 \begin{definition}[Levels, embedded, families; S, Defs.~34--36]\label{def:struct}
 \begin{itemize}
 \item A variable node has \emph{level}~$1$ if it is bound by the root
-  of $t$ or of some $w_q$ ($z$- and $x$-nodes), and level~$2$ if it is
-  bound by a successor of a level-$1$ node ($y$- and $v$-nodes).
+  of $t$ or of some $w_q$ ($x$- and $y$-nodes), and level~$2$ if it is
+  bound by a successor of a level-$1$ node ($z$- and $v$-nodes).
 \item A node $m$ is \emph{embedded} if some $n\ne m$ above $m$ carries
   the same variable and has the same binder.
 \item $n$ is a \emph{descendant under binding} of $m$ if $n=m$, or some
@@ -790,17 +816,17 @@ parent is required.
 \end{definition}
 
 \begin{remark}[Families at order $5$]
-For a $z$-node $n$ let $F(n)$ consist of $n$ and the $y$-nodes bound by
+For an $x$-node $n$ let $F(n)$ consist of $n$ and the $z$-nodes bound by
 successors of $n$.  These are exactly the descendants under binding of
-$n$, and a $y$-node has no descendant but itself.  Taking ancestors
+$n$, and a $z$-node has no descendant but itself.  Taking ancestors
 among variable nodes of $t$, the families of $t$ are therefore the sets
-$F(n)$.  In particular every family has a unique $z$-node, its
-\emph{head}, and two $z$-nodes are never in the same family.
+$F(n)$.  In particular every family has a unique $x$-node, its
+\emph{head}, and two $x$-nodes are never in the same family.
 \end{remark}
 
 \begin{lemma}[Levels]\label{lem:levels}
-\New{} Every variable node has level $1$ or $2$: $z$- and $x$-nodes
-have level~$1$, and $y$- and $v$-nodes level~$2$.  Level-$1$ variables
+\New{} Every variable node has level $1$ or $2$: $x$- and $y$-nodes
+have level~$1$, and $z$- and $v$-nodes level~$2$.  Level-$1$ variables
 of $t$ have order $\le4$, level-$2$ variables of $t$ order $\le2$.
 \end{lemma}
 \begin{proof}
@@ -822,7 +848,7 @@ of $n_i$ binds the variable at $n_{k-1}$, and $n_i$ is not end.
 \end{proof}
 
 \begin{fact}[S, Fact~26]\label{fact:26}
-\Paper{} If $n_j,n_m$ ($j<m$) are $z$-nodes carrying the same
+\Paper{} If $n_j,n_m$ ($j<m$) are $x$-nodes carrying the same
 variable, then for some $k$ the intervals $\iv{j+1}{j+k}$ and
 $\iv{m+1}{m+k}$ are complementary.
 \end{fact}
@@ -862,7 +888,7 @@ $n_{j_{2a-1}}$ and $n_{j_{2b-1}}$ belong to the same family.
 \begin{proof}
 Both are variable nodes, since their children lie in $w_q$.  Extend the
 chain upward to the successor of the root of $w_q$.  The position before
-the root of $w_q$ is at a $z$-node of $t$.  That node is an
+the root of $w_q$ is at an $x$-node of $t$.  That node is an
 ancestor under binding of every $t$-node on the chain, since each jump
 back into $w_q$ is through a variable bound inside the chain path.
 \end{proof}
@@ -889,7 +915,7 @@ $\pi_{i'}$, if any.
 \begin{itemize}
 \item At a constant node, $j'=i'+1$, and the chain extends.
 \item At a variable node, it extends iff for some earlier position at a
-  node with the same variable the excursions $\iv{\cdot+1}{\cdot+k}$ and
+  node with the same variable the excursions (Definition~\ref{def:excursion}) $\iv{\cdot+1}{\cdot+k}$ and
   $\iv{i'+1}{i'+k}$, $k=j'-i'-1$, are complementary.
 \end{itemize}
 Otherwise the construction stops.  The nodes form a downward path in
@@ -918,7 +944,8 @@ $\mu(t)=(|t|,\nu(t),\kappa(t))$, ordered lexicographically:
 \item $\kappa(t)$ is the number of nodes labelled by a constant other
   than $b$.
 \end{itemize}
-A solution in $T_A(\CE)$ is \emph{smallest} if it is $\mu$-minimal.
+The measure is used only to show that $T_1$ and $T_2$ terminate
+(Lemma~\ref{lem:terse}).
 \end{definition}
 
 \begin{definition}[$T_1$; S, Def.~38]\label{def:T1}
@@ -928,12 +955,13 @@ and no play of $\Gm(t,E)$ is ever at $n$, then $t\,T_1\,t[b/n]$.
 
 \begin{remark}
 The paper applies $T_1$ only to variables and to constants of positive
-arity, and measures size by $(|t|,\nu(t))$.  A smallest solution may
-then keep unvisited leaves $\lambda.\,a$ with $a\ne b$ of arity~$0$.
+arity, and measures size by $(|t|,\nu(t))$.  A terse solution
+(Definition~\ref{def:terse}) may then keep unvisited leaves $\lambda.\,a$ with $a\ne b$ of arity~$0$.
 Adding the 0-ary constants other than $b$, and the third component
 $\kappa$, removes them.  This gives the clean statement of
 Corollary~\ref{cor:visited}.  The rest of the proof only uses $\mu$
-through ``$T_1$ and $T_2$ make $t$ smaller'', so nothing else changes.
+through ``$T_1$ and $T_2$ make $t$ smaller'' (Lemma~\ref{lem:terse}),
+so nothing else changes.
 \end{remark}
 
 \begin{proposition}[S, Fact~30]\label{prop:T1}
@@ -947,7 +975,7 @@ gives $\Gm(t',E)=\Gm(t,E)$, and Theorem~\ref{thm:game} concludes.  For
 the size:
 \begin{itemize}
 \item if the removed subtree has more than one node, $|t|$ drops;
-\item if it is a single variable $y:\Ground$, $|t|$ stays and $\nu$
+\item if it is a single variable $z:\Ground$, $|t|$ stays and $\nu$
   drops;
 \item if it is a single constant $a\ne b$ of arity $0$, $|t|$ and $\nu$
   stay and $\kappa$ drops.
@@ -967,8 +995,9 @@ contradicting Theorem~\ref{thm:game}.  A position at the lambda above
 is always followed by a position at its unique successor, the $b$-node.
 \end{proof}
 
-\begin{corollary}[Visited nodes of a smallest solution]\label{cor:visited}
-\New{} Let $t$ be a smallest solution.  A node of $t$ is visited by
+\begin{corollary}[Visited nodes]\label{cor:visited}
+\New{} Let $t$ solve $E$, and suppose $T_1$ does not apply to $t$ (for
+instance, $t$ is terse, Definition~\ref{def:terse}).  A node of $t$ is visited by
 some play iff it is neither a $b$-node nor the dummy lambda directly
 above a $b$-node.
 \end{corollary}
@@ -978,7 +1007,7 @@ above a $b$-node.
 ($\Leftarrow$) Let $n$ be unvisited.
 \begin{itemize}
 \item If $n$ is a variable node or a constant node other than $b$, then
-  $T_1$ applies and gives a smaller solution, contradicting minimality.
+  $T_1$ applies to $n$, contrary to the assumption.
 \item Otherwise $n$ is a lambda node.  Its successor $n'$ is not visited
   either, since a position at $n'$ is preceded by one at $n$
   (Lemma~\ref{lem:pred}).  By the first case $n'$ is a $b$-node.
@@ -1041,25 +1070,25 @@ $T_2$.
 \begin{lemma}[End paths at order $5$]\label{lem:endpath5}
 \New{} The end paths of $t$ are exactly the following.
 \begin{enumerate}
-\item \emph{$y$-paths}: $m_1$ a $y$-node and $m_2$ one of its dummy
+\item \emph{$z$-paths}: $m_1$ a $z$-node and $m_2$ one of its dummy
   successors ($p=1$).  Every such pair is an end path.
-\item \emph{$z$-paths}: $m_1$ a $z$-node $n$, $m_2=\suc nh$, and, if
-  $p\ge2$, $m_3,m_5,\dots,m_{2p-1}$ are $y$-nodes bound by $m_2$, each
+\item \emph{$x$-paths}: $m_1$ an $x$-node $n$, $m_2=\suc nh$, and, if
+  $p\ge2$, $m_3,m_5,\dots,m_{2p-1}$ are $z$-nodes bound by $m_2$, each
   directly below the dummy lambda $m_{2i}$ under the previous one.  The
   condition is that no variable strictly below $m_{2p}$ is bound by
   $m_2$.
 \end{enumerate}
 \end{lemma}
 \begin{proof}
-$m_1$ is a variable node of $t$, so a $y$- or $z$-node.  The binder of
+$m_1$ is a variable node of $t$, so a $z$- or $x$-node.  The binder of
 $m_3$ lies on $\gamma$ above $m_3$, so it is $m_2$.  If $m_1$ is a
-$y$-node, $m_2$ is a dummy, so $p=1$; condition~(3) holds, since a
-variable node of $t$ strictly below $m_2$ is a $z$-node (bound at the
-root) or a $y$-node, whose binder is a successor of a $z$-node and so is
-not $m_2$.  If $m_1=n$ is a $z$-node, every $m_{2i-1}$, $i\ge2$, is bound
+$z$-node, $m_2$ is a dummy, so $p=1$; condition~(3) holds, since a
+variable node of $t$ strictly below $m_2$ is an $x$-node (bound at the
+root) or a $z$-node, whose binder is a successor of an $x$-node and so is
+not $m_2$.  If $m_1=n$ is an $x$-node, every $m_{2i-1}$, $i\ge2$, is bound
 by a binding node on $\gamma$; the even nodes after $m_2$ are dummies
-below $y$-nodes, so that binder is $m_2$, and the $m_{2i-1}$ are
-$y$-nodes of $F(n)$.  Condition~(3) then says exactly that nothing
+below $z$-nodes, so that binder is $m_2$, and the $m_{2i-1}$ are
+$z$-nodes of $F(n)$.  Condition~(3) then says exactly that nothing
 strictly below $m_{2p}$ is bound by $m_2$, since $m_2$ is the only
 binder on $\gamma$.
 \end{proof}
@@ -1090,57 +1119,295 @@ subtree at $\suc{m_{2p}}1$, then $t\,T_2\,t[t'/m_1]$.  By
 Definition~\ref{def:endpath}(3) the result is closed, and $|t|$ drops.
 \end{definition}
 
-\begin{proposition}[S, Prop.~31]\label{prop:T2}
-\Sketch{} If $t$ solves $E$ and $t\,T_2\,t''$, then $t''$ solves $E$.
-\end{proposition}
-\begin{proof}[Proof (paper's argument, with the open step marked)]
-Let $\pi\in\Gm(t,E)$.
+\begin{lemma}[$T_2$ simulation]\label{lem:T2sim}
+\New{} Let $t$ solve $E$, let $\gamma=m_1,\dots,m_{2p}$ be an end path
+redundant in $\Gm(t,E)$, let $s=\suc{m_{2p}}1$, let $S$ be the subtree of
+$t$ at $s$, and let $t''=t[S/m_1]$.  Put
+\[
+U=\{\text{nodes of the subtree of $t$ at $m_1$}\}\setminus S ,
+\]
+so $\gamma\subseteq U$, and let $\Gamma$ be the set of binding nodes on
+$\gamma$.  Let $\varrho$ be the bijection from the nodes of
+$@\,t''\,w_1\dots w_k$ onto $N\setminus U$ with
+$\varrho(m_1w)=s\,w$ and $\varrho(n)=n$ for $n$ not below $m_1$.
 \begin{enumerate}
-\item \emph{Decomposition (proved).} Iterating
-  Definition~\ref{def:redundant} gives
-  $\pi=\sigma_1\,\iv{i_1}{k_1}\,\sigma_2\cdots\iv{i_q}{k_q}\,\sigma_{q+1}$,
-  where each $\iv{i_r}{k_r}$ runs along $\gamma$ by a chain and does not
-  contribute, and no position of a $\sigma_r$ is at $m_1$.
-\item \emph{No stray positions.} Every position of a $\sigma_r$ below
-  $m_1$ is below $m_{2p}$.  The paper argues via the earliest offender:
-  its parent is on a chain along $\gamma$, and the end-path condition
-  blocks access to the binders on $\gamma$.
-\item \emph{Simulation.} Delete the intervals, relocate
-  $\suc{m_{2p}}1\,w\mapsto m_1w$, and remove table entries for binders on
-  $\gamma$.  This gives a play of $\Gm(t'',E)$ with the same final state,
-  and conversely.
+\item \emph{(Decomposition.)} Every $\pi\in\Gm(t,E)$ has the form
+  \[
+  \pi=\sigma_1\,D_1\,\sigma_2\cdots D_q\,\sigma_{q+1},\qquad
+  D_r=\iv{a_r}{j_r},
+  \]
+  where $n_{a_r}=m_1$, $n_{j_r}=m_{2p}$, there is a chain for
+  $\pi_{j_r}$ starting at $\pi_{a_r}$ and running along $\gamma$,
+  $r_{a_r}=r_{j_r}$, no position of a $\sigma_r$ is at $m_1$, and every
+  $\sigma_r$ is non-empty.  No $D_r$ contains an $f$-move.
+\item \emph{(Invariant.)} Call a position of $\pi$ \emph{outer} if it
+  lies in some $\sigma_r$.  Call a table $\theta$ \emph{clean} if every
+  entry $\theta(b)$ with $b\notin\Gamma$ has the form
+  $((\suc v1,\dots,\suc vh),\theta_i)$ with $\pi_i$ an outer position.
+  Then every outer position $\pi_i$ satisfies $n_i\notin U$, and its
+  table $\theta_i$ is clean.
+\item \emph{(Simulation.)} For a clean table $\theta$ let $\theta^\flat$
+  be defined by recursion on layers: its domain is
+  $\varrho^{-1}(\operatorname{dom}\theta\setminus\Gamma)$, and
+  $\theta^\flat(\varrho^{-1}b)=((\varrho^{-1}\suc v1,\dots),\theta_i^\flat)$
+  when $\theta(b)=((\suc v1,\dots),\theta_i)$.  For an outer position put
+  $\varphi(n[r]\theta)=\varrho^{-1}(n)[r]\theta^\flat$.  Then the images
+  of the outer positions of $\pi$, in order, form a play $\varphi(\pi)$
+  of $\Gm(t'',E)$ with the same final state, and $\forall$ makes the same
+  choices in $\pi$ and in $\varphi(\pi)$.
+\item \emph{(Converse.)} Every play of $\Gm(t'',E)$ is $\varphi(\pi)$ for
+  some $\pi\in\Gm(t,E)$.
 \end{enumerate}
-Then $\forall$ loses $\Gm(t'',E)$, and Theorem~\ref{thm:game} gives the
-claim.
+\end{lemma}
+\begin{proof}
+Write $\lambda_0$ for the lambda node directly above $m_1$; it exists,
+since $m_1$ is a variable node, and it is not in $U$.
+
+\emph{Preliminaries on $\varrho$.}  $t''$ is $t$ with the subtree at
+$m_1$ replaced by $S$.  Both $m_1$ and $s$ are non-lambda nodes, so of
+ground type, and $t''$ is in lnf.  $\varrho$ preserves labels and
+successors.  It also preserves binders: a variable node in $S$ is bound
+either strictly above $m_1$, where nothing moves, or strictly below
+$m_{2p}$, i.e.\ inside $S$, where $\varrho$ relocates binder and
+occurrence together (Definition~\ref{def:endpath}(3); this also covers
+$s$ itself).  Variable nodes outside the subtree at $m_1$ have their
+binders outside it as well, and $w_1,\dots,w_k$ are untouched.
+
+Two facts about $U$ are used repeatedly.  (U1) If $v\notin U$ is a
+variable node, then no successor of $v$ is in $U$: the only node outside
+$U$ with a successor in $U$ is $\lambda_0$, and $\lambda_0$ is a lambda
+node.  The same holds for constant nodes and for the root $\varepsilon$.
+(U2) If $v\notin U$ is a variable node, its binder is not in $\Gamma$:
+for $v\in S$ by Definition~\ref{def:endpath}(3), and for $v$ outside the
+subtree at $m_1$ because its binder lies above $v$, hence outside that
+subtree, while $\Gamma\subseteq U$.
+
+(1) Apply Definition~\ref{def:redundant} to $\iv1l$, and again to the
+interval $\iv{j}{l}$ that clause~(c) produces, and so on; the left end
+strictly increases, so this stops.  The $r$-th application gives the
+least $a_r$ with $n_{a_r}=m_1$ after the previous $j_{r-1}$, and $j_r$
+with a chain along $\gamma$ from $\pi_{a_r}$ to $\pi_{j_r}$ and
+$\iv{a_r}{j_r}$ not contributing.  As $t$ solves $E$, the play ends at a
+constant node with $[\exists]$, while $n_{j_r}=m_{2p}$ is a lambda node;
+so $j_r<l$ and non-contribution means $r_{a_r}=r_{j_r}$.  The next
+position after $\pi_{j_r}$ is at $s\ne m_1$, so $\sigma_{r+1}$ is
+non-empty, and $a_1>1$ since $m_1\ne\varepsilon$.  By
+Lemma~\ref{lem:states}, $r_{a_r}=r_{j_r}$ forbids $f$-moves in
+$D_r$.  By the choice of the $a_r$ as least indices, no outer position
+is at $m_1$.
+
+Two more facts about the ends of $D_r$.  Since $n_{a_r}=m_1$ is not a
+lambda node, Lemma~\ref{lem:pred} gives that $\pi_{a_r-1}$ is at
+$\lambda_0$, with $\theta_{a_r-1}=\theta_{a_r}$ and
+$r_{a_r-1}=r_{a_r}$; and $\pi_{a_r-1}$ is outer.  Along the chain, the
+tables increase (Proposition~\ref{prop:mono}(2)).  By
+Proposition~\ref{prop:tables}(1), $\theta_{a_r}$ is defined exactly on
+the binding nodes strictly above $m_1$ and $\theta_{j_r}$ on those
+above $m_{2p}$.  So
+\[
+\theta_{j_r}=\theta_{a_r}\cup E_r ,\qquad
+\operatorname{dom}E_r\subseteq\Gamma. \tag{$*$}
+\]
+
+(2) Induction over the outer positions in order.  $\pi_1$ is at
+$\varepsilon\notin U$ with the empty table.  Let $\pi_{i+1}$ be outer and
+assume the claim for all outer positions before it.
+
+\emph{Case $\pi_i$ is outer.}  Look at the move from $\pi_i$.  For the
+$@$-, $\lambda$- and $f$-moves, $n_{i+1}$ is a successor of
+$n_i\notin U$ and is not $m_1$ (as $\pi_{i+1}$ is outer); so by (U1),
+or because the only successor of $\lambda_0$ is $m_1$, $n_{i+1}\notin
+U$.  The table is unchanged, or, for the $@$-move, gets one entry with
+inner table $\theta_1$, and $\pi_1$ is outer.  For a jump at a variable
+node $n_i$ with binder $b$: by (U2), $b\notin\Gamma$, so by cleanness
+$\theta_i(b)=((\suc v1,\dots),\theta_h)$ with $\pi_h$ outer.  Then
+$n_{i+1}=\suc vg$ for some $g$, and $n_h=v$ by
+Proposition~\ref{prop:tables}(4) (or $v=\varepsilon$, $h=1$).  As $\pi_h$
+is outer, $v\notin U$, so $n_{i+1}\notin U$ by (U1).  The new table is
+$\theta_h$, which is clean by the induction hypothesis, possibly extended
+by an entry for $\suc vg\notin\Gamma$ with inner table $\theta_i$, where
+$\pi_i$ is outer.  So it is clean.
+
+\emph{Case $\pi_i$ is not outer.}  Then $\pi_i=\pi_{j_r}$ ends some
+$D_r$, and $\pi_{i+1}$ is at $s\notin U$ with table $\theta_{j_r}$.  By
+$(*)$ and $\theta_{a_r}=\theta_{a_r-1}$ it differs from the clean table
+$\theta_{a_r-1}$ only by entries for nodes in $\Gamma$, which cleanness
+ignores.  So it is clean.
+
+(3) $\theta^\flat$ is well defined for clean $\theta$: the inner tables
+$\theta_i$ are tables of outer positions, so clean by (2), and they lie
+in lower layers.  The domain avoids $U$: by Proposition~\ref{prop:tables}(1)
+it consists of binding nodes above an outer node $n\notin U$, and those
+in $U$ are in $\Gamma$.  Arguments $\suc v1,\dots$ of entries avoid $U$
+by (U1), since $v$ is the node of an outer position.  So $\varrho^{-1}$
+applies everywhere.  Also $\varphi(\pi_1)=\varepsilon[u]\varnothing$.
+
+Let $\pi_i,\pi_{i'}$ be consecutive outer positions.  We show that
+$\varphi(\pi_{i'})$ is the next position of $\varphi(\pi_i)$ in
+$\Gm(t'',E)$, for the same choice of $\forall$ if $n_i$ is a constant.
+
+\emph{$i'=i+1$.}  The move from $\pi_i$ uses the label, successors and
+binder of $n_i$, which $\varrho$ preserves, the state, which $\varphi$
+keeps, and, for a jump, the entry of the binder $b\notin\Gamma$ (by (U2)).
+That entry is $((\suc v1,\dots),\theta_h)$ in $\theta_i$ and
+$((\varrho^{-1}\suc v1,\dots),\theta_h^\flat)$ in $\theta_i^\flat$.  The
+new table is $\theta_h$ or its extension by
+$((\suc{n_i}1,\dots),\theta_i)$ for $\suc vg$; in $\Gm(t'',E)$ it is
+$\theta_h^\flat$ or its extension by
+$((\varrho^{-1}\suc{n_i}1,\dots),\theta_i^\flat)$ for
+$\varrho^{-1}\suc vg$.  This is $\theta_{i+1}^\flat$.
+
+\emph{$i'=j_r+1$, $i=a_r-1$} (a deleted $D_r$).  $\pi_i$ is at
+$\lambda_0$, so in $\Gm(t'',E)$ the $\lambda$-move leads from
+$\varphi(\pi_i)$ to $\suc{\lambda_0}1[r_i]\theta_i^\flat$, and
+$\suc{\lambda_0}1=m_1=\varrho^{-1}(s)$.  On the other side,
+$\pi_{j_r+1}=s[r_{j_r}]\theta_{j_r}$ (a $\lambda$-move from
+$m_{2p}$).  Here $r_{j_r}=r_{a_r}=r_i$ by (1), and
+$\theta_{j_r}^\flat=\theta_{a_r}^\flat=\theta_i^\flat$ by $(*)$, because
+$\flat$ deletes the entries for $\Gamma$.
+
+So $\varphi(\pi)$ is a sequence of positions of $\Gm(t'',E)$ in which
+each one is a next position of the previous one.  The last position of
+$\pi$ is outer, so $\varphi(\pi)$ ends with the final state of $\pi$, and
+earlier states are non-final.  It is a play.  By (1), every $f$-move
+of $\pi$ is at an outer position, and $\varphi$ keeps it with the same
+choice.
+
+(4) Moves are deterministic except for $\forall$'s choices at $f$-moves.
+Let $\pi''\in\Gm(t'',E)$ have choices $c_1,\dots,c_e$.  Let $\pi$ be the
+play of $\Gm(t,E)$ in which $\forall$ makes choice $c_d$ at her $d$-th
+$f$-move, for $d\le e$.  Plays are finite (Theorem~\ref{thm:game}), so
+$\pi$ exists, provided each $c_d$ is admissible.  By (3), $\varphi(\pi)$
+and $\pi''$ are plays of the same game that are built by the same moves
+up to the first choice where they differ.  They make the same choices,
+so they agree up to the end of the shorter one.  That end is a final
+position, which has no successor, so $\varphi(\pi)=\pi''$.  Admissibility
+holds by the same induction: the $d$-th $f$-move of $\pi$ is at an outer
+position whose image is the $d$-th $f$-move of $\pi''$, with the same
+state.
 \end{proof}
 
-\begin{gap}[$T_2$ simulation]\label{gap:T2}
-\Open{} Steps~2--3 need a precise simulation lemma.  Tables in
-$\sigma_{r+1}$ can hold entries created inside $\iv{i_r}{k_r}$, and one
-must show that no later position consults them.  The converse direction
-is ``almost identical'' in the paper.
-\end{gap}
+\begin{remark}
+The lemma does not use the order bound; at order $5$,
+Lemma~\ref{lem:endpath5} makes it concrete.  For a $z$-path, $\Gamma$ is
+empty, since $m_2$ is a dummy, and $\theta_{j_r}=\theta_{a_r}$.  For an
+$x$-path, $\Gamma\subseteq\{m_2\}$, and $E_r$ is the entry for
+$m_2=\suc nh$ created by the $y$-jump into $m_2$ inside $D_r$.  The
+invariant~(2) is exactly what was missing in the paper's argument.
+Tables of later positions may still contain entries created inside
+$D_r$, but only for $m_2$, and no outer position consults them, because
+every variable bound by $m_2$ lies in $U$.
+\end{remark}
 
-\begin{proposition}[S, Prop.~32]\label{prop:stacking}
-\Fixed{} \Sketch{} Let $t$ be a smallest solution, and let
-$m_1,\dots,m_p$ be $y$-nodes of $t$ carrying the same variable with the
-same binder, with $m_{i+1}$ below $m_i$.  Then $p\le\depth(u)+1$.\end{proposition}
-\begin{proof}[Proof sketch]
-Let $m=\suc{m_p}l$ where $m_p$ is below $\suc{m_{p-1}}l$.  Then $m_p,m$
-is an end path, a $y$-path of Lemma~\ref{lem:endpath5}.  If it were redundant, $T_2$ would give a smaller
-solution.  So some play has an excursion at $m_p$ that contributes, or
-that does not return to $m$.  Fact~\ref{fact:27} gives complementary
-earlier excursions at $m_1,\dots,m_{p-1}$, which contribute as well.
-They are disjoint, so Lemma~\ref{lem:disjoint} applies.
+\begin{proposition}[S, Prop.~31]\label{prop:T2}
+\Fixed{} If $t$ solves $E$ and $t\,T_2\,t''$, then $t''$ solves $E$.
+\end{proposition}
+\begin{proof}
+By Theorem~\ref{thm:game}, $\forall$ loses $\Gm(t,E)$, so every play
+ends with $[\exists]$.  By Lemma~\ref{lem:T2sim}(4) and~(3), every play
+of $\Gm(t'',E)$ is $\varphi(\pi)$ for some $\pi\in\Gm(t,E)$, and it has
+the same final state.  So $\forall$ loses $\Gm(t'',E)$, and $t''$ solves
+$E$ by Theorem~\ref{thm:game}.
 \end{proof}
 
-\begin{gap}[Stacking]\label{gap:stacking}
-\Open{} Not argued in the paper: (i) the complementary intervals are
-pairwise disjoint and ordered; (ii) the witnessing excursion at $m_p$
-is the one to which Fact~\ref{fact:27} applies.  The argument gives
-$p-1$ intervals, hence $p\le\depth(u)+1$ rather than the paper's
-$p\le\depth(u)$.
-\end{gap}
+\begin{definition}[Terse solution]\label{def:terse}
+\New{} A solution $t\in T_A(\CE)$ of $E$ is \emph{terse} if neither $T_1$
+nor $T_2$ applies to it.
+\end{definition}
+
+\begin{lemma}[Terse solutions exist]\label{lem:terse}
+\New{} Starting from any solution in $T_A(\CE)$, every sequence
+of $T_1$- and $T_2$-steps is finite, and its last term is a terse
+solution.  So if $E$ has a solution, it has a terse one.
+\end{lemma}
+\begin{proof}
+Each step decreases $\mu$ (Proposition~\ref{prop:T1} and the definition
+of $T_2$), and $\mu$ is well founded, being a lexicographic triple of
+natural numbers.  Each step preserves solutions
+(Propositions~\ref{prop:T1} and~\ref{prop:T2}).  The last term admits no
+step, so it is terse.
+\end{proof}
+
+\begin{remark}
+The rest of the proof uses only terseness, never minimality.  Where the
+paper argues ``$T_2$ would give a smaller solution'', it is enough that
+$T_2$ does not apply.  That $T_2$ preserves solutions
+(Proposition~\ref{prop:T2}) is used only in Lemma~\ref{lem:terse} and
+Step~4 of Section~\ref{sec:architecture}.
+\end{remark}
+
+\begin{proposition}[Strips of $z$-nodes; S, Prop.~32]\label{prop:stacking}
+\Fixed{} Let $t$ be a terse solution, and let $m_1,\dots,m_p$ be
+$z$-nodes of $t$ carrying the same variable with the same binder $b$,
+with $m_{i+1}$ below $\suc{m_i}{l_i}$ for $i<p$.
+\begin{enumerate}
+\item If $l_1=\dots=l_{p-1}$, then $p\le\depth(u)+1$.
+\item In general, $p\le q\,\depth(u)+1$.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+All $m_i$ lie on one path, so $m_p$ lies below $\suc{m_i}{l_i}$ for every
+$i<p$.  Let $e$ be an index that occurs most often among
+$l_1,\dots,l_{p-1}$, and let $I=\{i<p\mid l_i=e\}$.  A $z$-variable has
+at most $q$ arguments, so $|I|\ge(p-1)/q$, and $|I|=p-1$ in case~(1).
+We show $|I|\le\depth(u)$.
+
+\emph{A witness at $m_p$.}  $(m_p,\suc{m_p}e)$ is an end path
+(Lemma~\ref{lem:endpath5}).  $t$ is terse, so it is not redundant.
+Unfolding Definition~\ref{def:redundant}, some play $\pi$ has a position
+$\pi_j$ at $m_p$ at which (a) or (b) fails.  $m_p$ is end, so $\pi_j$
+has at most one later child (Fact~\ref{fact:25}).  Hence the excursion
+at $\pi_j$ (Definition~\ref{def:excursion}) does not return to
+$\suc{m_p}e$, or it returns there and contributes.  (By
+Lemma~\ref{lem:pred}, $r_j=r_{j+1}$, and the state at the child equals
+the state just before it.)
+
+\emph{The earlier visits.}  $\pi_{j-1}$ is at the lambda node above
+$m_p$ (Lemma~\ref{lem:pred}).  By Lemma~\ref{lem:ancestors} there is a
+chain for $\pi_{j-1}$ starting at a position at the $x$-node above $b$.
+For $i\in I$ it contains a position $\pi_{a_i}$ at $m_i$, followed by
+its child $\pi_{c_i}$ at $\suc{m_i}e$.  Along a chain the indices
+increase and the tables extend (Proposition~\ref{prop:mono}), so
+$a_i<c_i\le a_{i'}$ for $i<i'$ in $I$, and the position of the chain at
+$b$ has the same entry for $b$ as $\pi_{a_i}$ and $\pi_j$.  So it is the
+common parent of $\pi_{a_i}$ and $\pi_j$.  By Fact~\ref{fact:25},
+$\pi_{c_i}$ is the only later child of $\pi_{a_i}$, so the excursion at
+$\pi_{a_i}$ is $\iv{a_i+1}{c_i-1}$ and returns to $\suc{m_i}e$.
+
+\emph{Each of these excursions contributes.}  Fix $i\in I$ and apply
+Proposition~\ref{prop:24} to $\pi_{a_i}$ and $\pi_j$.  It gives $k$ such
+that $\iv{a_i+1}{a_i+k}$ and $\iv{j+1}{j+k}$ correspond.  By its proof,
+the corresponding segments stop at the latest at the first return, so
+$a_i+k<c_i$.
+\begin{itemize}
+\item Case~(1): $\pi_{a_i}$ is the parent of $\pi_{a_i+k+1}$, so
+  $a_i+k+1=c_i$, and $\pi_j$ returns at $\pi_{j+k+1}$ to $\suc{m_p}e$.
+  By the witness property, $\iv{j+1}{j+k}$ contributes, so it contains
+  a position at a constant of positive arity (Lemma~\ref{lem:states}).
+  The corresponding position in $\iv{a_i+1}{a_i+k}$ is at the same
+  node, so the excursion at $\pi_{a_i}$ contributes.
+\item Case~(2): $n_{a_i+k}$ is a constant node.  It cannot have arity
+  $0$: the $a$-move would end the play before $\pi_j$.  So $\pi_{a_i+k}$
+  makes an $f$-move to a successor of a constant.  That position is not
+  $\pi_{c_i}$, which is entered by a $v$-jump.  So the excursion at
+  $\pi_{a_i}$ contains the $f$-move and contributes
+  (Lemma~\ref{lem:states}).
+\end{itemize}
+
+\emph{Counting.}  The intervals $\iv{a_i+1}{c_i-1}$, $i\in I$, are
+disjoint and ordered, and each has different states at its ends.
+Lemma~\ref{lem:disjoint} gives $|I|\le\depth(u)$.  Hence
+$p-1\le q\,\depth(u)$, and $p-1\le\depth(u)$ in case~(1).
+\end{proof}
+
+\begin{remark}
+The paper claims $p\le\depth(u)$.  The argument gives one contributing
+excursion for each $m_i$ with $i<p$ and the right successor index, not
+for $m_p$ itself.  The factor $q$ in~(2) comes from the choice of the
+index $e$: when the witness at $m_p$ returns to some $\suc{m_p}{e'}$
+with $e'\ne e$, Proposition~\ref{prop:24} says nothing about the
+$m_i$ with $l_i=e'$.
+\end{remark}
 
 %======================================================================
 \section{Partitioning play [S, \S6.3]}\label{sec:partition}
@@ -1217,7 +1484,7 @@ Lemmas~\ref{lem:disjoint} and~\ref{lem:global}.
 \Paper{} Let $\iv ij$ be stage $N$.
 \begin{enumerate}
 \item If $n_i$ is labelled $a:\Ground$, then $N$ is final.
-\item If $N$ is not final and $n_i$ is a constant or $z$-node,
+\item If $N$ is not final and $n_i$ is a constant or $x$-node,
   then $\pi_j$ is a child of $\pi_i$.
 \item If $N$ does not contribute and $n_i$ is embedded, then $\pi_j$ is a
   child of $\pi_i$.
@@ -1229,7 +1496,7 @@ Lemmas~\ref{lem:disjoint} and~\ref{lem:global}.
 (1) The $a$-move ends the play.
 
 (2) The constant case is Definition~\ref{def:parent}(2).  In the
-$z$-case, the entry for the root of $t$ is fixed, so $n_{i+1}$ is
+$x$-case, the entry for the root of $t$ is fixed, so $n_{i+1}$ is
 the root of $w_q$.  The constants met on the chain bind nothing.  So the
 first variable met is bound by that root, and its jump is to a child of
 $\pi_i$; this is the cut in Definition~\ref{def:stages}.
@@ -1243,18 +1510,18 @@ Proposition~\ref{prop:28}.
 
 \begin{lemma}[Stages at order $5$]\label{lem:stages5}
 \New{} Every stage other than stage~$1$ is a \emph{constant stage}
-$\iv i{i+1}$, a \emph{$z$-stage} or a \emph{$y$-stage}, according to the
+$\iv i{i+1}$, an \emph{$x$-stage} or a \emph{$z$-stage}, according to the
 label of $n_i$.  Let $N=\iv ij$ be non-final.
 \begin{enumerate}
-\item If $n_i$ is a $z$-node, then $n_j$ is a successor $\lambda\vec y$
-  of $n_i$, entered by an $x$-jump, and $\pi_j$ is a child of $\pi_i$.
+\item If $n_i$ is an $x$-node, then $n_j$ is a successor $\lambda\vec z$
+  of $n_i$, entered by a $y$-jump, and $\pi_j$ is a child of $\pi_i$.
   $N$ does not contribute iff the body $H$ of the $w$ entered at
-  $\pi_{i+1}$ has an $x$-variable $x_h$ as head.  Then $N=\iv i{i+3}$ and
+  $\pi_{i+1}$ has a $y$-variable $y_h$ as head.  Then $N=\iv i{i+3}$ and
   $n_j=\suc{n_i}h$.
-\item If $n_i$ is a $y$-node of the family $F(n_0)$, then $n_j$ is
-  either a dummy lambda below a $y$-node of $F(n_0)$, entered by a
-  $v$-jump, or a successor $\lambda\vec y$ of $n_0$, entered by an
-  $x$-jump (a \emph{re-entry}).  If $N$ does not contribute and $n_i$ is
+\item If $n_i$ is a $z$-node of the family $F(n_0)$, then $n_j$ is
+  either a dummy lambda below a $z$-node of $F(n_0)$, entered by a
+  $v$-jump, or a successor $\lambda\vec z$ of $n_0$, entered by a
+  $y$-jump (a \emph{re-entry}).  If $N$ does not contribute and $n_i$ is
   embedded, it is the dummy lambda $\suc{n_i}e$ below $n_i$ itself, a
   child of $\pi_i$.
 \end{enumerate}
@@ -1262,17 +1529,17 @@ label of $n_i$.  Let $N=\iv ij$ be non-final.
 \begin{proof}
 By Fact~\ref{fact:33} a non-final stage ends at a lambda node of $t$.
 By Corollary~\ref{cor:jumps}, lambda nodes of $t$ are entered from $w$ by
-$x$-jumps (at successors of $z$-nodes) or $v$-jumps (at dummies below
-$y$-nodes).
+$y$-jumps (at successors of $x$-nodes) or $v$-jumps (at dummies below
+$z$-nodes).
 
 (1) Proposition~\ref{prop:34}(2).  $\pi_{i+2}$ is at the head of $H$
-(the $w$ has no free variable, so the head is an $x$-variable or a
+(the $w$ has no free variable, so the head is a $y$-variable or a
 constant).  A constant head of positive arity contributes, and one of
-arity~$0$ ends the play.  A head $x_h$ jumps at $\pi_{i+3}$ to
+arity~$0$ ends the play.  A head $y_h$ jumps at $\pi_{i+3}$ to
 $\suc{n_i}h$, which is a child of $\pi_i$, and this is the cut.
 
 (2) Proposition~\ref{prop:34}(4): $n_j$ is a successor of a node of
-$F(n_0)$, and the only $z$-node of $F(n_0)$ is $n_0$
+$F(n_0)$, and the only $x$-node of $F(n_0)$ is $n_0$
 (Remark on families in Section~\ref{sec:uniformity}).  The last claim is
 Proposition~\ref{prop:34}(3).
 \end{proof}
@@ -1313,7 +1580,8 @@ Gluing $\comb(N+1)$ below the lambda leaf $n_j$ of $\comb(K)$ along every
 edge is intended to rebuild the part of $t$ visited by $\pi$.
 \end{definition}
 
-\begin{gap}[Partition tree]\label{gap:ptree}
+\renewcommand{\gapname}{[Gap-Partition]}
+\begin{gapenv}[Partition tree]\phantomsection\label{gap:ptree}
 \Open{} Needed:
 \begin{enumerate}[(i)]
 \item $\pi_h$ is the first position of $K$, so $n_j\in\comb(K)$;
@@ -1321,7 +1589,7 @@ edge is intended to rebuild the part of $t$ visited by $\pi$.
   Definition~\ref{def:ptree2};
 \item every visited node of $t$ lies in the comb of some stage.
 \end{enumerate}
-\end{gap}
+\end{gapenv}
 
 \begin{definition}[Hyper-partition tree]\label{def:hyper}
 \New{} Stages $N$ of $\pi$ and $N'$ of $\pi'$ are \emph{identical}
@@ -1403,9 +1671,8 @@ With Definition~\ref{def:47a}, unfoldability is a property of a
 $\sim$-class: it requires that no node of the class contributes.  By
 Proposition~\ref{prop:hyper}(4), separators are never unfolded.  This is
 what the construction in Section~\ref{sec:thm37} requires (``separators
-must be kept'').  A bound on the number of separators is still open
-(Gap~\ref{gap:count}(iv)): one choice position may lie in separators
-that start at different positions.
+must be kept'').  Their number is not bounded here; the proof bounds
+strips instead (Section~\ref{sec:architecture}).
 \end{remark}
 
 \begin{fact}[S, Fact~35]\label{fact:35}
@@ -1417,7 +1684,7 @@ holds:
 \item some $n_k$, $i<k<j$, is a constant node of $t$ in the comb of an
   earlier stage of the same family.
 \end{enumerate}
-The third case uses Gap~\ref{gap:ptree}(iii).
+The third case uses \GapPartition{}(iii).
 \end{fact}
 
 %======================================================================
@@ -1468,17 +1735,17 @@ comb $(c'_1\dots c'_k)$ lies above it in the partition tree.
 
 \begin{lemma}[Shape of c-embedded unfoldings]\label{lem:cembshape}
 \New{} Let $(c_1\dots c_k)$ be c-embedded, $k\ge2$.  Then $c_1$ is the
-comb of a $z$-stage at a node $n$, and $c_2,\dots,c_k$ are combs of
-$y$-stages whose heads are bound by one successor $\suc nh$ of $n$, and
+comb of an $x$-stage at a node $n$, and $c_2,\dots,c_k$ are combs of
+$z$-stages whose heads are bound by one successor $\suc nh$ of $n$, and
 which lie one below another on one path.  If no $N_j$ is embedded
 because of an earlier $N_i$, their variables are pairwise distinct, so
 $k\le q+1$, and the enlarged comb has depth at most $2(q+1)$.
 \end{lemma}
 \begin{proof}
-A $y$-comb binds nothing (Corollary~\ref{cor:binders}), and a constant
+A $z$-comb binds nothing (Corollary~\ref{cor:binders}), and a constant
 comb of a non-contributing stage binds nothing either.  The head of
 $c_j$, $j\ge2$, is bound in some earlier $c_i$, so in the only comb that
-binds anything, $c_1$, which must therefore be a $z$-comb.  Each $c_{j+1}$
+binds anything, $c_1$, which must therefore be an $x$-comb.  Each $c_{j+1}$
 is placed below the leaf at which $N_j$ finishes, so all $c_j$, $j\ge2$,
 lie below one successor $\suc nh$ and are bound by it.  It binds at most
 $q$ variables.  Each comb contributes a variable node and a lambda node
@@ -1487,40 +1754,88 @@ to the depth.
 
 \subsection{Linear heads}
 
-We write $t=\lambda z_1\dots z_k.\,S$ and $w_i=\lambda\vec x.\,H_i$.
+We write $t=\lambda x_1\dots x_k.\,S$ and $w_i=\lambda\vec y.\,H_i$.
 
 \begin{definition}[Linear and non-linear heads]\label{def:linear}
-\New{} The head $x_j$ of $w_i=\lambda\vec x.\,x_j B_1\dots B_p$ is
-\emph{linear} if $x_j$ does not occur in $B_1,\dots,B_p$, and
-\emph{non-linear} otherwise.  Repetitions of other variables $x_h$,
+\New{} The head $y_j$ of $w_i=\lambda\vec y.\,y_j B_1\dots B_p$ is
+\emph{linear} if $y_j$ does not occur in $B_1,\dots,B_p$, and
+\emph{non-linear} otherwise.  Repetitions of other variables $y_h$,
 $h\ne j$, do not matter here.
 \end{definition}
 
-For a $z_i$-node $n=z_i A_1\dots A_m$ of $t$ with $A_j=\lambda\vec y.\,S_j$,
-let $ny=y_l R_1\dots R_s$ be an occurrence in $S_j$ with $y_l$ bound at
-$\suc nj$.  The \emph{one-step unfolding} is
+\begin{definition}[One-step unfolding]\label{def:onestep}
+\New{} Let $n=x_i\,A_1\dots A_m$ be an $x_i$-node of $t$ with
+$A_j=\lambda\vec z.\,S_j$, and let $m=z_l\,R_1\dots R_s$ be a node in
+$S_j$ with $z_l$ bound at $\suc nj$.  The \emph{unfolding of $t$ at
+$m$} is
 \[
-t'=t\bigl[ny:=z_i\,A_1\dots A_{j-1}\,(\lambda\vec y'.\,y'_l\,\vec R')\,
+t'=t\bigl[m:=x_i\,A_1\dots A_{j-1}\,(\lambda\vec z'.\,z'_l\,\vec R')\,
 A_{j+1}\dots A_m\bigr],
 \]
-with the $A_h$ copied and $\vec R'$ rebound to $\lambda\vec y'$.  This is
-Definition~\ref{def:unfold} with $k=2$.
+where $\vec z'$ is fresh and $\vec R'$ is $\vec R$ with the occurrences of
+$\vec z$ bound at $\suc nj$ renamed to $\vec z'$.  So the new $x_i$-node
+at $m$ carries:
+\begin{itemize}
+\item under its $h$-th lambda, $h\ne j$: a copy of the whole argument
+  $A_h$;
+\item under its $j$-th lambda: the node $z'_l$, with the original
+  arguments $\vec R'$ under its dummy lambdas.
+\end{itemize}
+The node $n$ and its arguments stay unchanged.  This is
+Definition~\ref{def:unfold} with $k=2$; for $k>2$ the operation is
+repeated inside the copy.
+\end{definition}
+
+\begin{remark}[The comb view]
+In terms of combs, the copy of $\comb(N_1)$ (the $x_i$-node with its
+lambdas) is placed at $m$, and the copy of $\comb(N_2)$ (the $z_l$-node
+with its dummy lambdas) under its $j$-th lambda.  Under the other
+lambdas hang the stages whose partition edges lead there.  A lambda that
+no play reaches gets nothing in the comb view; in
+Definition~\ref{def:onestep} it carries a copy of the original
+subterm, which is unvisited and is replaced by $b$ once $T_1$ is
+applied.  So the comb view describes exactly the visited part of $t'$.
+\end{remark}
+
+\begin{definition}[Unfolding regime]\label{def:regime}
+\New{} Order the nodes of a tree by their addresses: $m\prec m'$ if the
+address of $m$ is lexicographically larger than that of $m'$, where a
+proper prefix counts as smaller.  So a node comes after all its
+descendants and after everything to its right: $\prec$ goes from the
+bottom right of the tree to the left and up.
+
+A $z$-node $m$ is \emph{unfoldable} in $t$ if it is bound at $\suc nj$
+for an $x$-node $n$ and there are stages $N_1$ at $n$ and $N_2$ at $m$
+satisfying Definition~\ref{def:unfold}(a)--(d) with $k=2$, read over
+$\mathcal H$ (Definition~\ref{def:47a}).
+
+The \emph{regime} repeats: if $t$ has an unfoldable node, unfold $t$ at
+the $\prec$-least one (Definition~\ref{def:onestep}), recompute the
+game and $\mathcal H$ for the result, and continue; otherwise stop.
+\end{definition}
+
+\begin{remark}
+The regime makes the construction deterministic: every step is fixed
+by $t$.  Unfolding at $m$ changes only the subtree at $m$, so the part
+of the tree that comes $\prec$-before $m$ outside that subtree is not
+changed.  Whether the regime terminates is part of \GapCounting{}(i).
+\end{remark}
 
 \begin{theorem}[Linear unfolding is sound]\label{thm:linunfold}
-\New{} \Coq{} If $x_j$ is a linear head, then $t\,\vec w$ and
+\New{} \Coq{} If $y_j$ is a linear head, then $t\,\vec w$ and
 $t'\,\vec w$ have a common $\beta$-reduct.  Hence $t'$ solves $E$ iff
 $t$ does.
 \end{theorem}
 \begin{proof}
 \begin{enumerate}
 \item Contract $w_i\vec A$ at $n$: it reduces to
-  $S_j\{\vec y:=\vec B\{\vec x:=\vec A\}\}$.  By linearity, $S_j$
+  $S_j\{\vec z:=\vec B\{\vec y:=\vec A\}\}$.  By linearity, $S_j$
   occurs once.
-\item At $ny$, the reduct of $t$ holds
-  $B_l\{\vec x:=\vec A\}\,\vec R\{\vec y:=\vec B\{\vec A\}\}$.
+\item At $m$, the reduct of $t$ holds
+  $B_l\{\vec y:=\vec A\}\,\vec R\{\vec z:=\vec B\{\vec A\}\}$.
 \item The reduct of $t'$ holds $w_i\vec A''$, with $\vec A''$ equal to
   $\vec A$ off~$j$.  This reduces to the same term, because
-  $\vec B\{\vec x:=\vec A''\}=\vec B\{\vec x:=\vec A\}$ by linearity.
+  $\vec B\{\vec y:=\vec A''\}=\vec B\{\vec y:=\vec A\}$ by linearity.
 \end{enumerate}
 Confluence finishes the proof.  In Coq this is \texttt{unfold\_sound}
 (\texttt{Unfolding.v}), proved on raw de~Bruijn terms using
@@ -1532,13 +1847,13 @@ version is still to be done.
 
 \begin{example}[Definition~47 yields no term]\label{ex:obstruction}
 \Fixed{} Let $E$ be $X\,w=f\,(f\,a\,d)\,d$ with
-$w=\lambda x.\,x\,(\lambda v.\,x\,(\lambda v'.\,v))$ and
-$t=\lambda z.\,z\,(\lambda y.\,f\,(y\,a)\,d)$.  The head $x$ is
+$w=\lambda y.\,y\,(\lambda v.\,y\,(\lambda v'.\,v))$ and
+$t=\lambda x.\,x\,(\lambda z.\,f\,(z\,a)\,d)$.  The head $y$ is
 non-linear.  Number the nodes:
 \begin{itemize}
-\item in $t$: (1)$\lambda z$, (2)$z$, (3)$\lambda y$, (4)$f$, (5)$\lambda$,
-  (6)$y$, (7)$\lambda$, (8)$a$, (9)$\lambda$, (10)$d$;
-\item in $w$: (11)$\lambda x$, (12)$x$, (13)$\lambda v$, (14)$x$,
+\item in $t$: (1)$\lambda x$, (2)$x$, (3)$\lambda z$, (4)$f$, (5)$\lambda$,
+  (6)$z$, (7)$\lambda$, (8)$a$, (9)$\lambda$, (10)$d$;
+\item in $w$: (11)$\lambda y$, (12)$y$, (13)$\lambda v$, (14)$y$,
   (15)$\lambda v'$, (16)$v$.
 \end{itemize}
 In play~B, $\forall$ chooses branch~$1$ at the root $f$ and branch~$2$
@@ -1547,13 +1862,13 @@ at the re-entry:
 (0)\,(1)\,(2)\,(11)\,(12)\,(3)\,(4)\,(5)\,(6)\,(13)\,(14)\,(3)\,(4)\,(9)\,(10)\,(10)[\exists].
 \]
 Its stages under Definition~\ref{def:stages} are
-$S_1=\iv12$, $S_2=\iv36$ ($z$, ending at (3)), $S_3=\iv78$ ($f$),
-$S_4=\iv9{12}$ ($y$; the chain from $\pi_{11}$ is empty, so it ends at
+$S_1=\iv12$, $S_2=\iv36$ ($x$, ending at (3)), $S_3=\iv78$ ($f$),
+$S_4=\iv9{12}$ ($z$; the chain from $\pi_{11}$ is empty, so it ends at
 the re-entry into (3)), $S_5=\iv{13}{14}$ and $S_6=\iv{15}{16}$.
 
 Unfolding $S_2$ into $S_4$ satisfies (a)--(d) of
 Definition~\ref{def:unfold}.  In $(c_2c_4)$ the copy of (3) carries the
-copy of the $y$-node.  The redirected edge $S_5\to S_2$ must hang the
+copy of the $z$-node.  The redirected edge $S_5\to S_2$ must hang the
 comb (4) under the same copy of~(3).  So the result is not a term.
 \end{example}
 
@@ -1574,43 +1889,43 @@ $S_2$ is therefore not unfoldable.
 
 \begin{proposition}[Re-entries contribute somewhere]\label{prop:reentry}
 \New{} Use Definitions~\ref{def:stages}
-and~\ref{def:47a}.  Let $N_1=\iv{i_1}{i_1+3}$ be a $z$-stage at $n$ with
-head $x_j$ at $\pi_{s-1}$, ending at $\pi_s$ at $\suc nj$.  Let $N_2$
-start at $\pi_i$ at a $y_l$-node, and suppose its path starts at a
-successor of the head $x_j$ node (Definition~\ref{def:unfold}(d)).
+and~\ref{def:47a}.  Let $N_1=\iv{i_1}{i_1+3}$ be an $x$-stage at $n$ with
+head $y_j$ at $\pi_{s-1}$, ending at $\pi_s$ at $\suc nj$.  Let $N_2$
+start at $\pi_i$ at a $z_l$-node, and suppose its path starts at a
+successor of the head $y_j$ node (Definition~\ref{def:unfold}(d)).
 Suppose that in some play~B, $N_2$ ends without contributing at a
-re-entry $\pi_e=\pi_{x+1}$ into $\suc nj$ from an inner $x_j$-node at
-$\pi_x$.  Assume also the \emph{same-visit} condition: $\pi_{s-1}$ and
-$\pi_x$ have the same parent (the visit of $\lambda\vec x$ at
+re-entry $\pi_e=\pi_{y+1}$ into $\suc nj$ from an inner $y_j$-node at
+$\pi_y$.  Assume also the \emph{same-visit} condition: $\pi_{s-1}$ and
+$\pi_y$ have the same parent (the visit of $\lambda\vec y$ at
 $\pi_{i_1+1}$).  Then $N_2$ contributes in some play~A that shares $N_2$
 with~B.
 \end{proposition}
 \begin{proof}
-\emph{Step 1.} By Proposition~\ref{prop:24} for $\pi_{s-1},\pi_x$, there
-is $k$ with $\iv s{s-1+k}$ and $\iv{x+1}{x+k}$ corresponding, and
-either (1) both runs return to children of $\pi_{s-1}$, resp.\ $\pi_x$,
-with the same index (a $\vec y$-node jumps into $B_m$, resp.\ $C_m$), or
+\emph{Step 1.} By Proposition~\ref{prop:24} for $\pi_{s-1},\pi_y$, there
+is $k$ with $\iv s{s-1+k}$ and $\iv{y+1}{y+k}$ corresponding, and
+either (1) both runs return to children of $\pi_{s-1}$, resp.\ $\pi_y$,
+with the same index (a $\vec z$-node jumps into $B_m$, resp.\ $C_m$), or
 (2) they part at a constant~$c$.
 
 \emph{Step 2: case (1) is impossible in B.}  In case~(1) the intervals
 are complementary (Definition~\ref{def:compl}).  So the link
-$(\pi_x,\pi_{x+k+1})$ is recurrent.  It is also the first child of
-$\pi_x$, since successors of $n_x$ are reached only through $\vec y$.
-No child of $\pi_i$ occurs in $\iv x{x+k+1}$, since such a child needs a
+$(\pi_y,\pi_{y+k+1})$ is recurrent.  It is also the first child of
+$\pi_y$, since successors of $n_y$ are reached only through $\vec z$.
+No child of $\pi_i$ occurs in $\iv y{y+k+1}$, since such a child needs a
 variable bound in $B_l$, and these occur only inside $\vec C$.  So the
-greedy chain of $N_2$ extends past $\pi_x$, and $N_2$ does not end
+greedy chain of $N_2$ extends past $\pi_y$, and $N_2$ does not end
 at~$\pi_e$, a contradiction.
 
 \emph{Step 3: case (2) gives A.}  ``Final'' at $c$ is impossible: the
 earlier run would then be final at $\pi_{s-1+k}$ with $s-1+k\le i$, but
 it went on to reach the node of $N_2$.  So $\forall$ chose a different
 branch at $c$, and $c$ has positive arity.  Let A agree with B up to
-$\pi_{x+k}$ and copy the earlier choices from then on; such a play exists
+$\pi_{y+k}$ and copy the earlier choices from then on; such a play exists
 by Fact~\ref{fact:branches}.  By Proposition~\ref{prop:24} again, A
-reaches case~(1), at the latest at the copy of the $y_l$-node itself.
-So A's chain extends past $\pi_x$, and A's $N_2$ contains $c$.  It
+reaches case~(1), at the latest at the copy of the $z_l$-node itself.
+So A's chain extends past $\pi_y$, and A's $N_2$ contains $c$.  It
 therefore contributes (Lemma~\ref{lem:states}).  A and B coincide up to
-$\pi_{x+k}$, beyond $\pi_i$, so they share $N_2$.
+$\pi_{y+k}$, beyond $\pi_i$, so they share $N_2$.
 \end{proof}
 
 \begin{corollary}[Cross-visit case]\label{cor:crossvisit}
@@ -1624,16 +1939,17 @@ Proposition~\ref{prop:24star}.
   Proposition~\ref{prop:reentry} goes through.
 \item A $\forall$ split is handled as in Step~3.
 \item The new case is a split at an outer binder.  The
-  root $z$'s have a single visit, so the only outer binders that can
-  differ are the $\lambda\vec y'$ of level-$2$ variables bound above
+  root $x$'s have a single visit, so the only outer binders that can
+  differ are the $\lambda\vec z'$ of level-$2$ variables bound above
   $n_r$.
 \end{itemize}
-Hence, if no $\lambda\vec y'$ lies on the path from the root of $t$ to
+Hence, if no $\lambda\vec z'$ lies on the path from the root of $t$ to
 $n_r$, the contexts of $V_1,V_2$ are $\equiv$ and the conclusion of
 Proposition~\ref{prop:reentry} holds.
 \end{corollary}
 
-\begin{gap}[Unfolding]\label{gap:unfold}
+\renewcommand{\gapname}{[Gap-Unfolding]}
+\begin{gapenv}\phantomsection\label{gap:unfold}
 \Open{}
 \begin{enumerate}[(i)]
 \item A precise game for the unfolded term, and Fact~\ref{fact:36}.
@@ -1643,12 +1959,16 @@ Proposition~\ref{prop:reentry} holds.
   Example~\ref{ex:obstruction} is excluded in the same-visit case
   (Proposition~\ref{prop:reentry}).
 \item The remaining cross-visit case of Corollary~\ref{cor:crossvisit}:
-  $n_r$ lies below some $\lambda\vec y'$ that its two visits bind
-  differently, and play reaches that $\vec y'$ before $\forall$ splits.
+  $n_r$ lies below some $\lambda\vec z'$ that its two visits bind
+  differently, and play reaches that $\vec z'$ before $\forall$ splits.
 \item Consistency across plays: Definition~\ref{def:unfold} composes
   combs per node, not per visit.
+\item Compression.  Tree-shaped unfolding (Definition~\ref{def:treeunf})
+  is sound under silence (Theorem~\ref{thm:treeunf}); what is open is
+  the cut that turns it into Definition~\ref{def:onestep}
+  (Remark~\ref{rem:compress}).
 \end{enumerate}
-\end{gap}
+\end{gapenv}
 
 \begin{remark}[Alternatives considered]
 \begin{itemize}
@@ -1669,6 +1989,139 @@ Proposition~\ref{prop:reentry} holds.
   tile or one of its dependents.
 \end{itemize}
 \end{remark}
+
+\subsection{Tree-shaped unfolding}\label{sec:treeunf}
+
+Definition~\ref{def:unfold} builds the enlarged comb as a chain
+$c_1c_2\cdots c_k$: each comb hangs below the leaf at which the previous
+stage finished.  Example~\ref{ex:obstruction} fails because a second
+visit to the same leaf continues in another direction (through the
+constant~(4) to its second branch~(9)), and the chain has no room for
+it.  The tree-shaped version copies the whole subtree instead, so every
+direction keeps its place.
+
+\begin{definition}[Tree-shaped unfolding]\label{def:treeunf}
+\New{} Let $n$ be an $x$-node of $t$ and $m$ a non-lambda node strictly
+below $n$.  Let $N$ and $M$ be the subterms of $t$ at $n$ and $m$, and
+let $N^\circ$ be a copy of $N$ in which every lambda inside $N$ binds
+fresh variables.  The \emph{tree-shaped unfolding of $t$ at $(n,m)$} is
+\[
+t'=t[m:=N^\circ].
+\]
+At the address of $m$ relative to $n$, the copy $N^\circ$ contains a
+copy $M^\circ$ of $M$.  So $M$ survives, one level of $N$ deeper.
+\end{definition}
+
+So $t'$ is always a term: the copy has the shape of a subterm of $t$.
+For $n=x_i\,A_1\dots A_k$ with $m$ in $A_j=\lambda\vec z.\,S_j$,
+Definition~\ref{def:onestep} keeps the copies of $A_h$, $h\ne j$, as
+here, but replaces the copy of $A_j$ by $\lambda\vec z'.\,z'_l\,\vec R'$.
+The two definitions coincide iff $m$ lies directly below $\suc nj$.
+
+\begin{definition}[Silent approach]\label{def:silent}
+\New{} The pair $(n,m)$ is \emph{silent} if for every play $\pi$ of
+$\Gm(t,E)$ and every position $\pi_a$ at $n$ the following holds.  If
+$\pi_e$ is the first position after $\pi_a$ at $m$, then $\iv ae$
+contains no $f$-move.
+\end{definition}
+
+\begin{theorem}[Tree-shaped unfolding is sound]\label{thm:treeunf}
+\New{} Let $t$ solve $E$, let $n$ be a headless $x$-node
+(Definition~\ref{def:head}), and let $(n,m)$ be silent.  Then the
+tree-shaped unfolding $t'$ of $t$ at $(n,m)$ solves $E$.
+\end{theorem}
+\begin{proof}
+We use the leftmost reduction sequences of the proof of
+Theorem~\ref{thm:game}.  A \emph{state} is a closed term of ground
+type.  A step $s\Rightarrow s'$ is either a $\beta$-step at the head, or
+$f\,s_1\dots s_p\Rightarrow s_k$, where $\forall$ chooses $k$.  The
+normal form of a state is determined by its tree of steps:
+$\mathrm{nf}(s)=\mathrm{nf}(s')$ for a $\beta$-step,
+$\mathrm{nf}(f\,\vec s)=f\,\mathrm{nf}(s_1)\dots\mathrm{nf}(s_p)$, and
+$\mathrm{nf}(a)=a$.
+
+Write $t=\lambda\vec x.\,T$, $t'=\lambda\vec x.\,T'$, and
+$s^*=s[\vec w/\vec x]$, so that $t\,\vec w\to_\beta T^*$ and
+$t'\,\vec w\to_\beta T'^*$.  Since $n$ is headless, every variable
+occurring free in $N$ is one of the $x_i$: a $z$-variable bound above
+$n$ would be a head carried by $n$, and the lambdas below constants are
+dummies.  Hence $N^*$ and $N^{\circ*}$ are closed and $\alpha$-equivalent.
+
+\emph{Labels.}  Label the occurrence of $M$ at $m$ in $T$, and follow it
+through the steps: substitution copies labels.  A labelled occurrence
+is an instance $M\theta$; it has ground type, so it is never in function
+position.  By the correspondence in the proof of
+Theorem~\ref{thm:game}, a state is labelled exactly when the
+corresponding position is at $m$, and $f$-moves correspond to branch
+steps.
+
+\emph{Phase 1.}  Let $s\,R\,s'$ if $s'$ arises from $s$ by replacing
+every labelled occurrence by $N^{\circ*}$.  Then $T^*\,R\,T'^*$.  If
+$s\,R\,s'$ and $s$ is not itself labelled, then $s$ and $s'$ have the
+same head and make the same step, with the same choice of $\forall$, and
+$R$ holds again.  For a $\beta$-step this is because $N^{\circ*}$ is
+closed, so replacing commutes with substitution:
+$(b[a/y])'=b'[a'/y]$.
+
+\emph{The switch.}  Fix a sequence of choices, and let $s_k$ be the
+first labelled state, if there is one.  Then $s'_k=N^{\circ*}$.  Let
+$\pi_e$ be the corresponding position at $m$.  By
+Lemma~\ref{lem:ancestors} there is an earlier position $\pi_a$ at $n$,
+with state $s_g$, $g<k$.  Its associated term is $N^*$, because $n$ is
+headless.  $\pi_e$ is the first position at $m$ after $\pi_a$, since
+$s_k$ is the first labelled state.  As $(n,m)$ is silent,
+$s_g\Rightarrow\dots\Rightarrow s_k$ consists of $\beta$-steps only.
+$N^{\circ*}$ equals $s_g$ up to $\alpha$ and labels, so it performs the
+same $\beta$-steps: $N^{\circ*}\Rightarrow^*s''$, where $s''$ equals
+$s_k$ up to $\alpha$ and labels.
+
+\emph{Phase 2.}  From $s_k$ and $s''$ on, the two states are equal up
+to $\alpha$ and labels, so they make the same steps forever.
+
+So, for every sequence of choices, the steps from $T'^*$ are those from
+$T^*$ with at most one block of $\beta$-steps inserted.  Hence
+$\mathrm{nf}(T'^*)=\mathrm{nf}(T^*)=u$, and $t'$ solves $E$.
+\end{proof}
+
+\begin{remark}[About the hypotheses]
+\begin{enumerate}
+\item \emph{Silence is the real condition.}  The copy replays the part
+  of the play from $n$ to $m$.  An $f$-move there would be performed
+  twice.  In Example~\ref{ex:obstruction} the constant~(4) lies between
+  $n$ and $m$, so $(n,m)$ is not silent, and indeed
+  $t'\,w=f\,(f\,(f\,a\,d)\,d)\,d\ne u$.
+\item \emph{Headlessness} is used only to make $N^*$ closed.  The
+  argument should extend to every $x$-node by carrying the outer
+  substitution along, but this is not written out.  If heads exist at
+  all, a headless $x$-node whose successor binds a head always exists:
+  take such an $x$-node of least depth.
+\item \emph{Computer check} (not part of the proof).  All terms
+  $\lambda x.\,T$ with $T$ of depth $\le3$ over $x$ unary, unary $z$,
+  constants $f,g,a,d$, against $7$ arguments $w$ (linear and
+  non-linear heads, with and without constants), and binary $x$ at
+  depth~$2$ against $5$ arguments: in all $2766$ silent headless
+  cases $t'\,\vec w$ and $t\,\vec w$ have the same normal form.  In all
+  $1070$ non-silent cases they differ.  The $16$ silent cases with $n$
+  not headless also agree.
+\end{enumerate}
+\end{remark}
+
+\begin{remark}[Tree-shaped unfolding and compression]\label{rem:compress}
+Tree-shaped unfolding never fails to give a term, and under silence it
+is sound.  It does not compress, however.  The copy reproduces the
+whole path from $\suc nj$ to $m$, including the $x$-nodes on it.  So
+if $m$ was a head carried by such an $x$-node, the copy $M^\circ$ is
+again a head of its copy, and the hydra measure does not drop.
+Definition~\ref{def:onestep} is tree-shaped unfolding followed by a
+\emph{cut} in the copy: everything strictly between $\lambda\vec z'$
+and $M^\circ$ is removed, and variables of $M^\circ$ bound on the removed
+part are bound by the originals again.  The open part of
+\GapUnfolding{} is therefore the soundness of the cut.  It is a
+$T_2$-like step on the copy, sound when no play needs the removed part.
+Example~\ref{ex:obstruction} is the case where the second visit needs
+it.
+\end{remark}
+
 %======================================================================
 \section{The small solution theorem and decidability}\label{sec:thm37}
 %======================================================================
@@ -1679,182 +2132,346 @@ This subsection is purely combinatorial.  It replaces the pigeonhole
 argument of [S, p.~53], see Section~\ref{sec:architecture}.
 
 \begin{definition}[Strips]\label{def:strip}
-Let $t\in T_A(\CE)$ and fix a path $P$ of $t$ from the root.  $L_z(P)$
-and $L_y(P)$ are the numbers of $z$-nodes and of $y$-nodes on $P$.  A
+Let $t\in T_A(\CE)$ and fix a path $P$ of $t$ from the root.  $L_x(P)$
+and $L_z(P)$ are the numbers of $x$-nodes and of $z$-nodes on $P$.  A
 \emph{strip} is a set of nodes on $P$ carrying the same variable with
-the same binder.  $s_z(P)$ and $s_y(P)$ are the sizes of the largest
-strips of $z$-nodes and of $y$-nodes on $P$.
+the same binder.  $s_x(P)$ and $s_z(P)$ are the sizes of the largest
+strips of $x$-nodes and of $z$-nodes on $P$.
 \end{definition}
 
 \begin{lemma}[Path counting]\label{lem:pathcount}
 \New{} For every path $P$,
 \[
-L_z(P)\le q\,s_z(P),\qquad L_y(P)\le q\,s_y(P)\,L_z(P)\le q^2\,s_z(P)\,s_y(P),
+L_x(P)\le q\,s_x(P),\qquad L_z(P)\le q\,s_z(P)\,L_x(P)\le q^2\,s_x(P)\,s_z(P),
 \]
 and for a longest path $P$,
 \[
-\depth(t)\le 2\bigl(L_z(P)+L_y(P)+\depth(u)+1\bigr).
+\depth(t)\le 2\bigl(L_x(P)+L_z(P)+\depth(u)+1\bigr).
 \]
 \end{lemma}
 \begin{proof}
-All $z$-nodes are bound by the root of $t$, which binds $k\le q$
-variables, and each variable labels at most $s_z(P)$ nodes on $P$.  A
-$y$-node on $P$ is bound by a successor of a $z$-node; that successor is
-an ancestor of the $y$-node, so it lies on $P$ directly below a
-$z$-node of $P$.  So there are at most $L_z(P)$ binders, each with at
-most $q$ variables, each labelling at most $s_y(P)$ nodes on $P$.
+All $x$-nodes are bound by the root of $t$, which binds $k\le q$
+variables, and each variable labels at most $s_x(P)$ nodes on $P$.  A
+$z$-node on $P$ is bound by a successor of an $x$-node; that successor is
+an ancestor of the $z$-node, so it lies on $P$ directly below an
+$x$-node of $P$.  So there are at most $L_x(P)$ binders, each with at
+most $q$ variables, each labelling at most $s_z(P)$ nodes on $P$.
 
-For the depth: the nodes of $P$ are $z$- and $y$-nodes, constant nodes
+For the depth: the nodes of $P$ are $x$- and $z$-nodes, constant nodes
 of positive arity (at most $\depth(u)$, Lemma~\ref{lem:constants}), one
 leaf, and one lambda node above each of these.
 \end{proof}
 
 \begin{proposition}[Strip bound]\label{prop:stripbound}
 \begin{enumerate}
-\item \Sketch{} If $t$ is a smallest solution, then $s_y(P)\le\depth(u)+1$
-  for every path $P$.  This is Proposition~\ref{prop:stacking}, and it
-  depends on Gap~\ref{gap:stacking}.
+\item If $t$ is a terse solution, then $s_z(P)\le q\,\depth(u)+1$ for
+  every path $P$ (Proposition~\ref{prop:stacking}).
 \item \Open{} In the term produced by the construction of
   Section~\ref{sec:architecture} (exhaustive unfolding, then $T_1,T_2$),
-  $s_z(P)\le K$ for some $K$ computable from $E$.  This is the content
+  $s_x(P)\le K$ for some $K$ computable from $E$.  This is the content
   of the paper's ``if they are not end nodes and $k>q$ then some $N_1$
-  can be unfolded'' (Gap~\ref{gap:count}).
+  can be unfolded'' (\GapCounting{}).
 \end{enumerate}
 \end{proposition}
 
-\begin{corollary}[Depth from $s_z$]\label{cor:depthsz}
-\New{} If $s_y(P)\le\depth(u)+1$ and $s_z(P)\le K$ for all paths, then
+\begin{corollary}[Depth from $s_x$]\label{cor:depthsz}
+\New{} Let $\sigma=q\,\depth(u)+1$.  If $s_z(P)\le\sigma$ and $s_x(P)\le K$
+for all paths, then
 \[
-L_z\le qK,\qquad L_y\le q^2(\depth(u)+1)K,\qquad
-\depth(t)\le 2\bigl(qK+q^2(\depth(u)+1)K+\depth(u)+1\bigr).
+L_x\le qK,\qquad L_z\le q^2\sigma K,\qquad
+\depth(t)\le 2\bigl(qK+q^2\sigma K+\depth(u)+1\bigr).
 \]
 \end{corollary}
 \begin{proof}
 Lemma~\ref{lem:pathcount}.
 \end{proof}
 
-So everything reduces to one number: $s_z$, how many times the same
-$z_i$ can stand one below another on a path.  This is the only place
-where unfolding is needed.
+So everything reduces to one number: $s_x$, how many times the same
+$x_i$ can stand one below another on a path.  This is the only place
+where unfolding is needed, and by Proposition~\ref{prop:headless} only
+for $x$-nodes of kinds (H) and (L) of Remark~\ref{rem:leftsx}.
+
+\subsection{Heads and headless $x$-nodes}\label{sec:heads}
+
+This subsection bounds the $x$-nodes on a path that neither carry a head
+nor use their binder further down.  Only the remaining $x$-nodes need
+unfolding.
+
+\begin{definition}[Head]\label{def:head}
+\New{} Let $n$ be an $x$-node of $t$.  A \emph{head carried by $n$} is a
+$z$-node $m$ strictly below $n$ whose binder lies strictly above $n$.
+The binder is then $\suc{n'}{h'}$ for an $x$-node $n'$ strictly above
+$n$.  $n$ is \emph{headless} if it carries no head.
+\end{definition}
+
+\begin{lemma}[Confinement]\label{lem:confine}
+\New{} Let $n$ be a headless $x$-node, $\pi\in\Gm(t,E)$ and $\pi_a$ a
+position at $n$.  Then for every $c\ge a$:
+\begin{enumerate}
+\item $n_c$ lies in the subtree of $t$ at $n$ or in some $w_j$;
+\item every entry of $\theta_c$ for a binder in the subtree at $n$ or in
+  some $w_j$ is $((\suc{n_d}1,\dots),\theta_d)$ with $a\le d<c$.
+\end{enumerate}
+Consequently, $\pi$ has no other position at $n$, and every position of
+$\pi$ at a successor of $n$ after $\pi_a$ is a child of $\pi_a$.
+\end{lemma}
+\begin{proof}
+Induction on $c$.  For $c=a$: $n_a=n$, and the domain of $\theta_a$
+consists of the binding nodes strictly above $n$
+(Proposition~\ref{prop:tables}(1)).  So (2) is vacuous.  For the step,
+look at the move from $\pi_c$ (Corollary~\ref{cor:jumps}).
+\begin{itemize}
+\item $\lambda$- and $f$-moves go to a successor, which stays in the
+  subtree at $n$ or in $w_j$.  The table is unchanged.
+\item $x$-jump at $n_c$: the target is the root of some $w_j$.  The new
+  table has the single entry $((\suc{n_c}1,\dots),\theta_c)$, and
+  $c\ge a$.
+\item $z$-jump at a $z$-node $n_c$ in the subtree at $n$: its binder $b$
+  is not strictly above $n$, since $n$ is headless.  As $n$ binds
+  nothing, $b$ lies strictly below $n$.  By (2), $\theta_c(b)=
+  ((\suc{n_d}1,\dots),\theta_d)$ with $d\ge a$, and $n_d$ is a $y$-node.
+  The target $\suc{n_d}g$ lies in $w_j$.  The new table is $\theta_d$,
+  which satisfies (2) by induction, possibly extended by an entry with
+  inner table $\theta_c$.
+\item $y$-jump at $n_c$ in $w_j$, bound by the root of $w_j$: by (2) the
+  entry is $((\suc{n_d}1,\dots),\theta_d)$ with $d\ge a$.  Here $n_d$ is
+  an $x$-node, in the subtree at $n$ by (1).  The target $\suc{n_d}h$ is
+  in that subtree.  The new table is $\theta_d$ extended by an entry
+  with inner table $\theta_c$.
+\item $v$-jump at $n_c$ in $w_j$: likewise, the target is a dummy lambda
+  below a $z$-node $n_d$ with $d\ge a$, so it is in the subtree at $n$,
+  and the new table is $\theta_d$.
+\end{itemize}
+For the consequences: a later position at $n$ would follow a position at
+the lambda node directly above $n$ (Lemma~\ref{lem:pred}).  That node
+is outside the subtree at $n$, which contradicts (1).  The parent of a
+position at $\suc nh$ is a position at $n$ (Definition~\ref{def:parent}),
+so it is $\pi_a$.
+\end{proof}
+
+\begin{lemma}[Witness of non-redundancy]\label{lem:witness}
+\New{} Let $t$ solve $E$, and let $\gamma=(n,\suc nh)$ be an end path
+($x$-path with $p=1$) that is not redundant in $\Gm(t,E)$.  Then some
+play $\pi$ has a position $\pi_a$ at $n$ such that either
+\begin{enumerate}[(W1)]
+\item $\pi_a$ has no child at $\suc nh$; or
+\item $\iv ab$ contributes, where $\pi_b$ is the first child of
+  $\pi_a$ at $\suc nh$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+Suppose that no play has such a position.  We show by induction on
+$l-i$ that $\gamma$ is redundant in $\iv il$ for every play.  If no
+$j_1\in[i,l)$ has $n_{j_1}=n$, this holds.  Otherwise let $j_1$ be the
+least such index and $\pi_j$ the first child of $\pi_{j_1}$ at $\suc nh$.
+It exists since (W1) fails.  Then $\pi_{j_1},\pi_j$ is a chain for
+$\pi_j$, and $\iv{j_1}j$ does not contribute since (W2) fails.  By
+induction, $\gamma$ is redundant in $\iv jl$, because $j>i$.  So
+Definition~\ref{def:redundant} holds with this $j$.
+\end{proof}
+
+\begin{proposition}[Headless end $x$-nodes]\label{prop:headless}
+\New{} Let $t$ be a terse solution and $P$ a path of $t$ from the root.
+For an $x$-node $n$ on $P$, let $\suc nh$ be its successor on $P$.  Call
+$n$ \emph{free} if $n$ is headless and no variable node strictly below
+$\suc nh$ is bound by $\suc nh$.  Then $P$ has at most $|u|$ free
+$x$-nodes.
+\end{proposition}
+\begin{proof}
+Let $n_1,\dots,n_K$ be the free $x$-nodes of $P$, from top to bottom,
+with successors $\suc{n_k}{h_k}$ on $P$.  By Lemma~\ref{lem:endpath5},
+$\gamma_k=(n_k,\suc{n_k}{h_k})$ is an end path.  Since $t$ is terse,
+$\gamma_k$ is not redundant.  Lemma~\ref{lem:witness} gives a play
+$\pi^k$ and a position $\pi^k_{a_k}$ at $n_k$ with (W1) or (W2).
+
+\emph{Claim.}  Let $k<k'$ and let $\pi$ be a play with a position
+$\pi_{a'}$ at $n_{k'}$.  Then $\pi$ has a position $\pi_a$ at $n_k$ with
+$a<a'$, and $\pi_a$ has a child $\pi_e$ at $\suc{n_k}{h_k}$ with
+$e<a'$.  Indeed, $\pi_{a'-1}$ is at the lambda node directly above
+$n_{k'}$ (Lemma~\ref{lem:pred}), which is $\suc{n_k}{h_k}$ or lies below
+it.  The chain for $\pi_{a'-1}$ from $n_k$ (Lemma~\ref{lem:ancestors})
+starts with a position at $n_k$ followed by one of its children at
+$\suc{n_k}{h_k}$, both at indices at most $a'-1$.  By Lemma~\ref{lem:confine}, $\pi_a$ is the only position of $\pi$
+at $n_k$.
+
+\emph{(W1)-indices.}  If $k$ satisfies (W1) in $\pi^k$, then by the
+claim $\pi^k$ visits no $n_{k'}$ with $k'>k$.  So $k$ is the largest
+index visited in $\pi^k$, and distinct (W1)-indices have distinct plays.
+There are at most $\br(u)$ of them (Fact~\ref{fact:branches}).
+
+\emph{(W2)-indices.}  If $k$ satisfies (W2) in $\pi^k$, then
+$\iv{a_k}{b_k}$ contains an $f$-move at some $c_k\in[a_k,b_k)$
+(Lemma~\ref{lem:states}).  We show that $k\mapsto c_k$ is injective as a
+map into the tree of plays.  Suppose $c_k=c_{k'}=c$ with $k<k'$, so
+$\pi^k$ and $\pi^{k'}$ agree up to $c$.  Then $a_{k'}\le c$, so
+$\pi^k$ has the position $\pi^k_{a_{k'}}$ at $n_{k'}$.  By the claim
+and the uniqueness of $\pi^k_{a_k}$, the first child $b_k$ of
+$\pi^k_{a_k}$ at $\suc{n_k}{h_k}$ comes before $a_{k'}\le c$.  This
+contradicts $c<b_k$.  So there are at most $|u|-\br(u)$ (W2)-indices
+(Lemma~\ref{lem:global}).
+
+Every $k$ is a (W1)- or a (W2)-index, so $K\le|u|$.
+\end{proof}
+
+\begin{remark}[What is left for $s_x$]\label{rem:leftsx}
+The proposition does not need the $n_k$ to carry the same variable.
+On a path $P$ of a terse solution, every $x$-node except at most $|u|$
+is therefore of one of two kinds:
+\begin{itemize}
+\item[(H)] it carries a head; or
+\item[(L)] it is headless, but its successor $\suc nh$ on $P$ binds a
+  $z$-node below $\suc nh$.  That $z$-node is not below any $x$-node of
+  $P$ further down, since that $x$-node would then carry a head.  So it
+  lies on $P$ before the next $x$-node, or on a side branch.
+\end{itemize}
+Heads are what makes play leave and re-enter a subtree; without them
+the intervals $\iv{a_k}{b_k}$ are disjoint, which is what the proof
+counts.  Kinds (H) and (L) are exactly the configurations that
+unfolding has to remove.  For (H) this is the hydra picture: an
+unfolding at a head removes it, at the price of new heads higher up.
+\end{remark}
+
+\begin{lemma}[$T_1$ and $T_2$ create no heads]\label{lem:monoheads}
+\New{} Let $t\,T_1\,t'$ or $t\,T_2\,t'$.  Every $x$-node of $t'$ comes
+from an $x$-node of $t$, and if it is free on a path of $t'$, it was
+free on the corresponding path of $t$ already, and conversely: an
+$x$-node of $t'$ of kind (H) or (L) comes from one of kind (H) or (L)
+in $t$.
+\end{lemma}
+\begin{proof}
+$T_1$ replaces the subtree at a node by a leaf $b$.  $T_2$ deletes the
+nodes of $U$ and moves $S$ up along $\varrho$
+(Lemma~\ref{lem:T2sim}).  In both cases the surviving nodes keep their
+labels, successor indices and binders, and one surviving node is below
+another in $t'$ iff it is below it in $t$.  A head of $t'$ (a $z$-node
+$m$ below an $x$-node $n$, with binder above $n$) is therefore a head
+of $t$, and a $z$-node below $\suc nh$ bound by $\suc nh$ in $t'$ is one
+in $t$.  Paths of $t'$ map to paths of $t$ with the same successor
+indices at surviving nodes.
+\end{proof}
 
 \subsection{The theorem}
 
-\begin{theorem}[S, Thm.~37 at order $\le5$]\label{thm:small}
+\begin{theorem}[S, Thm.~37 at order $\le5$, weak form]\label{thm:small}
 \Open{} Let $E$ have order at most $5$, and let $q$ be as in
-Definition~\ref{def:kinds}.  If $E$ has a (canonical) solution, it has
-one of depth at most $16q^2|u|$.
+Definition~\ref{def:kinds}.  There is a number $D_E$, computable from
+$E$, such that if $E$ has a (canonical) solution, it has one of depth at
+most $D_E$.
 \end{theorem}
 
 \begin{remark}
-\Fixed{} This is the paper's bound $4p^2q^{2p-2}|u|$ with $p=2$.  The paper
-lets $q$ be the arity of $E$ only.  Constant nodes of $t$ branch
-according to the constants of $u$, so $q$ must bound their arities too.
-For [S, Example~12] ($q=2$, $|u|=2$) the bound is $128$.  The argument
-below gives the bound of Corollary~\ref{cor:depthsz} instead, which is
-explicit but larger.
+\Fixed{} Only some computable bound is needed for decidability
+(Corollary~\ref{cor:decidable}).  The argument below gives
+$D_E=2\bigl(qK+q^2\sigma K+\depth(u)+1\bigr)$ from
+Corollary~\ref{cor:depthsz}, with $K$ the bound on $x$-strips.  The
+paper's sharper bound ($4p^2q^{2p-2}|u|$, i.e.\ $16q^2|u|$ for $p=2$) is
+not pursued.
 \end{remark}
 
 \subsection{Proof architecture}\label{sec:architecture}
 
-Let $t$ be a smallest solution.  The paper's argument has the following
-steps; ``O'' marks simple observations.
+The proof goes from a terse solution $t$ to a terse solution $t^*$ whose
+depth is bounded by a number computable from $E$.  It has five steps.
+Each step lists the results it uses and the gaps it depends on.
 
-\begin{enumerate}[{O}1.]
-\item \Paper{} Nodes of $t$ are $z$-nodes (level~$1$), $y$-nodes
-  (level~$2$), constant nodes and lambda nodes
-  (Corollary~\ref{cor:binders}).  Branching and binder length are at
-  most~$q$.
-\item \Paper{} If a binder binds $(k+1)q$ nodes on one path, then some
-  strip of it has $\ge k+1$ nodes, and all of them but the highest are
-  embedded.  Here a \emph{binder} is one binding node with its whole list
-  of variables: the root $\lambda\vec z$, or a successor $\lambda\vec y$
-  of a $z$-node.
-\item \Paper{} $y$-nodes are end.
-\item \Paper{} There are $\br(u)\le|u|$ plays (Fact~\ref{fact:branches}).
-\item \Fixed{} $T_1$ and $T_2$ do not apply to $t$.  Hence every node
-  of $t$ except the $b$-leaves and the dummy lambdas above them is
-  visited (Corollary~\ref{cor:visited}).  On each path at most
-  $\depth(u)$ constants of positive arity occur
-  (Lemma~\ref{lem:constants}).  The use of $T_2$ depends on
-  Gap~\ref{gap:T2}.
-\end{enumerate}
-
-\paragraph{Construction.}
+\paragraph{Step 1: properties of a terse solution.}
+Let $t$ be a terse solution (Definition~\ref{def:terse}); one exists if
+$E$ has a solution (Lemma~\ref{lem:terse}).  Then:
 \begin{enumerate}[(a)]
-\item Build the hyper-partition tree $\mathcal H$
-  (Definition~\ref{def:hyper}).
-\item Unfold exhaustively.  By Lemma~\ref{lem:cembshape}, an unfolding
-  takes a non-contributing $z$-stage $N_1$ at a node $n$ and
-  non-contributing $y$-stages $N_2,\dots,N_k$, $k\le q+1$, bound by one
-  successor of $n$.
-\item Apply $T_1$ and $T_2$ exhaustively.  By Lemma~\ref{lem:endpath5},
-  $T_2$ either replaces a $y$-node by the body of one of its arguments,
-  or replaces a $z$-node $n$ by the body below the last of a sequence of
-  directly nested $y$-nodes bound at a successor of $n$.
+\item $t$ consists of $x$-nodes (level~$1$), $z$-nodes (level~$2$),
+  constant nodes and lambda nodes, with branching and binder length at
+  most $q$ (Corollary~\ref{cor:binders});
+\item $\Gm(t,E)$ has $\br(u)\le|u|$ plays (Fact~\ref{fact:branches});
+\item every node except the $b$-leaves and the dummy lambdas above them
+  is visited (Corollary~\ref{cor:visited});
+\item every path has at most $\depth(u)$ constants of positive arity
+  (Lemma~\ref{lem:constants});
+\item every end path is non-redundant, since $T_2$ does not apply; in
+  particular $z$-strips have at most $q\,\depth(u)+1$ nodes
+  (Proposition~\ref{prop:stacking}).
 \end{enumerate}
-The small term is rebuilt by gluing the (enlarged) combs along the
-edges.  A stage $N$ is a \emph{separator} if two plays share all combs up
-to and including $N$ but finish $N$ at different nodes
-(Definition~\ref{def:hyper}).  Separators must be kept, so that a node
-entered from several later stages receives one subterm; under
-Definition~\ref{def:47a} this is automatic
-(Proposition~\ref{prop:hyper}(4)).
+\emph{Gaps:} none; existence is Lemma~\ref{lem:terse}.
 
-\paragraph{Bounding the depth.}
-The paper takes ``the least $j$ such that some path has $\ge(k+1)q^j$
-level-$j$ nodes''.  For $j=1$ this works, by O2 for the root binder.
-For $j=2$ it does not: $y$-nodes on one path can be bound by up to
-$(k+1)q$ different binders $\lambda\vec y$, so $(k+1)q^2$ of them need
-not contain $k+1$ nodes in one strip (Gap~\ref{gap:count}(iii)).  We
-argue instead with Lemma~\ref{lem:pathcount}: the depth is bounded as
-soon as $s_y$ and $s_z$ are.  $s_y$ is bounded by
-Proposition~\ref{prop:stripbound}(1), since $y$-nodes are end (O3).
-$s_z$ is where unfolding is needed; this is
-Proposition~\ref{prop:stripbound}(2), which is open.  Decidability
-(Corollary~\ref{cor:decidable}) needs only some computable bound.
+\paragraph{Step 2: the hyper-partition tree.}
+Partition every play into stages (Definition~\ref{def:stages}); every
+stage is a constant stage, an $x$-stage or a $z$-stage
+(Lemma~\ref{lem:stages5}).  Glue the plays into the hyper-partition tree
+$\mathcal H$ (Definition~\ref{def:hyper}).  It is a tree, its partition
+edges are well defined, and every separator contains a contributing
+node (Proposition~\ref{prop:hyper}).  Gluing the combs along the edges
+should give back the visited part of $t$.
+\emph{Gaps:} that last claim is \GapPartition{} (partition tree).
 
-\paragraph{Depth of enlarged combs.}
-\New{} By Lemma~\ref{lem:cembshape}, if no $N_j$ in an unfolding is
-embedded because of an earlier $N_i$, an enlarged comb has depth
-$\le2(q+1)\le4q$.  The paper's general bound $2pq^{p-1}$ is $4q$.
+\paragraph{Step 3: unfolding.}
+Unfold according to the regime of Definition~\ref{def:regime}: always at
+the $\prec$-least unfoldable $z$-node, i.e.\ from the bottom right of the
+term to the left, by one-step unfoldings (Definition~\ref{def:onestep}),
+with non-contribution read over $\mathcal H$ (Definition~\ref{def:47a}).
+An unfolding takes a non-contributing $x$-stage at a node $n$ and at most
+$q$ non-contributing $z$-stages bound by one successor of $n$; the
+enlarged comb has depth at most $2(q+1)$
+(Lemma~\ref{lem:cembshape}).  Separators are never unfolded
+(Proposition~\ref{prop:hyper}(4)).  Unfolding must preserve solutions:
+this is proved for linear heads (Theorem~\ref{thm:linunfold}), and for
+non-linear heads the obstruction of Example~\ref{ex:obstruction} is
+excluded in the same-visit case (Proposition~\ref{prop:reentry}).
+\emph{Gaps:} soundness in general, the game of the unfolded term
+(Fact~\ref{fact:36}) and the cross-visit case are \GapUnfolding{}.
 
-\paragraph{Counting (S, pp.~53--54).}
-\Sketch{} After unfolding, the stages that $T_2$ cannot remove are:
-\begin{enumerate}
-\item contributing stages: $\le|u|$ (Corollary~\ref{cor:contrib-stages}),
-  or $\le|u|\cdot\br(u)\le|u|^2$ under the tree-wide reading of
-  Definition~\ref{def:47a};
-\item later non-embedded stages starting from a $y$-node of the family of
-  a contributing $z$-comb: $\le2q$ per contributing comb (not argued in
-  the paper);
-\item separators: $\le2q|u|$ (not argued in the paper).
+\paragraph{Step 4: shrinking.}
+Apply $T_1$ and $T_2$ exhaustively to the unfolded term; call the result
+$t^*$.  It is terse by construction, so Step~1 applies to it.  By Lemma~\ref{lem:endpath5}, $T_2$ either replaces a $z$-node by
+the body of one of its arguments, or replaces an $x$-node $n$ by the body
+below a sequence of directly nested $z$-nodes bound at a successor of
+$n$.  Both transformations preserve solutions and make the term smaller
+(Propositions~\ref{prop:T1} and~\ref{prop:T2}).
+\emph{Gaps:} termination of the whole
+construction, and whether Step~3 must be repeated after Step~4, are
+\GapCounting{}(i).
+
+\paragraph{Step 5: the depth bound.}
+By Lemma~\ref{lem:pathcount} the depth of $t^*$ is bounded once its
+strips are bounded.
+\begin{enumerate}[(a)]
+\item $z$-strips: $s_z\le q\,\depth(u)+1$, since $z$-nodes are end
+  (Proposition~\ref{prop:stripbound}(1)), which applies because $t^*$
+  is terse.
+\item $x$-strips: $s_x\le K$ for a computable $K$
+  (Proposition~\ref{prop:stripbound}(2)).  On any path at most $|u|$
+  $x$-nodes are free, i.e.\ headless and not binding below their
+  successor (Proposition~\ref{prop:headless}, proved).  The others carry
+  a head (H) or use their binder locally (L)
+  (Remark~\ref{rem:leftsx}).  These have been removed by the
+  exhaustive unfolding of Step~3, and Step~4 does not create new ones
+  (Lemma~\ref{lem:monoheads}).  So in $t^*$ every $x$-node is free,
+  and $L_x\le|u|$ on every path; in particular $s_x\le|u|$.
 \end{enumerate}
-A path therefore has at most $4q|u|$ such stages, each with depth
-$\le4q$, which gives $16q^2|u|$.
+Then Corollary~\ref{cor:depthsz} bounds the depth of $t^*$, and
+Corollary~\ref{cor:decidable} gives decidability.
+\emph{Gaps:} (a) is proved.  In (b), the bound on free $x$-nodes and
+the stability under Step~4 are proved; that the unfolding of Step~3
+leaves no $x$-node of kind (H) or (L) is \GapCounting{}(ii), the main
+open point of the proof.
 
-\begin{gap}[Counting]\label{gap:count}
+\renewcommand{\gapname}{[Gap-Counting]}
+\begin{gapenv}\phantomsection\label{gap:count}
 \Open{}
 \begin{enumerate}[(i)]
-\item Termination of the interleaving ``unfolding grows the term,
-  $T_1,T_2$ shrink it''.
-\item Proposition~\ref{prop:stripbound}(2): a bound on $s_z$ after
-  unfolding.  The paper's ``$k>q$ gives a c-embedded $(N_1N_2)$'' (a
-  pigeonhole over $\le q$ shapes) is not written out, and it still has
-  to be turned into a bound on $s_z$.
-\item The paper's least-$j$ argument fails for $j=2$, since $y$-nodes
-  on one path can be bound by different binders.  It is replaced by
-  Lemma~\ref{lem:pathcount}, which is proved.
-\item The bounds $2q$ (item~2) and $2q|u|$ (item~3).
-\item That $T_2$ applies to \emph{all} remaining stages.  Redundancy is
-  defined over all plays, but partition trees are per play.
-\item Under Definition~\ref{def:47a}, the factor $|u|$ in the bound
-  becomes $|u|^2$.
+\item Termination of the construction: unfolding enlarges the term and
+  $T_1,T_2$ shrink it, and they may have to be interleaved.
+\item The bound $s_x\le K$ (Proposition~\ref{prop:stripbound}(2)).
+  Free $x$-nodes are at most $|u|$ per path
+  (Proposition~\ref{prop:headless}), and $T_1,T_2$ create no new
+  $x$-nodes of kinds (H) and (L) (Lemma~\ref{lem:monoheads}).  Open:
+  every $x$-node of kind (H) or (L) (Remark~\ref{rem:leftsx}) admits an
+  unfolding that removes it, or is charged to a contribution as in
+  Proposition~\ref{prop:headless}.
 \end{enumerate}
-\end{gap}
+\end{gapenv}
 
 \begin{corollary}[Decidability]\label{cor:decidable}
 \Paper{} \Coq{} Assume Theorem~\ref{thm:small}, or just a computable
-bound on $s_z$ (Proposition~\ref{prop:stripbound}(2)).  Then canonical
+bound on $s_x$ (Proposition~\ref{prop:stripbound}(2)).  Then canonical
 solvability of interpolation equations of order at most~$5$ under (R1),
 (R2) is decidable, and so is every matching problem that reduces to
 such an equation.
@@ -1902,10 +2519,10 @@ Facts~\ref{fact:25}, \ref{fact:26} & Facts~25--26 & proved\\
 Fact~\ref{fact:27} & Fact~27 & sketch\\
 Prop.~\ref{prop:29} & Prop.~29 & corrected (greedy chain)\\
 Prop.~\ref{prop:T1} & Fact~30 & proved; Coq\\
-Prop.~\ref{prop:T2} & Prop.~31 & sketch, Gap~\ref{gap:T2}\\
-Prop.~\ref{prop:stacking} & Prop.~32 & corrected bound, Gap~\ref{gap:stacking}\\
+Lemma~\ref{lem:T2sim}, Prop.~\ref{prop:T2} & Prop.~31 & new simulation lemma, proved\\
+Prop.~\ref{prop:stacking} & Prop.~32 & corrected bound, proved\\
 Fact~\ref{fact:33}, Prop.~\ref{prop:34} & Fact~33, Prop.~34 & proved (Coq: uniqueness)\\
-Def.~\ref{def:ptree2} & Def.~46 & corrected reading, Gap~\ref{gap:ptree}\\
+Def.~\ref{def:ptree2} & Def.~46 & corrected reading, \GapPartition{}\\
 Def.~\ref{def:hyper}, Prop.~\ref{prop:hyper} & p.~53 & new, proved\\
 Lemma~\ref{lem:shape}, Cor.~\ref{cor:binders}, \ref{cor:jumps} & --- & new, proved (order-5 shape)\\
 Lemma~\ref{lem:endpath5} & Def.~39 & new, proved\\
@@ -1913,11 +2530,13 @@ Lemma~\ref{lem:stages5} & Prop.~34 & new, proved\\
 Lemma~\ref{lem:cembshape} & p.~53 & new, proved\\
 Thm.~\ref{thm:linunfold} & --- & new; Coq (raw terms)\\
 Ex.~\ref{ex:obstruction} & Def.~47 & counterexample\\
-Prop.~\ref{prop:reentry}, Cor.~\ref{cor:crossvisit} & --- & new; partial, Gap~\ref{gap:unfold}\\
+Prop.~\ref{prop:reentry}, Cor.~\ref{cor:crossvisit} & --- & new; partial, \GapUnfolding{}\\
 Fact~\ref{fact:36} & Fact~36 & open\\
+Def.~\ref{def:treeunf}, Thm.~\ref{thm:treeunf} & --- & new; sound under silence, proved\\
 Lemma~\ref{lem:pathcount}, Cor.~\ref{cor:depthsz} & p.~53 & new, proved (replaces pigeonhole)\\
-Prop.~\ref{prop:stripbound} & p.~53 & (1) sketch, (2) open\\
-Thm.~\ref{thm:small} & Thm.~37 & open, Gaps~\ref{gap:T2}--\ref{gap:count}\\
+Prop.~\ref{prop:stripbound} & p.~53 & (1) proved, (2) open\\
+Lemmas~\ref{lem:confine}, \ref{lem:witness}, \ref{lem:monoheads}, Prop.~\ref{prop:headless} & --- & new, proved\\
+Thm.~\ref{thm:small} & Thm.~37 & weak form (computable bound); open\\
 Cor.~\ref{cor:decidable} & \S6 & proved from Thm.~37; Coq
 \end{tabular}
 \end{center}
@@ -1933,17 +2552,18 @@ Cor.~\ref{cor:decidable} & \S6 & proved from Thm.~37; Coq
 \item Stage cut: the first $p$ with $\pi_{j_{2p}+2}$ a child of $\pi_i$
   (Definition~\ref{def:stages}).
 \item Partition-tree edges via parents (Definition~\ref{def:ptree2}).
-\item Prop.~32 gives $p\le\depth(u)+1$.
+\item Prop.~32 gives $p\le q\,\depth(u)+1$, and $p\le\depth(u)+1$ when the
+  strip uses one successor index throughout.
 \item Def.~47(a) read over all plays (Definition~\ref{def:47a}).  As
   written, Def.~47 can produce a non-term
   (Example~\ref{ex:obstruction}).
 \item Thm.~37: $q$ also bounds the arities of the constants of $u$.
 \item $T_1$ also replaces unvisited 0-ary constants other than $b$, with
-  size measure $(|t|,\nu,\kappa)$, so that in a smallest solution exactly
+  size measure $(|t|,\nu,\kappa)$, so that in a terse solution exactly
   the $b$-leaves (with their lambdas) are unvisited
   (Corollary~\ref{cor:visited}).
 \item The least-$j$ pigeonhole of Thm.~37 is replaced by
-  Lemma~\ref{lem:pathcount} ($L_z\le q\,s_z$, $L_y\le q\,s_y\,L_z$) and a
+  Lemma~\ref{lem:pathcount} ($L_x\le q\,s_x$, $L_z\le q\,s_z\,L_x$) and a
   bound on strips (Proposition~\ref{prop:stripbound}).
 \end{enumerate}
 
@@ -1952,20 +2572,18 @@ Cor.~\ref{cor:decidable} & \S6 & proved from Thm.~37; Coq
 \small
 \begin{tabular}{llll}
 Gap & Topic & Introduced in & Page\\\hline
-\ref{gap:T2} & $T_2$ simulation & \S\ref{sec:transformations}, after Prop.~\ref{prop:T2} & \pageref{gap:T2}\\
-\ref{gap:stacking} & Stacking & \S\ref{sec:transformations}, after Prop.~\ref{prop:stacking} & \pageref{gap:stacking}\\
-\ref{gap:ptree} & Partition tree & \S\ref{sec:partition}, after Def.~\ref{def:ptree2} & \pageref{gap:ptree}\\
-\ref{gap:unfold} & Unfolding & \S\ref{sec:nonlinear}, after Cor.~\ref{cor:crossvisit} & \pageref{gap:unfold}\\
-\ref{gap:count} & Counting & \S\ref{sec:architecture}, after the counting paragraph & \pageref{gap:count}
+\GapPartition & Partition tree & \S\ref{sec:partition}, after Def.~\ref{def:ptree2} & \pageref{gap:ptree}\\
+\GapUnfolding & Unfolding & \S\ref{sec:nonlinear}, after Cor.~\ref{cor:crossvisit} & \pageref{gap:unfold}\\
+\GapCounting & Counting & \S\ref{sec:architecture}, after Step~5 & \pageref{gap:count}
 \end{tabular}
 \end{center}
 
 \paragraph{Open, in order of importance.}
-Gap~\ref{gap:unfold} (\S\ref{sec:nonlinear}; unfolding: game, soundness,
-the remaining cross-visit case), Gap~\ref{gap:count}
-(\S\ref{sec:architecture}; counting), Gap~\ref{gap:T2}
-(\S\ref{sec:transformations}; $T_2$ simulation), Gap~\ref{gap:ptree}
-(\S\ref{sec:partition}; partition tree), Gap~\ref{gap:stacking}
-(\S\ref{sec:transformations}; stacking).
+\GapUnfolding{} (\S\ref{sec:nonlinear}; unfolding: game, soundness,
+the remaining cross-visit case), \GapCounting{}
+(\S\ref{sec:architecture}; counting), \GapPartition{}
+(\S\ref{sec:partition}; partition tree).  [Gap-Stacking] is closed by
+Proposition~\ref{prop:stacking}, and [Gap-$T_2$] by
+Lemma~\ref{lem:T2sim}.
 
 \end{document}
