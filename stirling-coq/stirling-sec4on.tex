@@ -50,7 +50,13 @@
 \newtheorem{example}[theorem]{Example}
 \theoremstyle{remark}
 \newtheorem{remark}[theorem]{Remark}
-\newtheorem{gap}{Gap}
+\newtheorem*{gapenv}{\gapname}
+\newcommand{\gapname}{Gap}
+\newcommand{\GapTtwo}{\hyperref[gap:T2]{[Gap-$T_2$]}}
+\newcommand{\GapStacking}{\hyperref[gap:stacking]{[Gap-Stacking]}}
+\newcommand{\GapPartition}{\hyperref[gap:ptree]{[Gap-Partition]}}
+\newcommand{\GapUnfolding}{\hyperref[gap:unfold]{[Gap-Unfolding]}}
+\newcommand{\GapCounting}{\hyperref[gap:count]{[Gap-Counting]}}
 
 \title{Stirling's decidability proof for higher-order matching,\\
 Sections 4--6: definitions and corrected proofs}
@@ -965,12 +971,13 @@ Then $\forall$ loses $\Gm(t'',E)$, and Theorem~\ref{thm:game} gives the
 claim.
 \end{proof}
 
-\begin{gap}[$T_2$ simulation]\label{gap:T2}
+\renewcommand{\gapname}{[Gap-$T_2$]}
+\begin{gapenv}[$T_2$ simulation]\phantomsection\label{gap:T2}
 \Open{} Steps~2--3 need a precise simulation lemma.  Tables in
 $\sigma_{r+1}$ can hold entries created inside $\iv{i_r}{k_r}$, and one
 must show that no later position consults them.  The converse direction
 is ``almost identical'' in the paper.
-\end{gap}
+\end{gapenv}
 
 \begin{proposition}[S, Prop.~32]\label{prop:stacking}
 \Fixed{} \Sketch{} Let $t$ be a smallest solution, and let
@@ -987,13 +994,14 @@ earlier excursions at $m_1,\dots,m_{p-1}$, which contribute as well.
 They are disjoint, so Lemma~\ref{lem:disjoint} applies.
 \end{proof}
 
-\begin{gap}[Stacking]\label{gap:stacking}
+\renewcommand{\gapname}{[Gap-Stacking]}
+\begin{gapenv}\phantomsection\label{gap:stacking}
 \Open{} Not argued in the paper: (i) the complementary intervals are
 pairwise disjoint and ordered; (ii) the witnessing excursion at $m_p$
 is the one to which Fact~\ref{fact:27} applies.  The argument gives
 $p-1$ intervals, hence $p\le\depth(u)+1$ rather than the paper's
 $p\le\depth(u)$.
-\end{gap}
+\end{gapenv}
 
 %======================================================================
 \section{Partitioning play [S, \S6.3]}\label{sec:partition}
@@ -1130,7 +1138,8 @@ Gluing $\comb(N+1)$ below the lambda leaf $n_j$ of $\comb(K)$ along every
 edge is intended to rebuild the part of $t$ visited by $\pi$.
 \end{definition}
 
-\begin{gap}[Partition tree]\label{gap:ptree}
+\renewcommand{\gapname}{[Gap-Partition]}
+\begin{gapenv}[Partition tree]\phantomsection\label{gap:ptree}
 \Open{} Needed:
 \begin{enumerate}[(i)]
 \item $\pi_h$ is the first position of $K$, so $n_j\in\comb(K)$;
@@ -1138,7 +1147,7 @@ edge is intended to rebuild the part of $t$ visited by $\pi$.
   Definition~\ref{def:ptree2};
 \item every visited node of $t$ lies in the comb of some stage.
 \end{enumerate}
-\end{gap}
+\end{gapenv}
 
 \begin{definition}[Hyper-partition tree]\label{def:hyper}
 \New{} Stages $N$ of $\pi$ and $N'$ of $\pi'$ are \emph{identical}
@@ -1221,7 +1230,7 @@ $\sim$-class: it requires that no node of the class contributes.  By
 Proposition~\ref{prop:hyper}(4), separators are never unfolded.  This is
 what the construction in Section~\ref{sec:thm37} requires (``separators
 must be kept'').  A bound on the number of separators is still open
-(Gap~\ref{gap:count}(iv)): one choice position may lie in separators
+(\GapCounting{}(iv)): one choice position may lie in separators
 that start at different positions.
 \end{remark}
 
@@ -1234,7 +1243,7 @@ holds:
 \item some $n_k$, $i<k<j$, is a constant node of $t$ in the comb of an
   earlier stage of the same family.
 \end{enumerate}
-The third case uses Gap~\ref{gap:ptree}(iii).
+The third case uses \GapPartition{}(iii).
 \end{fact}
 
 %======================================================================
@@ -1458,7 +1467,8 @@ $n_r$, the contexts of $V_1,V_2$ are $\equiv$ and the conclusion of
 Proposition~\ref{prop:reentry} holds.
 \end{corollary}
 
-\begin{gap}[Unfolding]\label{gap:unfold}
+\renewcommand{\gapname}{[Gap-Unfolding]}
+\begin{gapenv}\phantomsection\label{gap:unfold}
 \Open{}
 \begin{enumerate}[(i)]
 \item A precise game for the unfolded term, and Fact~\ref{fact:36}.
@@ -1473,7 +1483,7 @@ Proposition~\ref{prop:reentry} holds.
 \item Consistency across plays: Definition~\ref{def:unfold} composes
   combs per node, not per visit.
 \end{enumerate}
-\end{gap}
+\end{gapenv}
 
 \begin{remark}[Alternatives considered]
 \begin{itemize}
@@ -1544,12 +1554,12 @@ grows multiplicatively, so no tower of exponents is needed.
 \begin{enumerate}
 \item \Sketch{} If $t$ is a smallest solution and all level-$j$ nodes
   are end (e.g.\ $j=p$), then $s_j(P)\le\depth(u)+1$.  This is Proposition~\ref{prop:stacking},
-  and it depends on Gap~\ref{gap:stacking}.
+  and it depends on \GapStacking{}.
 \item \Open{} For non-end levels: in the term produced by the
   construction of Section~\ref{sec:architecture} (exhaustive unfolding,
   then $T_1,T_2$), every strip has size at most some $K$ computable from
   $E$.  This is the content of the paper's ``if they are not end nodes
-  and $k>q$ then some $N_1$ can be unfolded'' (Gap~\ref{gap:count}).
+  and $k>q$ then some $N_1$ can be unfolded'' (\GapCounting{}).
 \end{enumerate}
 \end{proposition}
 
@@ -1602,7 +1612,7 @@ steps; ``O'' marks simple observations.
   visited (Corollary~\ref{cor:visited}).  On each path at most
   $\depth(u)$ constants of positive arity occur
   (Lemma~\ref{lem:constants}).  The use of $T_2$ depends on
-  Gap~\ref{gap:T2}.
+  \GapTtwo{}.
 \end{enumerate}
 
 \paragraph{Construction.}
@@ -1626,7 +1636,7 @@ The paper takes ``the least $j$ such that some path has $\ge(k+1)q^j$
 level-$j$ nodes''.  This does not work for $j\ge2$: level-$j$ nodes on
 one path can be bound by up to $(k+1)q^{j-1}$ different binders, so the
 threshold does not force $k+1$ nodes in one strip
-(Gap~\ref{gap:count}(iii)).  We argue instead as follows.  By
+(\GapCounting{}(iii)).  We argue instead as follows.  By
 Lemma~\ref{lem:pathcount}, the depth of the constructed term is bounded
 as soon as its strips are bounded.  Strips of end nodes, in particular
 of level $p$ (O3), are bounded by Proposition~\ref{prop:stripbound}(1).
@@ -1674,7 +1684,8 @@ nodes.
 A path therefore has at most $2pq^{p-1}|u|$ such stages, each with
 depth $\le2pq^{p-1}$, which gives $4p^2q^{2p-2}|u|$.
 
-\begin{gap}[Counting]\label{gap:count}
+\renewcommand{\gapname}{[Gap-Counting]}
+\begin{gapenv}\phantomsection\label{gap:count}
 \Open{}
 \begin{enumerate}[(i)]
 \item Termination of the interleaving ``unfolding grows the term,
@@ -1693,7 +1704,7 @@ depth $\le2pq^{p-1}$, which gives $4p^2q^{2p-2}|u|$.
 \item Under Definition~\ref{def:47a}, the factor $|u|$ in the bound
   becomes $|u|^2$.
 \end{enumerate}
-\end{gap}
+\end{gapenv}
 
 \begin{corollary}[Decidability]\label{cor:decidable}
 \Paper{} \Coq{} Assume Theorem~\ref{thm:small}.  Then higher-order
@@ -1742,18 +1753,18 @@ Facts~\ref{fact:25}, \ref{fact:26} & Facts~25--26 & proved\\
 Fact~\ref{fact:27} & Fact~27 & sketch\\
 Prop.~\ref{prop:29} & Prop.~29 & corrected (greedy chain)\\
 Prop.~\ref{prop:T1} & Fact~30 & proved; Coq\\
-Prop.~\ref{prop:T2} & Prop.~31 & sketch, Gap~\ref{gap:T2}\\
-Prop.~\ref{prop:stacking} & Prop.~32 & corrected bound, Gap~\ref{gap:stacking}\\
+Prop.~\ref{prop:T2} & Prop.~31 & sketch, \GapTtwo{}\\
+Prop.~\ref{prop:stacking} & Prop.~32 & corrected bound, \GapStacking{}\\
 Fact~\ref{fact:33}, Prop.~\ref{prop:34} & Fact~33, Prop.~34 & proved (Coq: uniqueness)\\
-Def.~\ref{def:ptree2} & Def.~46 & corrected reading, Gap~\ref{gap:ptree}\\
+Def.~\ref{def:ptree2} & Def.~46 & corrected reading, \GapPartition{}\\
 Def.~\ref{def:hyper}, Prop.~\ref{prop:hyper} & p.~53 & new, proved\\
 Thm.~\ref{thm:linunfold} & --- & new; Coq (raw terms)\\
 Ex.~\ref{ex:obstruction} & Def.~47 & counterexample\\
-Prop.~\ref{prop:reentry}, Cor.~\ref{cor:crossvisit} & --- & new; partial, Gap~\ref{gap:unfold}\\
+Prop.~\ref{prop:reentry}, Cor.~\ref{cor:crossvisit} & --- & new; partial, \GapUnfolding{}\\
 Fact~\ref{fact:36} & Fact~36 & open\\
 Lemma~\ref{lem:pathcount} & p.~53 & new, proved (replaces pigeonhole)\\
 Prop.~\ref{prop:stripbound} & p.~53 & (1) sketch, (2) open\\
-Thm.~\ref{thm:small} & Thm.~37 & open, Gaps~\ref{gap:T2}--\ref{gap:count}\\
+Thm.~\ref{thm:small} & Thm.~37 & open, all gaps\\
 Cor.~\ref{cor:decidable} & \S6 & proved from Thm.~37; Coq
 \end{tabular}
 \end{center}
@@ -1788,20 +1799,20 @@ Cor.~\ref{cor:decidable} & \S6 & proved from Thm.~37; Coq
 \small
 \begin{tabular}{llll}
 Gap & Topic & Introduced in & Page\\\hline
-\ref{gap:T2} & $T_2$ simulation & \S\ref{sec:transformations}, after Prop.~\ref{prop:T2} & \pageref{gap:T2}\\
-\ref{gap:stacking} & Stacking & \S\ref{sec:transformations}, after Prop.~\ref{prop:stacking} & \pageref{gap:stacking}\\
-\ref{gap:ptree} & Partition tree & \S\ref{sec:partition}, after Def.~\ref{def:ptree2} & \pageref{gap:ptree}\\
-\ref{gap:unfold} & Unfolding & \S\ref{sec:nonlinear}, after Cor.~\ref{cor:crossvisit} & \pageref{gap:unfold}\\
-\ref{gap:count} & Counting & \S\ref{sec:architecture}, after the counting paragraph & \pageref{gap:count}
+\GapTtwo & $T_2$ simulation & \S\ref{sec:transformations}, after Prop.~\ref{prop:T2} & \pageref{gap:T2}\\
+\GapStacking & Stacking & \S\ref{sec:transformations}, after Prop.~\ref{prop:stacking} & \pageref{gap:stacking}\\
+\GapPartition & Partition tree & \S\ref{sec:partition}, after Def.~\ref{def:ptree2} & \pageref{gap:ptree}\\
+\GapUnfolding & Unfolding & \S\ref{sec:nonlinear}, after Cor.~\ref{cor:crossvisit} & \pageref{gap:unfold}\\
+\GapCounting & Counting & \S\ref{sec:architecture}, after the counting paragraph & \pageref{gap:count}
 \end{tabular}
 \end{center}
 
 \paragraph{Open, in order of importance.}
-Gap~\ref{gap:unfold} (\S\ref{sec:nonlinear}; unfolding: game, soundness,
-the remaining cross-visit case), Gap~\ref{gap:count}
-(\S\ref{sec:architecture}; counting), Gap~\ref{gap:T2}
-(\S\ref{sec:transformations}; $T_2$ simulation), Gap~\ref{gap:ptree}
-(\S\ref{sec:partition}; partition tree), Gap~\ref{gap:stacking}
+\GapUnfolding{} (\S\ref{sec:nonlinear}; unfolding: game, soundness,
+the remaining cross-visit case), \GapCounting{}
+(\S\ref{sec:architecture}; counting), \GapTtwo{}
+(\S\ref{sec:transformations}; $T_2$ simulation), \GapPartition{}
+(\S\ref{sec:partition}; partition tree), \GapStacking{}
 (\S\ref{sec:transformations}; stacking).
 
 \end{document}

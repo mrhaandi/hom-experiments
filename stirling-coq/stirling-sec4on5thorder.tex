@@ -53,7 +53,6 @@
 \newtheorem{remark}[theorem]{Remark}
 \newtheorem*{gapenv}{\gapname}
 \newcommand{\gapname}{Gap}
-\newcommand{\GapPartition}{\hyperref[gap:ptree]{[Gap-Partition]}}
 \newcommand{\GapUnfolding}{\hyperref[gap:unfold]{[Gap-Unfolding]}}
 \newcommand{\GapCounting}{\hyperref[gap:count]{[Gap-Counting]}}
 
@@ -1573,23 +1572,144 @@ stages, visited with different tables, so this is not the intended
 relation.  We use the following reading.
 \end{remark}
 
-\begin{definition}[Partition tree, proposed reading]\label{def:ptree2}
-\New{} For a non-final stage $N=\iv ij$, let $\pi_h$ be the parent of
-$\pi_j$.  Put $N+1\ra\pi K$, where $K$ is the stage containing $\pi_h$.
-Gluing $\comb(N+1)$ below the lambda leaf $n_j$ of $\comb(K)$ along every
-edge is intended to rebuild the part of $t$ visited by $\pi$.
+The proposed reading below needs two facts about stages: every visited
+node of $t$ lies in some comb, and the target of an edge contains the
+lambda at which the previous stage ended.  Both follow from the way the
+greedy chain skips excursions.
+
+\begin{lemma}[Inside a stage]\label{lem:inside}
+\New{} Let $N=\iv ij$ be a stage and $i<p<j$.  If $n_p$ is a node of
+$t$, then $\pi_p$ lies in an excursion $\iv{c+1}{c+k}$ skipped by the
+greedy chain of $N$: here $\pi_c$ is a chain position at a variable node
+of $w_q$, and $\pi_{c+k+1}$ is the next chain position.  The interval
+$\iv{c+1}{c+k}$ corresponds to an earlier interval $\iv{c'+1}{c'+k}$
+with $c'<c$.  In particular $p'=p-(c-c')<p$ and $n_{p'}=n_p$.
+\end{lemma}
+\begin{proof}
+A constant stage $\iv i{i+1}$ has no interior positions.  Let $n_i$ be a
+variable node, with greedy chain $\pi_{j_1},\dots,\pi_{j_{2r}}$,
+$j_1=i+2$, and cut $p_0\le r$ (Definition~\ref{def:stages}).  The
+positions of $N$ are:
+\begin{itemize}
+\item $\pi_i$ and $\pi_{i+1}$; the latter is at a lambda node of $w_q$
+  (Lemma~\ref{lem:alt});
+\item the chain positions $\pi_{j_1},\dots,\pi_{j_{2p_0}}$, and the
+  positions $\pi_{j_{2h}+1}=\pi_{j_{2h+1}}$.  These are all at nodes of
+  $w_q$ (Proposition~\ref{prop:29});
+\item for each $h\le p_0$ with $n_{j_{2h-1}}$ a variable node, the
+  excursion $\iv{j_{2h-1}+1}{j_{2h}-1}$.  For a constant node,
+  $j_{2h}=j_{2h-1}+1$, and there is nothing in between;
+\item $\pi_{j_{2p_0}+1}$, at a node of $w_q$, and the last position
+  $\pi_j$ with $j=j_{2p_0}+2$ (or $j=i+3$ if $p_0=0$).
+\end{itemize}
+So an interior position in $t$ lies in some excursion
+$\iv{c+1}{c+k}$ with $c=j_{2h-1}$ and $c+k+1=j_{2h}$.  By the
+recurrence property (Definition~\ref{def:recurrence}) there are $c'<c$
+and complementary intervals $\iv{c'+1}{c'+k}$ and $\iv{c+1}{c+k}$.
+Complementary intervals correspond (Definition~\ref{def:compl},
+Proposition~\ref{prop:24}), i.e.\ $n_{c'+e}=n_{c+e}$ for $1\le e\le k$.
+If the play ends inside $N$, its last position repeats the node of the
+previous one (the $a$-move), and the same description applies to the
+positions before it.
+\end{proof}
+
+For each skipped excursion we fix the earliest complementary interval;
+this choice depends only on the play up to the end of the excursion.
+
+\begin{definition}[Origin]\label{def:origin}
+\New{} Let $\pi_p$ be at a non-lambda node of $t$.  Its \emph{origin}
+$o(p)$ is defined by induction on $p$:
+\begin{itemize}
+\item $o(p)=p$ if $\pi_p$ is the first position of a stage;
+\item $o(p)=o(p-1)$ if $p=l$ is the last position of the play and not
+  the first position of a stage (then $n_l=n_{l-1}$, by the $a$-move);
+\item $o(p)=o(p')$ otherwise, with $p'<p$ from Lemma~\ref{lem:inside}.
+\end{itemize}
 \end{definition}
 
-\renewcommand{\gapname}{[Gap-Partition]}
-\begin{gapenv}[Partition tree]\phantomsection\label{gap:ptree}
-\Open{} Needed:
-\begin{enumerate}[(i)]
-\item $\pi_h$ is the first position of $K$, so $n_j\in\comb(K)$;
-\item the proof of Theorem~\ref{thm:small} goes through with
-  Definition~\ref{def:ptree2};
-\item every visited node of $t$ lies in the comb of some stage.
+\begin{lemma}[Origins]\label{lem:origin}
+\New{} For every position $\pi_p$ at a non-lambda node of $t$,
+$o(p)\le p$, $n_{o(p)}=n_p$, and $\pi_{o(p)}$ is the first position of a
+stage.  Consequently:
+\begin{enumerate}
+\item every non-lambda node of $t$ visited by $\pi$ is the root of the
+  comb of some stage of $\pi$, and the first visit to it is the first
+  position of a stage;
+\item every node of $t$ visited by $\pi$ lies in the comb of some stage
+  of $\pi$.
 \end{enumerate}
-\end{gapenv}
+\end{lemma}
+\begin{proof}
+The three properties hold by induction on $p$, using
+Lemma~\ref{lem:inside} for the third clause of
+Definition~\ref{def:origin}.  Every position of $\pi$ is in some stage
+(Fact~\ref{fact:33}), and the cases cover all positions at non-lambda
+nodes of $t$: a stage's last position is a lambda node unless the stage
+is final.  This gives~(1); for the first visit, $o(p)=p$ is forced.
+For~(2), let $\ell$ be a visited lambda node of $t$.  If $\ell$ is the
+root of $t$, it lies in the comb of stage~$1$, whose root is the
+$@$-node.  Otherwise the node directly above $\ell$ is a non-lambda node
+of $t$, visited earlier (Lemma~\ref{lem:ancestors} and
+Lemma~\ref{lem:pred}).  By~(1) it is a comb root, and $\ell$ is one of
+its successors.
+\end{proof}
+
+\begin{definition}[Partition tree, reading by origins]\label{def:ptree2}
+\Fixed{} For a non-final stage $N=\iv ij$, let $\pi_h$ be the parent of
+$\pi_j$.  Put $N+1\ra\pi K$, where $K$ is the stage whose first
+position is $\pi_{o(h)}$.  When $\pi_h$ is itself the first position of
+its stage, $K$ is the stage containing $\pi_h$.
+\end{definition}
+
+\begin{proposition}[The partition tree rebuilds the visited part]\label{prop:ptree}
+\New{} Let $N=\iv ij$ be non-final, and $N+1\ra\pi K$.
+\begin{enumerate}
+\item $K\le N$, and $n_j$ is a successor of the root of $\comb(K)$, so
+  $n_j\in\comb(K)$.
+\item The root of $\comb(N+1)$ is the node directly below $n_j$.
+\item The edges form a tree on the stages of $\pi$ rooted at stage~$1$.
+  Mapping each stage to the root of its comb sends an edge
+  $N+1\ra\pi K$ to the relation ``grandchild of the root of
+  $\comb(K)$ via $n_j$''.  Every comb root is visited, and every node of
+  $t$ visited by $\pi$ lies in some comb.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+(1) $n_j$ is a lambda node of $t$ (Fact~\ref{fact:33}), and by
+Definition~\ref{def:parent}(2) its parent $\pi_h$ is at the node $n_h$
+directly above it, with $h<j$.  By Lemma~\ref{lem:origin},
+$n_{o(h)}=n_h$, so $n_j$ is a successor of the root of $\comb(K)$.
+Since $o(h)\le h<j$, the stage $K$ starts inside the first $N$ stages.
+
+(2) The move from the lambda node $n_j$ is the $\lambda$-move to its
+successor, and this is the first position of $N+1$.
+
+(3) By~(1) every edge points to an earlier stage, so the edges form a
+tree rooted at stage~$1$.  The second claim is~(1) and~(2) together.
+Comb roots are visited by definition, and the last claim is
+Lemma~\ref{lem:origin}(2).  (A comb may also contain successor lambdas
+that $\pi$ does not enter.)
+\end{proof}
+
+\begin{remark}[Status of the former \textup{[Gap-Partition]}]\label{rem:ptreeclosed}
+\phantomsection\label{gap:ptree}
+The three points of the former gap were:
+\begin{enumerate}[(i)]
+\item the target of an edge contains $n_j$;
+\item the proof of Theorem~\ref{thm:small} works with this reading;
+\item every visited node lies in a comb.
+\end{enumerate}
+Points (i) and (iii) are Proposition~\ref{prop:ptree}(1) and
+Lemma~\ref{lem:origin}(2).  As first proposed, with $K$ the stage
+containing $\pi_h$, point~(i) need not hold: $\pi_h$ may lie inside a
+skipped excursion of $K$.  The reading by origins avoids this.  Point
+(ii) concerns only Definition~\ref{def:unfold}, whose clauses (c),
+(d) and the notion of c-embedding use the edges.  The proof now
+follows tree-shaped unfolding (Definition~\ref{def:treeunf},
+Theorem~\ref{thm:treeunf}), which is defined on nodes of $t$ and on
+plays, and does not use the partition tree.  So nothing remains open
+here.
+\end{remark}
 
 \begin{definition}[Hyper-partition tree]\label{def:hyper}
 \New{} Stages $N$ of $\pi$ and $N'$ of $\pi'$ are \emph{identical}
@@ -1635,10 +1755,11 @@ is the only way stages of plays with a common history can differ.
 (1) $\equiv$ is defined by prefixes of stage sequences.
 
 (2) The edge out of $N+1$ is determined by the last position $\pi_j$ of
-$N$ and its parent $\pi_h$, with $h\le j$
-(Definition~\ref{def:ptree2}).  Both lie in the first $N$ stages,
-which are the same in all plays through $[N+1]$.  The target $K$ is
-the stage containing $\pi_h$, so $K\le N$.
+$N$, its parent $\pi_h$ and the origin $o(h)\le h<j$
+(Definition~\ref{def:ptree2}).  All of them, and the choices of
+complementary intervals behind $o(h)$, lie in the first $N$ stages,
+which are the same in all plays through $[N+1]$.  So $K\le N$
+(Proposition~\ref{prop:ptree}(1)).
 
 (3) The comb is determined by the first position.
 
@@ -1684,7 +1805,7 @@ holds:
 \item some $n_k$, $i<k<j$, is a constant node of $t$ in the comb of an
   earlier stage of the same family.
 \end{enumerate}
-The third case uses \GapPartition{}(iii).
+The third case uses Lemma~\ref{lem:origin}.
 \end{fact}
 
 %======================================================================
@@ -1719,6 +1840,15 @@ redirected to the new stage.
 contribute, and it finishes at node $n$ of $c_i$ in $(c_1\dots c_j)$ iff
 $N_j$ finishes at $n$ of $c_i$.
 \end{fact}
+
+\begin{remark}
+Fact~\ref{fact:36} belongs to the paper's compressed unfolding: it says
+that skipping the part of $t$ between $c_j$ and $c_{j+1}$ changes
+nothing.  The proof here follows tree-shaped unfolding
+(Section~\ref{sec:treeunf}), which skips nothing, so
+Fact~\ref{fact:36} is not used.  It would return only if compression
+(Remark~\ref{rem:compress}) is needed for the counting.
+\end{remark}
 
 \begin{remark}
 The paper does not define the game of the unfolded term (``we do not
@@ -1948,28 +2078,6 @@ $n_r$, the contexts of $V_1,V_2$ are $\equiv$ and the conclusion of
 Proposition~\ref{prop:reentry} holds.
 \end{corollary}
 
-\renewcommand{\gapname}{[Gap-Unfolding]}
-\begin{gapenv}\phantomsection\label{gap:unfold}
-\Open{}
-\begin{enumerate}[(i)]
-\item A precise game for the unfolded term, and Fact~\ref{fact:36}.
-\item Soundness of unfolding in general.  It is proved here for linear
-  heads (Theorem~\ref{thm:linunfold}).  For non-linear heads, with
-  Definition~\ref{def:47a}, the conflict of
-  Example~\ref{ex:obstruction} is excluded in the same-visit case
-  (Proposition~\ref{prop:reentry}).
-\item The remaining cross-visit case of Corollary~\ref{cor:crossvisit}:
-  $n_r$ lies below some $\lambda\vec z'$ that its two visits bind
-  differently, and play reaches that $\vec z'$ before $\forall$ splits.
-\item Consistency across plays: Definition~\ref{def:unfold} composes
-  combs per node, not per visit.
-\item Compression.  Tree-shaped unfolding (Definition~\ref{def:treeunf})
-  is sound under silence (Theorem~\ref{thm:treeunf}); what is open is
-  the cut that turns it into Definition~\ref{def:onestep}
-  (Remark~\ref{rem:compress}).
-\end{enumerate}
-\end{gapenv}
-
 \begin{remark}[Alternatives considered]
 \begin{itemize}
 \item \emph{Def.~43$'$.} A stage absorbs re-entries into already visited
@@ -2083,6 +2191,130 @@ $T^*$ with at most one block of $\beta$-steps inserted.  Hence
 $\mathrm{nf}(T'^*)=\mathrm{nf}(T^*)=u$, and $t'$ solves $E$.
 \end{proof}
 
+\begin{definition}[The game after a tree-shaped unfolding]\label{def:treegame}
+\New{} Let $t'$ be the tree-shaped unfolding of $t$ at $(n,m)$.  Its game
+is $\Gm(t',E)$ of Definition~\ref{def:moves}, played on the
+interpolation tree of $@\,t'\,w_1\dots w_k$.  Its nodes are named
+through the \emph{copy map} $\kappa$:
+\begin{itemize}
+\item for a node $n\,v$ of the subtree of $t$ at $n$ (with $v$ a
+  relative address), $\kappa(n\,v)=m\,v$ is its copy;
+\item the copy of $m$ is $m^\circ=\kappa(m)$, and the subtree at
+  $m^\circ$ is a copy of $M$;
+\item nodes of $t$ outside the subtree at $m$, and nodes of the $w_i$,
+  keep their names.
+\end{itemize}
+$\kappa$ preserves labels and successor indices.  A variable node of the
+copy is bound by the copy of its binder if that binder is below $n$, and
+by the same binder otherwise.  The binders strictly between $n$ and $m$
+keep their place in $t'$ but bind nothing inside the copy.
+\end{definition}
+
+For a play $\pi\in\Gm(t,E)$ that visits $n$ at $\pi_a$ and then $m$,
+let $\pi_e$ be the first position at $m$ after $\pi_a$.  Translate
+positions $\pi_c$, $c\ge a$, by
+\[
+\zeta(n_c[r_c]\theta_c)=\kappa(n_c)[r_c]\,\zeta(\theta_c),
+\]
+where $\zeta(\theta_c)$ is defined by induction on $c$:
+\begin{itemize}
+\item an entry $\theta_c(b)=((\suc v1,\dots),\theta_d)$ with $b$ below
+  $n$ or in some $w_i$ becomes
+  $\zeta(\theta_c)(\kappa(b))=((\suc{\kappa(v)}1,\dots),\zeta(\theta_d))$;
+\item if $n_c$ is a node of $t$, then $\zeta(\theta_c)$ also contains
+  $\theta_e(b)$ for every binder $b$ strictly above $m$.
+\end{itemize}
+By Lemma~\ref{lem:confine}, when $n$ is headless every entry of the
+first kind has $d\ge a$, so $\zeta$ is well defined, and the entries of
+$\theta_c$ for binders above $n$ agree with those of $\theta_a$, hence
+with those of $\theta_e$ (Proposition~\ref{prop:agree}).
+
+\begin{proposition}[Plays after a tree-shaped unfolding]\label{prop:treegame}
+\New{} Let $n$ be headless and $(n,m)$ silent, and let $t$ solve $E$.
+\begin{enumerate}
+\item If $\pi\in\Gm(t,E)$ does not visit $m$, then $\pi\in\Gm(t',E)$.
+\item Otherwise, with $a,e$ as above,
+  \[
+  \pi'=\iv1{e-1}\cdot\zeta(\pi_a)\,\zeta(\pi_{a+1})\cdots\zeta(\pi_l)
+  \]
+  is a play of $\Gm(t',E)$ with the same final state.  Its segment
+  $\zeta(\iv ae)$ replays the approach from $n$ to $m$ inside the copy.
+  It ends at $\zeta(\pi_e)$, at $m^\circ$, after which $\zeta$ continues
+  the rest of $\pi$ inside the copy.
+\item In both cases $\forall$ makes the same choices in $\pi$ and
+  $\pi'$, and every play of $\Gm(t',E)$ arises in this way.
+\end{enumerate}
+\end{proposition}
+\begin{proof}
+\emph{Prefix.}  Before $\pi_e$ no position is in the subtree at $m$: the
+first visit below $m$ is at $m$ itself, by Lemma~\ref{lem:ancestors}.
+Table entries have as arguments successors of visited variable nodes,
+and their binders lie above visited nodes
+(Proposition~\ref{prop:tables}).  So no position of $\iv1{e-1}$ mentions
+a node of the subtree at $m$.  The two interpolation trees agree outside
+that subtree, so, by the argument of Lemma~\ref{lem:locality}, the
+moves of $\iv1{e-1}$ are the same in $\Gm(t',E)$: it is a play prefix there.  This also gives~(1).
+
+\emph{Junction.}  $\pi_{e-1}$ is at the lambda node directly above $m$,
+with $\theta_{e-1}=\theta_e$ and $r_{e-1}=r_e$ (Lemma~\ref{lem:pred}).
+In $t'$ the $\lambda$-move leads to the node $m=\kappa(n)$, which is now
+labelled $x_i$, with table $\theta_e$ and state $r_e$.  On the other
+side, $\zeta(\pi_a)=\kappa(n)[r_a]\zeta(\theta_a)$.  Here $r_a=r_e$,
+because $\iv ae$ has no $f$-move (silence and Lemma~\ref{lem:states}).
+Also $\zeta(\theta_a)=\theta_e$: $\theta_a$ has entries only for binders
+above $n$, and $\theta_e$ is defined exactly on the binders above $m$,
+on which $\zeta$ copies it.
+
+\emph{Moves commute with $\zeta$.}  Let $c\ge a$.  By
+Lemma~\ref{lem:confine}, $n_c$ lies below $n$ or in some $w_i$.
+\begin{itemize}
+\item $\lambda$-, $f$- and $a$-moves depend on the label, the successors
+  and the state, which $\kappa$ and $\zeta$ preserve; $\forall$ makes the
+  same choice.
+\item An $x$-jump consults the entry of the root of $t$, which lies
+  above $m$ and is $((\text{roots of the }w_i),\theta_1)$ on both sides.
+  The new entry $((\suc{n_c}1,\dots),\theta_c)$ for the root of $w_i$
+  translates to $((\suc{\kappa(n_c)}1,\dots),\zeta(\theta_c))$.
+\item A $z$-jump at $n_c$ below $n$ consults the binder $b$ of $n_c$.
+  It lies below $n$, since $n$ is headless.  In $t'$ the copy
+  $\kappa(n_c)$ is bound by $\kappa(b)$, whose entry is the translation
+  of $\theta_c(b)$.
+\item A $y$- or $v$-jump in $w_i$ consults an entry for a binder of
+  $w_i$, created at some $d\ge a$, and its translation points to the
+  copies $\kappa(\suc{n_d}g)$.
+\end{itemize}
+In each case the new table is the translation of the old one: it is
+$\theta_d$ (resp.\ $\zeta(\theta_d)$), possibly extended by one entry.
+For $t$-tables, the entries for binders strictly above $m$ are added on
+both sides from $\theta_e$.  They are never consulted.  A variable node
+of the copy is bound inside the copy or above $n$, and a binder strictly
+between $n$ and $m$ binds nothing in the copy.
+
+So $\pi'$ is a sequence of next positions starting at
+$\varepsilon[u]\varnothing$.  Its last position $\zeta(\pi_l)$ has the
+final state of $\pi$, and earlier states are not final.  So $\pi'$ is a
+play.  Choices agree: before $e$ they are those of $\pi$; in
+$\zeta(\iv ae)$ there are none, by silence; after that they are those
+of $\iv el$.
+
+\emph{Every play arises.}  Given $\pi''\in\Gm(t',E)$, let $\pi$ be the
+play of $\Gm(t,E)$ in which $\forall$ makes the choices of $\pi''$ in
+order.  The play $\pi'$ built from $\pi$ makes the same choices as
+$\pi''$.  Moves are deterministic between choices, and final positions
+have no successor, so $\pi'=\pi''$.  The admissibility of each choice
+follows by the same induction, as in Lemma~\ref{lem:T2sim}(4).
+\end{proof}
+
+\begin{remark}
+Proposition~\ref{prop:treegame} is the game of the unfolded term that
+[S] omits, for the tree-shaped unfolding.  Since final states are
+preserved, it reproves Theorem~\ref{thm:treeunf} in game form.  For the
+fragment $\zeta(\iv ae)$ it also gives the analogue of
+Fact~\ref{fact:36}: the replayed stages do not contribute, and they
+finish at the copies $\kappa(\cdot)$ of the nodes at which the original
+stages finish.
+\end{remark}
+
 \begin{remark}[About the hypotheses]
 \begin{enumerate}
 \item \emph{Silence is the real condition.}  The copy replays the part
@@ -2115,12 +2347,432 @@ again a head of its copy, and the hydra measure does not drop.
 Definition~\ref{def:onestep} is tree-shaped unfolding followed by a
 \emph{cut} in the copy: everything strictly between $\lambda\vec z'$
 and $M^\circ$ is removed, and variables of $M^\circ$ bound on the removed
-part are bound by the originals again.  The open part of
-\GapUnfolding{} is therefore the soundness of the cut.  It is a
-$T_2$-like step on the copy, sound when no play needs the removed part.
-Example~\ref{ex:obstruction} is the case where the second visit needs
-it.
+part are bound by the originals again.  It is a $T_2$-like step on the copy, sound when no play needs the
+removed part.  Example~\ref{ex:obstruction} is the case where the second
+visit needs it.  Section~\ref{sec:xcut} carries out the cut for the
+$x$-nodes on the path.
 \end{remark}
+
+\subsection{Removing the copied $x$-nodes}\label{sec:xcut}
+
+The copy $N^\circ$ of Definition~\ref{def:treeunf} repeats the $x$-nodes
+of the path from $n$ to $m$.  This subsection removes them.  Throughout,
+$n$, $m$, $N$, $M$, $N^\circ$, $t'$ and $\kappa$ are as in
+Definitions~\ref{def:treeunf} and~\ref{def:treegame}.  Let
+$n'_1,\dots,n'_r$ be the $x$-nodes strictly between $n$ and $m$, from
+top to bottom.  Let $n'_i$ be labelled $x_{q_i}$, and let $m$ lie below
+its successor $\suc{n'_i}{h_i}=\lambda\vec z_i$.
+
+\begin{definition}[$x$-cut]\label{def:xcut}
+\New{} In $t'$, the subterm at $\kappa(n'_i)$ is
+$x_{q_i}\,A^\circ_1\dots A^\circ_k$ with
+$A^\circ_{h_i}=\lambda\vec z^\circ_i.\,S^\circ_i$.  Replace it by
+$S^\circ_i[\vec z_i/\vec z^\circ_i]$, for $i=r,r-1,\dots,1$.  The result
+$t''$ is the \emph{$x$-cut unfolding of $t$ at $(n,m)$}.  Write
+$t''=t[m:=N'']$.
+\end{definition}
+
+So the copy loses the nodes $\kappa(n'_i)$, their successors
+$\kappa(\suc{n'_i}{h_i})$, and their other arguments.  The variables
+that $\kappa(\suc{n'_i}{h_i})$ bound in the copy are bound by the
+original $\lambda\vec z_i$ again.  That binder lies above $m$, so $t''$
+is a term of the type of $t$.  The copy root $\kappa(n)$ is kept.  If the
+path from $n$ to $m$ carries no $z$-node, then nothing is left between
+$\kappa(\suc nj)$ and $M^\circ$.  In that case the $x$-cut is the cut of
+Remark~\ref{rem:compress}, which turns tree-shaped unfolding into
+Definition~\ref{def:onestep}.
+
+\begin{definition}[Single return]\label{def:singleret}
+\New{} An $x$-node $n'$ has \emph{single return} if, in every play of
+$\Gm(t,E)$, every position at $n'$ has at most one child
+(Definition~\ref{def:parent}).
+\end{definition}
+
+\begin{theorem}[The $x$-cut is sound]\label{thm:xcut}
+\New{} Let $t$ solve $E$, let $n$ be headless, let $(n,m)$ be silent,
+and let each of $n'_1,\dots,n'_r$ have single return.  Then the $x$-cut
+unfolding $t''$ of $t$ at $(n,m)$ solves $E$.
+\end{theorem}
+\begin{proof}
+We use the states, steps and labels of the proof of
+Theorem~\ref{thm:treeunf}.  Fix a sequence of choices of $\forall$.
+
+\emph{Phase 1.}  A labelled occurrence in a state of $t\,\vec w$ is a
+residual $M\rho$ of the occurrence at $m$.  Here $\rho$ substitutes for
+some of the variables bound above $m$.  The free variables of $N''$ are
+among $\vec x$ and the $\vec z_i$, all bound above $m$.  Let $s\,R''\,s''$
+if $s''$ arises from $s$ by replacing every labelled occurrence $M\rho$
+by $N''\rho$.  Replacement commutes with substitution, because both sides
+carry the same $\rho$.  So, as in Phase~1 of
+Theorem~\ref{thm:treeunf}, $T^*$ and $T''^*$ make the same steps up to
+the first labelled state $s_k$.  If there is none, they make the same
+steps throughout.  Otherwise $s_k=M\theta$ and $s''_k=N''\theta$, where
+$\theta$ is closed.  The proof of Theorem~\ref{thm:treeunf} gives
+$s'_k=N^{\circ*}$ for $t'$.  It remains to compare the steps from
+$N^{\circ*}$ and from $N''\theta$.
+
+\emph{The values $\theta(\vec z_i)$.}  Let $\pi_a$ and $\pi_e$ be the
+positions at $n$ and $m$ of the proof of Theorem~\ref{thm:treeunf}.  The
+entry of $\theta_e$ for $\lambda\vec z_i$ is created by a jump to
+$\lambda\vec z_i$ at some $d$.  By Lemma~\ref{lem:confine}, $a\le d\le e$.
+Its parent $\pi_b$ is at $n'_i$, with $a\le b<d$.  The next positions are
+the root of $w_{q_i}$ and its body.  The head of the body is not a
+constant, since $\iv ae$ has no $f$-move.  It is not $y_j$ with $j\ne
+h_i$: the jump to $\suc{n'_i}{j}$ would be a child of $\pi_b$ besides
+the one at $\lambda\vec z_i$.  So
+\[
+w_{q_i}=\lambda\vec y.\,y_{h_i}\,\vec B_i,
+\]
+and $\pi_d$ is the only child of $\pi_b$.  In reduction terms the state
+at $\pi_b$ is $w_{q_i}\,(\vec A_i\sigma)$, where $\vec A_i$ are the
+arguments of $n'_i$ and $\sigma$ is the substitution of that state.  So
+$\theta(\vec z_i)=\vec B_i[\vec A_i\sigma/\vec y]$.
+
+\emph{Phase 2.}  In a state of $t'$ from $N^{\circ*}$ on, call two kinds
+of occurrences special.
+\begin{enumerate}[(a)]
+\item A residual of the occurrence at $\kappa(n'_i)$.  It has the form
+  $w_{q_i}\,(\vec A^\circ_i\rho)$, and its counterpart is
+  $S^\circ_i\rho[\theta(\vec z_i)/\vec z^\circ_i]$, with deeper (a)-occurrences
+  inside replaced in the same way.
+\item A \emph{marked} occurrence: a residual of an argument
+  $A^\circ_{i,j}\rho$ that a block at an (a)-occurrence (below) put into
+  $\vec B_i$ in place of $y_j$.  Marked occurrences are closed.  The
+  counterpart of a marked residual of $A^\circ_{i,j}\rho$ is
+  $A_{i,j}\sigma$, with $\sigma$ as above.
+\end{enumerate}
+Let $s'\,R^\sharp\,s''$ if $s''$ arises from $s'$ by replacing every
+maximal special occurrence by its counterpart.  Then
+$N^{\circ*}\,R^\sharp\,N''\theta$.  Suppose $s'\,R^\sharp\,s''$.
+\begin{itemize}
+\item If the head of $s'$ is not special, $s'$ and $s''$ make the same
+  step, and $R^\sharp$ holds again.  For a $\beta$-step, replacement
+  commutes with substitution, as in Phase~1.
+\item If the head of $s'$ is an (a)-occurrence, $s'$ makes the block
+  \[
+  w_{q_i}\,(\vec A^\circ_i\rho)\Rightarrow^*
+  A^\circ_{i,h_i}\rho\;\vec B_i[\vec A^\circ_i\rho/\vec y]
+  \Rightarrow
+  S^\circ_i\rho\bigl[\vec B_i[\vec A^\circ_i\rho/\vec y]/\vec z^\circ_i\bigr]
+  \]
+  of $\beta$-steps, and $s''$ makes no step.  The copies of
+  $\vec A^\circ_i\rho$ inside $\vec B_i$ are marked.  Replacing them by
+  $\vec A_i\sigma$ gives $\vec B_i[\vec A_i\sigma/\vec y]=\theta(\vec
+  z_i)$.  So the new state $R^\sharp$-relates to $s''$.
+\item The head of $s'$ is never a marked occurrence.  Such a state is
+  reached by a $y$-jump from $\vec B_i$ to a successor of the
+  $\kappa(n'_i)$-node whose position made the block.  That jump is a
+  child of that position other than the one that started the block.  By
+  Proposition~\ref{prop:treegame}, the positions of $\Gm(t',E)$ from
+  $\zeta(\pi_a)$ on are $\zeta$-images of positions of $\Gm(t,E)$, and
+  $\zeta$ preserves tables, hence parents.  So some position at $n'_i$
+  would have two children, against single return.
+\end{itemize}
+So the steps from $N''\theta$ are those from $N^{\circ*}$ with blocks of
+$\beta$-steps removed.  By Theorem~\ref{thm:treeunf}, the steps from
+$T'^*$ are those from $T^*$ with one block of $\beta$-steps inserted.
+Hence $f$-steps, choices and final constants agree, and
+$\mathrm{nf}(T''^*)=\mathrm{nf}(T^*)=u$.
+\end{proof}
+
+\begin{remark}[About the $x$-cut]\label{rem:xcut}
+\begin{enumerate}
+\item \emph{Single return is needed.}  Let
+  $t=\lambda x.\,x\,(\lambda z_0.\,x\,(\lambda z_1.\,g\,(z_0\,(z_1\,a))))$
+  and $w=\lambda y.\,y\,(\lambda v.\,y\,(\lambda v'.\,y\,(\lambda v''.\,v')))$.
+  Take $n$ the outer $x$-node and $m$ the $g$-node.  $n$ is headless and
+  $(n,m)$ is silent, but the inner $x$-node $n'_1$ is entered twice from
+  the argument of $y$ in $w$, so it does not have single return.  Here
+  $t'\,w$ and $t\,w$ have the normal form $g^7a$, while $t''\,w$ has
+  $g^9a$.
+\item \emph{Computer check} (not part of the proof).  The terms of the
+  remark on hypotheses after Proposition~\ref{prop:treegame}, with $x$
+  unary up to depth~$6$ and binary up to depth~$2$, against the same
+  arguments, restricted to silent pairs with $n$ headless and $r\ge1$.
+  In all $15064$ cases with single return, $t''\,\vec w$ and $t\,\vec w$
+  have the same normal form.  All $60$ failures lack single return.
+  Another $8484$ cases lack it and still agree.  So the condition is
+  sufficient but not necessary.
+\item \emph{Heads.}  Rebinding $\vec z_i$ to the original $\lambda\vec
+  z_i$ can create heads: a $z_i$-node of the copy is bound above the copy
+  root $\kappa(n)$, so $\kappa(n)$ carries it as a head.  Whether the
+  hydra measure of \S\ref{sec:heads} still decreases is open.
+\end{enumerate}
+\end{remark}
+
+\subsection{Removing the copied $z$-nodes}\label{sec:zcut}
+
+After the $x$-cut, the copy still repeats the $z$-nodes of the path from
+$n$ to $m$.  Let $p$ be such a $z$-node, strictly between $n$ and $m$.
+By Lemma~\ref{lem:shape},
+$p=z_l\,(\lambda.\,C_1)\dots(\lambda.\,C_k)$, and $m$ lies in some
+$C_{g}$; write $g=g_p$.  Since $n$ is headless, the binder of $z_l$ lies
+on the path from $n$ to $p$.  It is a successor of an $x$-node, so it is
+$\suc{n''}{h}$ with $n''\in\{n,n'_1,\dots,n'_r\}$ and $h$ the successor
+index of the path at $n''$ ($h=j$ for $n''=n$, and $h=h_i$ for
+$n''=n'_i$).  Call $n''$ the \emph{owner} of $p$.
+
+\begin{definition}[Path cut]\label{def:pathcut}
+\New{} In the $x$-cut unfolding $t''$, replace the copy of every
+$z$-node $p$ strictly between $n$ and $m$, i.e.\ the subterm
+$z_l\,(\lambda.\,C^\circ_1)\dots(\lambda.\,C^\circ_k)$, by
+$C^\circ_{g_p}$, from the bottom up.  The result $t'''$ is the
+\emph{path-cut unfolding of $t$ at $(n,m)$}.
+\end{definition}
+
+The lambdas below $z$-nodes are dummies, so no variable is rebound.
+In $t'''$ nothing is left of the path strictly between
+$\kappa(\suc nj)$ and $M^\circ$: the copy is
+$x_i\,A^\circ_1\dots A^\circ_k$ with $A^\circ_j=\lambda\vec z^\circ.\,M^\natural$,
+where $M^\natural$ is $M^\circ$ with the variables bound strictly between
+$\suc nj$ and $m$ bound by the originals.  This is the cut of
+Remark~\ref{rem:compress}.
+
+\begin{lemma}[Projections]\label{lem:proj}
+\New{} Let $t$ solve $E$, let $n$ be headless, let $(n,m)$ be silent,
+and let $n,n'_1,\dots,n'_r$ have single return.  Suppose some play
+visits $n$ and later $m$.
+\begin{enumerate}
+\item If $n''\in\{n,n'_1,\dots,n'_r\}$ is labelled $x_q$ and $h$ is the
+  successor index of the path at $n''$, then
+  $w_q=\lambda\vec y.\,y_h\,\vec B$ for some $\vec B$.
+\item If $p$ is a $z$-node strictly between $n$ and $m$, labelled $z_l$,
+  with owner $n''$ as in~(1), then $B_l=\lambda\vec v.\,v_{g_p}$.
+\end{enumerate}
+\end{lemma}
+\begin{proof}
+Let $\pi_a$ be the visit of $n$ and $\pi_e$ the first later visit of $m$.
+By Lemmas~\ref{lem:ancestors} and~\ref{lem:confine}, every node on the
+path from $n$ to $m$ is visited in $\iv ae$, and the table entries for
+binders below $n$ used in $\iv ae$ are created in $\iv ae$.
+
+(1) For $n''=n'_i$ this is the first step of the proof of
+Theorem~\ref{thm:xcut}.  For $n''=n$ the same argument applies: the
+entry for $\suc nj$ is created by a child of $\pi_a$.  The head of the
+body of $w_i$ is not a constant, by silence, and not $y_{j'}$ with
+$j'\ne j$, by single return at $n$.  The shape of $w_q$ is a property
+of the term $w_q$, so it holds at every visit.
+
+(2) Let $\pi_d$ be the position in $\iv ae$ at the dummy lambda
+$\suc p{g_p}$ that is an ancestor of $\pi_e$, and let $\pi_c$ be its
+parent, at $p$ (Definition~\ref{def:parent}).  The entry of $\theta_c$
+for the binder $\suc{n''}h$ was created by a child of a position
+$\pi_b$ at $n''$, with $b\ge a$.  By single return this is the only
+child of $\pi_b$, so by~(1) it was entered from the head $y_h$ of the
+body of $w_q$, and $z_l$ is bound to $B_l=\lambda\vec v.\,H$.  So
+$\pi_{c+1}$ is at the root of $B_l$, and $\pi_{c+2}$ at $H$.  By
+Lemma~\ref{lem:shape}, $H$ is a constant term, a $y$-term or a
+variable $v$.
+\begin{itemize}
+\item A constant would be an $f$-move in $\iv ae$, against silence.
+\item If $H=y_{h'}\dots$, the jump to $\suc{n''}{h'}$ is a child of
+  $\pi_b$ other than the one at $\suc{n''}h$, against single return.
+\item So $H$ is a $v$-node.  It has no successors, so the play jumps
+  from it to a successor of $p$ and does not come back to $B_l$.  That
+  jump is the child $\pi_d$ of $\pi_c$, so $H=v_{g_p}$.
+\end{itemize}
+Hence $B_l=\lambda\vec v.\,v_{g_p}$.  This is a closed term, so every
+binding of $z_l$ that comes from the head $y_h$ of $w_q$ is this
+projection, at every visit.
+\end{proof}
+
+\begin{theorem}[The path cut is sound]\label{thm:pathcut}
+\New{} Let $t$ solve $E$, let $n$ be headless, let $(n,m)$ be silent,
+and let $n$ and each of $n'_1,\dots,n'_r$ have single return.  Then the
+path-cut unfolding $t'''$ of $t$ at $(n,m)$ solves $E$.
+\end{theorem}
+\begin{proof}
+Fix a sequence of choices of $\forall$.  Phase~1 of the proof of
+Theorem~\ref{thm:xcut} applies verbatim to $t'''=t[m:=N''']$: up to the
+first labelled state, $T^*$ and $T'''^*$ make the same steps, and if
+there is none they make the same steps throughout.  Otherwise some play
+visits $n$ and then $m$, so Lemma~\ref{lem:proj} applies.  It remains to
+compare the steps from $N^{\circ*}$ (in $t'$) and $N'''\theta$.
+
+We extend the relation $R^\sharp$ of the proof of
+Theorem~\ref{thm:xcut} by a third kind of special occurrence.
+\begin{enumerate}[(a)]
+\setcounter{enumi}{2}
+\item A residual of the occurrence at $\kappa(p)$, for a $z$-node $p$
+  strictly between $n$ and $m$.  It has the form
+  $(z_l\,(\lambda.\,C^\circ_1)\dots(\lambda.\,C^\circ_k))\rho$, and its
+  counterpart is $C^\circ_{g_p}\rho$, with deeper special occurrences
+  replaced in the same way.
+\end{enumerate}
+In the counterparts of (a)-occurrences, the (c)-occurrences inside are
+replaced as well.  Then $N^{\circ*}\,R^\sharp\,N'''\theta$, and the cases
+of the proof of Theorem~\ref{thm:xcut} go through unchanged.  One case is
+new.
+
+\emph{The head of $s'$ is a (c)-occurrence.}  Then $z_l$ has been
+instantiated by $\rho$, and its binder is $\kappa(\suc{n''}h)$, where
+$n''$ is the owner of $p$.  That binder was instantiated by a
+$\beta$-step whose operator is a residual of the argument $A^\circ_h$ of
+an occurrence at $\kappa(n'')$, applied to the arguments of some
+occurrence of $y_h$ in $w_q$.
+\begin{itemize}
+\item If it is the head occurrence of the body of $w_q$, then
+  $\rho(z_l)=B_l=\lambda\vec v.\,v_{g_p}$ by Lemma~\ref{lem:proj}.
+\item Otherwise the occurrence of $y_h$ lies inside $\vec B$.  Its
+  reaching head is a child of a position at $\kappa(n'')$ other than its
+  first.  For $n''=n'_i$ this is a marked occurrence at head, which
+  does not happen (proof of Theorem~\ref{thm:xcut}).  For $n''=n$ it is,
+  by Proposition~\ref{prop:treegame}, the $\zeta$-image of a second child
+  of a position at $n$, against single return at $n$.
+\end{itemize}
+So $s'=(\lambda\vec v.\,v_{g_p})\,(\lambda.\,C^\circ_1\rho)\dots
+(\lambda.\,C^\circ_k\rho)$, and $s'$ makes a block of $\beta$-steps
+to $C^\circ_{g_p}\rho$, while $s'''$ makes no step.  The new state
+$R^\sharp$-relates to $s'''$.
+
+So the steps from $N'''\theta$ are those from $N^{\circ*}$ with blocks
+of $\beta$-steps removed.  As in Theorem~\ref{thm:xcut},
+$\mathrm{nf}(T'''^*)=\mathrm{nf}(T^*)=u$.
+\end{proof}
+
+\begin{remark}[About the path cut]\label{rem:pathcut}
+\begin{enumerate}
+\item \emph{Single return at $n$ is needed.}  Let
+  $t=\lambda x.\,g\,(x\,(\lambda z_0.\,z_0\,(g\,(z_0\,a))))$ and
+  $w=\lambda y.\,y\,(\lambda v.\,y\,(\lambda v'.\,v))$.  Take $n$ the
+  $x$-node and $m$ the inner $g$-node; the path carries the $z$-node
+  $z_0\,(g\dots)$ and no $x$-node.  $(n,m)$ is silent, but the argument
+  of $y$ in $w$ re-enters $\suc n1$, so $n$ has two children and
+  $z_0$ is not bound to a projection.  Here $t\,w$ and $t'\,w$ have the
+  normal form $g^2a$, and $t'''\,w$ has $g^3a$.
+\item \emph{Computer check} (not part of the proof).  Same terms as in
+  Remark~\ref{rem:xcut}, restricted to silent pairs with $n$ headless
+  and at least one $z$-node on the path.  With $x$ unary up to depth~$6$,
+  in all $4664$ cases with single return at $n$ and at the $n'_i$,
+  $t'''\,\vec w$ and $t\,\vec w$ have the same normal form, and all
+  $400$ failures lack it.  With $x$ binary up to depth~$2$ there are
+  $104$ such cases and no failure.
+\item With Theorems~\ref{thm:treeunf}, \ref{thm:xcut}
+  and~\ref{thm:pathcut}, the one-step unfolding of
+  Definition~\ref{def:onestep} (tree-shaped unfolding followed by the
+  cut of Remark~\ref{rem:compress}) is sound whenever $n$ is headless,
+  $(n,m)$ is silent, and $n$ and the $x$-nodes between $n$ and $m$ have
+  single return.
+\end{enumerate}
+\end{remark}
+
+\subsection{Applicability}\label{sec:applic}
+
+Theorems~\ref{thm:treeunf}, \ref{thm:xcut} and~\ref{thm:pathcut} need
+three hypotheses: $n$ headless, $(n,m)$ silent, and single return at $n$
+and at the $x$-nodes between $n$ and $m$.  A headless $x$-node binding a
+head exists whenever heads exist (remark after
+Proposition~\ref{prop:treegame}).  This subsection treats the other
+two.  Silence fails only boundedly often along a path, by the counting
+of Proposition~\ref{prop:headless}.  Single return is a property of the
+arguments $w_q$, and it does not follow from terseness.
+
+\begin{proposition}[Few loud pairs]\label{prop:loud}
+\New{} Let $t$ solve $E$ and let $P$ be a path of $t$ from the root.
+Let $(n_1,m_1),\dots,(n_K,m_K)$ be pairs of nodes on $P$, from top to
+bottom, such that each $n_k$ is a headless $x$-node, $m_k$ is a
+non-lambda node strictly below $n_k$, and $m_k$ is $n_{k+1}$ or lies
+above it.  Then at most $|u|-\br(u)$ of the pairs are not silent.
+\end{proposition}
+\begin{proof}
+Let $(n_k,m_k)$ not be silent.  Then some play $\pi^k$ has a position
+$\pi^k_{a_k}$ at $n_k$ such that, with $\pi^k_{e_k}$ the first later
+position at $m_k$, the interval $\iv{a_k}{e_k}$ has an $f$-move at some
+$c_k$ with $a_k\le c_k<e_k$.  By Lemma~\ref{lem:confine}, $\pi^k_{a_k}$
+is the only position of $\pi^k$ at $n_k$.
+
+We show that $k\mapsto c_k$ is injective as a map into the tree of
+plays.  Suppose $c_k=c_{k'}=c$ with $k<k'$, so $\pi^k$ and $\pi^{k'}$
+agree up to $c$.  Then $a_{k'}\le c$, and $\pi^k$ has the position
+$\pi^k_{a_{k'}}$ at $n_{k'}$.  As $m_k$ is $n_{k'}$ or a non-lambda node
+above it, Lemma~\ref{lem:ancestors} gives a position $\pi^k_i$ at $m_k$
+with $i\le a_{k'}$.  The node $n_k$ lies above $m_k$, so by the same
+lemma some position at $n_k$ comes before $\pi^k_i$; it is
+$\pi^k_{a_k}$, by uniqueness.  So $a_k<i$, and $e_k\le i$ because
+$\pi^k_{e_k}$ is the first position at $m_k$ after $a_k$.  Hence
+$e_k\le i\le a_{k'}\le c<e_k$, a contradiction.
+
+So the non-silent pairs inject into the $f$-moves of the tree of plays,
+of which there are at most $|u|-\br(u)$ (Lemma~\ref{lem:global}).
+\end{proof}
+
+So along a path, among pairs on disjoint segments, all but $|u|$ are
+silent.  If $m_k$ is never reached after $n_k$, the pair is silent
+vacuously; then the copy is never entered.
+
+\begin{lemma}[Single return from the shape of $w$]\label{lem:staticsr}
+\New{} Let $w_q=\lambda\vec y.\,y_h\,\vec B$, where no variable $y_i$
+occurs in $\vec B$.  Then every $x_q$-node of $t$ has single return.
+\end{lemma}
+\begin{proof}
+Let $\pi_b$ be at an $x_q$-node.  Then $\pi_{b+1}$ is at the root of
+$w_q$ and $\pi_{b+2}$ at the head $y_h$ of its body.  A child of
+$\pi_b$ is a position $\pi_d$ at a successor of $n_b$ such that
+$\pi_{b+1}$ is the parent of $\pi_{d-1}$ (Definition~\ref{def:parent}),
+and $\pi_{d-1}$ is at a $y$-node of $w_q$.  The only such node is the
+head of the body.  A position $\pi_j$ there is preceded by a position
+$\pi_{j-1}$ at the root of $w_q$ with $\theta_{j-1}=\theta_j$
+(Lemma~\ref{lem:pred}), so $\pi_{j-1}$ satisfies the condition for
+being the parent of $\pi_j$.  By uniqueness of parents
+(Proposition~\ref{prop:parent}), $\pi_{b+1}$ is the parent of $\pi_j$
+only if $j=b+2$.  So $\pi_b$ has at most one child.
+\end{proof}
+
+\begin{remark}[Single return is not a consequence of terseness]\label{rem:srterse}
+The plan was to derive single return like silence: a second return
+should give a contribution.  This fails.
+\begin{enumerate}
+\item \emph{A second return need not contribute.}  Let
+  $w=\lambda y.\,y\,(\lambda v.\,y\,(\lambda v'.\,g\,v))$ and
+  $t=\lambda x.\,g\,(g\,(g\,(x\,(\lambda z_0.\,z_0\,a))))$, so
+  $u=g^4a$.  The position at the $x$-node has two children at
+  $\lambda z_0$, and there is no $f$-move between them: the call
+  $z_0\,a$ enters the argument of $y$, whose head is $y$ again.
+\item \emph{Terse, silent and headless do not suffice.}  The example of
+  Remark~\ref{rem:xcut}(1),
+  $t=\lambda x.\,x\,(\lambda z_0.\,x\,(\lambda z_1.\,g\,(z_0\,(z_1\,a))))$
+  with $w=\lambda y.\,y\,(\lambda v.\,y\,(\lambda v'.\,y\,(\lambda
+  v''.\,v')))$, is terse, and $(n,m)$ is silent with $n$ headless.  But
+  $n'_1$ has two children, and the cut is unsound.
+\item Both examples are terse by a computer check: every node is visited
+  (no $T_1$), and every removal along an end path changes the normal
+  form, so no end path is redundant (Proposition~\ref{prop:T2}).
+  Among the terse solutions of the check of Remark~\ref{rem:xcut} with
+  $x$ unary up to depth~$5$ ($870$ pairs $(t,w)$), $222$ headless
+  $x$-nodes have a position with two children, and in $90$ of them
+  there is no $f$-move between the first two children.
+\item \emph{Multiple returns do cost output.}  In the family
+  $t_k=\lambda x.\,x\,(\lambda z_0.\dots x\,(\lambda
+  z_{k-1}.\,g\,(z_0\,(\dots(z_{k-1}\,a)))))$, whose $x$-nodes have
+  several children, $|u|$ grows like $2^k$ for the three non-linear
+  arguments of the check, and $t_k$ is terse.  This suggests charging
+  multiple returns to the output globally rather than to the interval
+  between two children.  It is not proved.
+\end{enumerate}
+By Lemma~\ref{lem:staticsr}, single return holds for all $x_q$-nodes as
+soon as $y$ occurs only once in $w_q$.  So the open case is an $x_q$-node
+on the path whose $w_q$ uses some $y_i$ again inside $\vec B$.
+\end{remark}
+
+\renewcommand{\gapname}{[Gap-Unfolding]}
+\begin{gapenv}\phantomsection\label{gap:unfold}
+\Open{}
+The proof uses tree-shaped unfolding.  Its game is given by
+Proposition~\ref{prop:treegame}, it is sound under silence for headless
+$n$ (Theorem~\ref{thm:treeunf}), and the copied path can be removed
+under single return: the $x$-nodes by Theorem~\ref{thm:xcut}, the
+$z$-nodes by Theorem~\ref{thm:pathcut}.  Of the hypotheses, headless
+$x$-nodes exist, and silence fails for at most $|u|$ pairs on disjoint
+segments of a path (Proposition~\ref{prop:loud}).  Open is \emph{single
+return} at $n$ and at the $x$-nodes between $n$ and $m$.  It holds when
+each $w_q$ involved uses its $\vec y$ only once
+(Lemma~\ref{lem:staticsr}), but it does not follow from terseness
+(Remark~\ref{rem:srterse}).  Needed: a bound on the $x$-nodes of a path
+without single return, or a cut that handles them.  The decrease of a
+measure under unfolding is part of \GapCounting{}(i).
+\end{gapenv}
+
+
 
 %======================================================================
 \section{The small solution theorem and decidability}\label{sec:thm37}
@@ -2399,8 +3051,10 @@ stage is a constant stage, an $x$-stage or a $z$-stage
 $\mathcal H$ (Definition~\ref{def:hyper}).  It is a tree, its partition
 edges are well defined, and every separator contains a contributing
 node (Proposition~\ref{prop:hyper}).  Gluing the combs along the edges
-should give back the visited part of $t$.
-\emph{Gaps:} that last claim is \GapPartition{} (partition tree).
+gives back the visited part of $t$ (Lemma~\ref{lem:origin},
+Proposition~\ref{prop:ptree}).
+\emph{Gaps:} none.  Tree-shaped unfolding
+(Section~\ref{sec:treeunf}) does not use the partition tree.
 
 \paragraph{Step 3: unfolding.}
 Unfold according to the regime of Definition~\ref{def:regime}: always at
@@ -2411,12 +3065,12 @@ An unfolding takes a non-contributing $x$-stage at a node $n$ and at most
 $q$ non-contributing $z$-stages bound by one successor of $n$; the
 enlarged comb has depth at most $2(q+1)$
 (Lemma~\ref{lem:cembshape}).  Separators are never unfolded
-(Proposition~\ref{prop:hyper}(4)).  Unfolding must preserve solutions:
-this is proved for linear heads (Theorem~\ref{thm:linunfold}), and for
-non-linear heads the obstruction of Example~\ref{ex:obstruction} is
-excluded in the same-visit case (Proposition~\ref{prop:reentry}).
-\emph{Gaps:} soundness in general, the game of the unfolded term
-(Fact~\ref{fact:36}) and the cross-visit case are \GapUnfolding{}.
+(Proposition~\ref{prop:hyper}(4)).  Unfolding must preserve solutions.  We use tree-shaped unfolding
+(Theorem~\ref{thm:treeunf}) followed by the cut of the copied path
+(Theorems~\ref{thm:xcut} and~\ref{thm:pathcut}), with the game of
+Proposition~\ref{prop:treegame}.
+\emph{Gaps:} single return is \GapUnfolding{}; the decrease of a
+measure is \GapCounting{}(i).
 
 \paragraph{Step 4: shrinking.}
 Apply $T_1$ and $T_2$ exhaustively to the unfolded term; call the result
@@ -2458,7 +3112,12 @@ open point of the proof.
 \Open{}
 \begin{enumerate}[(i)]
 \item Termination of the construction: unfolding enlarges the term and
-  $T_1,T_2$ shrink it, and they may have to be interleaved.
+  $T_1,T_2$ shrink it, and they may have to be interleaved.  Needed is a
+  well-founded measure that decreases under unfolding followed by the
+  path cut (Theorem~\ref{thm:pathcut}) and does not increase under
+  $T_1,T_2$ (Lemma~\ref{lem:monoheads}).  The hydra picture of
+  Remark~\ref{rem:leftsx} is not yet a definition, and the $x$-cut can
+  create heads carried by $\kappa(n)$ (Remark~\ref{rem:xcut}(3)).
 \item The bound $s_x\le K$ (Proposition~\ref{prop:stripbound}(2)).
   Free $x$-nodes are at most $|u|$ per path
   (Proposition~\ref{prop:headless}), and $T_1,T_2$ create no new
@@ -2522,7 +3181,7 @@ Prop.~\ref{prop:T1} & Fact~30 & proved; Coq\\
 Lemma~\ref{lem:T2sim}, Prop.~\ref{prop:T2} & Prop.~31 & new simulation lemma, proved\\
 Prop.~\ref{prop:stacking} & Prop.~32 & corrected bound, proved\\
 Fact~\ref{fact:33}, Prop.~\ref{prop:34} & Fact~33, Prop.~34 & proved (Coq: uniqueness)\\
-Def.~\ref{def:ptree2} & Def.~46 & corrected reading, \GapPartition{}\\
+Def.~\ref{def:ptree2}, Lemmas~\ref{lem:inside}, \ref{lem:origin}, Prop.~\ref{prop:ptree} & Def.~46 & reading by origins, proved\\
 Def.~\ref{def:hyper}, Prop.~\ref{prop:hyper} & p.~53 & new, proved\\
 Lemma~\ref{lem:shape}, Cor.~\ref{cor:binders}, \ref{cor:jumps} & --- & new, proved (order-5 shape)\\
 Lemma~\ref{lem:endpath5} & Def.~39 & new, proved\\
@@ -2530,9 +3189,13 @@ Lemma~\ref{lem:stages5} & Prop.~34 & new, proved\\
 Lemma~\ref{lem:cembshape} & p.~53 & new, proved\\
 Thm.~\ref{thm:linunfold} & --- & new; Coq (raw terms)\\
 Ex.~\ref{ex:obstruction} & Def.~47 & counterexample\\
-Prop.~\ref{prop:reentry}, Cor.~\ref{cor:crossvisit} & --- & new; partial, \GapUnfolding{}\\
-Fact~\ref{fact:36} & Fact~36 & open\\
+Prop.~\ref{prop:reentry}, Cor.~\ref{cor:crossvisit} & --- & partial; not used (tree-shaped route)\\
+Fact~\ref{fact:36} & Fact~36 & open; not used (tree-shaped route)\\
 Def.~\ref{def:treeunf}, Thm.~\ref{thm:treeunf} & --- & new; sound under silence, proved\\
+Def.~\ref{def:treegame}, Prop.~\ref{prop:treegame} & --- & new; game after unfolding, proved\\
+Def.~\ref{def:xcut}, Thm.~\ref{thm:xcut} & --- & new; $x$-cut sound under single return, proved\\
+Def.~\ref{def:pathcut}, Lemma~\ref{lem:proj}, Thm.~\ref{thm:pathcut} & --- & new; path cut sound under single return, proved\\
+Prop.~\ref{prop:loud}, Lemma~\ref{lem:staticsr} & --- & new; silence and single return, proved\\
 Lemma~\ref{lem:pathcount}, Cor.~\ref{cor:depthsz} & p.~53 & new, proved (replaces pigeonhole)\\
 Prop.~\ref{prop:stripbound} & p.~53 & (1) proved, (2) open\\
 Lemmas~\ref{lem:confine}, \ref{lem:witness}, \ref{lem:monoheads}, Prop.~\ref{prop:headless} & --- & new, proved\\
@@ -2572,18 +3235,16 @@ Cor.~\ref{cor:decidable} & \S6 & proved from Thm.~37; Coq
 \small
 \begin{tabular}{llll}
 Gap & Topic & Introduced in & Page\\\hline
-\GapPartition & Partition tree & \S\ref{sec:partition}, after Def.~\ref{def:ptree2} & \pageref{gap:ptree}\\
-\GapUnfolding & Unfolding & \S\ref{sec:nonlinear}, after Cor.~\ref{cor:crossvisit} & \pageref{gap:unfold}\\
+\GapUnfolding & Unfolding & \S\ref{sec:applic}, after Remark~\ref{rem:srterse} & \pageref{gap:unfold}\\
 \GapCounting & Counting & \S\ref{sec:architecture}, after Step~5 & \pageref{gap:count}
 \end{tabular}
 \end{center}
 
 \paragraph{Open, in order of importance.}
-\GapUnfolding{} (\S\ref{sec:nonlinear}; unfolding: game, soundness,
-the remaining cross-visit case), \GapCounting{}
-(\S\ref{sec:architecture}; counting), \GapPartition{}
-(\S\ref{sec:partition}; partition tree).  [Gap-Stacking] is closed by
-Proposition~\ref{prop:stacking}, and [Gap-$T_2$] by
-Lemma~\ref{lem:T2sim}.
+\GapUnfolding{} (\S\ref{sec:applic}; single return), \GapCounting{}
+(\S\ref{sec:architecture}; counting).  [Gap-Stacking] is closed by
+Proposition~\ref{prop:stacking}, [Gap-$T_2$] by Lemma~\ref{lem:T2sim},
+and [Gap-Partition] by Lemma~\ref{lem:origin} and
+Proposition~\ref{prop:ptree} (Remark~\ref{rem:ptreeclosed}).
 
 \end{document}
