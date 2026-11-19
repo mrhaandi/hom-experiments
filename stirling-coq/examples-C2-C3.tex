@@ -1,0 +1,219 @@
+\documentclass[11pt]{article}
+\usepackage[margin=2.3cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{enumitem}
+\newtheorem{example}{Example}
+\newcommand{\suc}[2]{#1\!\downarrow\!#2}
+\title{Failures of (C2$'$) and (C3): six examples}
+\author{Companion to \texttt{stirling-sec4on5thorder.tex}, \S6.8--6.9}
+\date{19 November 2026}
+\begin{document}
+\maketitle
+
+\section*{Setting}
+
+References are to \texttt{stirling-sec4on5thorder.tex}: skeleton
+re-calls $R_U$ (Def.~6.42), Theorem~6.43 (call-free unfolding) and
+Theorem~6.45 (re-calls with re-entries).  Theorem~6.45 assumes
+\begin{itemize}
+\item[(C1)] every position at $\nu$ has a route $e_1,\dots,e_s$ with
+  dependents $\nu_1,\dots,\nu_s=\nu$;
+\item[(C2$'$)] after the $z$-jump at $\nu$ and before the first exit to a
+  dummy lambda below some $\nu_k$, no $y$-jump of the code $I_a$ goes to a
+  slot used by $U$;
+\item[(C3)] an exit to a dummy lambda below $\nu_k$ with $k<s$ lands in an
+  argument whose free variables are bound strictly above $n$;
+\item[(C4)] $U$ has at most one pair per slot.
+\end{itemize}
+The examples below satisfy (C1) and (C4).  In the first three, (C2$'$)
+fails (the notes' blocked reference (B2), same-slot recursion).  There
+the term $R_U$ exists, but $t[\nu:=R_U]$ is \emph{not} a solution.  In
+the last three, (C3) fails (the notes' blocked reference (B1), scope).
+There $R_U$ contains a variable that is not in scope at $\nu$, so it is
+not a term.
+
+All types are built from one base type $o$.  Constants: $a,b,c,d:o$ and
+$f,g:o\to o$.  The equation is always $X\,\vec w=u$ with one unknown $X$.
+We write $t=\lambda\vec x.\,\dots$ for the solution, $n$ for the outermost
+$x$-node of $t$ and $I_a$ for its code of $w$.  All values were checked by
+$\beta$-normalisation.
+
+\emph{Caveat.}  We have not checked that the solutions are terse ($T_1$,
+$T_2$ not applicable).  The examples show only that
+Theorem~6.45 needs (C2$'$) and (C3) as hypotheses.  Whether such
+failures occur in terse solutions, and how often, is the open question
+(Gap-Unfolding, Gap-Counting).
+
+\section{Failures of (C2$'$): re-entry into a slot of the route}
+
+\begin{example}[Route of length 2, re-entry into the first slot]\label{ex:c2a}
+\[
+X\;\bigl(\lambda y_1y_2.\,y_1(\lambda v_0.\,y_2(\lambda v_1.\,y_1(\lambda v_2.\,v_0)))\bigr)\;=\;g(g(g\,a)).
+\]
+Types: $X:((o\to o)\to o)\to((o\to o)\to o)\to o$.  Solution
+\[
+t=\lambda x.\,x\,(\lambda z_0.\,g(z_0\,a))\,(\lambda z_0'.\,g(z_0'\,a)),
+\qquad \nu=z_0'\,a .
+\]
+\begin{itemize}
+\item Route: $e_1=y_1(\dots)$ enters slot $1$, which outputs $g$ and
+  reaches $\nu_1=z_0\,a$.  Its $z$-jump leads to $e_2=y_2(\dots)$, which
+  enters slot $2$; this outputs $g$ and reaches $\nu_2=\nu$.  So
+  $U=\{(1,(1,z_0\,a)),\,(2,(1,z_0'\,a))\}$.
+\item Failure of (C2$'$): after the $z$-jump at $\nu$ the play is at
+  $\lambda v_1.\,y_1(\lambda v_2.v_0)$ and $y_1$-jumps into slot $1$ again,
+  which is used by $U$.  This second visit outputs the third $g$.
+\item $R_U=x\,(\lambda q.\,q\,a)\,(\lambda q'.\,q'\,a)$, and
+  $t[\nu:=R_U]=\lambda x.\,x\,(\lambda z_0.\,g(z_0\,a))\,(\lambda z_0'.\,g(R_U))$
+  gives $g(g\,a)\neq g(g(g\,a))$.  The re-call skips the re-entered slot
+  and loses its output.
+\end{itemize}
+\end{example}
+
+\begin{example}[Unary $x$, route of length 1, re-entry into the same slot]\label{ex:c2b}
+\[
+X\;\bigl(\lambda y.\,y(\lambda v.\,y(\lambda v'.\,v))\bigr)\;=\;g(g\,a).
+\]
+Types: $X:((o\to o)\to o)\to o$.  Solution
+\[
+t=\lambda x.\,x\,(\lambda z.\,g(z\,a)),\qquad \nu=z\,a .
+\]
+\begin{itemize}
+\item Route: $e_1=y(\dots)$ enters slot $1$, which outputs $g$ and reaches
+  $\nu_1=\nu$.  So $U=\{(1,(1,z\,a))\}$.
+\item Failure of (C2$'$): after the $z$-jump at $\nu$ the play is at
+  $y(\lambda v'.v)$ and re-enters slot $1$, the slot of $\nu$ itself.
+\item $R_U=x\,(\lambda q.\,q\,a)$, which is the full copy $\kappa_\nu$ of
+  Def.~6.47.  $t[\nu:=R_U]$ gives $g\,a\neq g(g\,a)$.
+\item $w$ is the one of the non-linear example of \texttt{homcells.tex}.  The full
+  copy theorem (Thm.~6.49) allows this re-entry only under silence, and
+  slot $1$ is not silent here.
+\end{itemize}
+\end{example}
+
+\begin{example}[Ternary $x$, route of length 3, re-entry into the first slot]\label{ex:c2c}
+\[
+X\;\bigl(\lambda y_1y_2y_3.\,y_1(\lambda v_1.\,y_2(\lambda v_2.\,y_3(\lambda v_3.\,y_1(\lambda v_4.\,v_1)))))\bigr)\;=\;g(f(g\,a)).
+\]
+Types: $X:((o\to o)\to o)^3\to o$.  Solution
+\[
+t=\lambda x.\,x\,(\lambda z_1.\,g(z_1\,a))\,(\lambda z_2.\,z_2\,a)\,(\lambda z_3.\,f(z_3\,a)),
+\qquad \nu=z_3\,a .
+\]
+\begin{itemize}
+\item Route: $e_1=y_1$, slot $1$ (outputs $g$), $\nu_1=z_1\,a$; then
+  $e_2=y_2$, slot $2$ (silent), $\nu_2=z_2\,a$; then $e_3=y_3$, slot $3$
+  (outputs $f$), $\nu_3=\nu$.  So $U$ has pairs for slots $1,2,3$.
+\item Failure of (C2$'$): after the $z$-jump at $\nu$ the play is at
+  $\lambda v_3.\,y_1(\lambda v_4.v_1)$ and re-enters slot $1$.  This visit
+  outputs the inner $g$.
+\item $R_U=x\,(\lambda q_1.\,q_1\,a)\,(\lambda q_2.\,q_2\,a)\,(\lambda q_3.\,q_3\,a)$,
+  and $t[\nu:=R_U]$ gives $g(f\,a)\neq g(f(g\,a))$.
+\item Routes of length $\ge2$ with a re-entry were not covered by the
+  random test \texttt{sk2.py}; this one is built by hand.
+\end{itemize}
+\end{example}
+
+\section{Failures of (C3): an exit leaves the scope of $\nu$}
+
+In all three examples the route has length $2$: $\nu_1$ lies in slot
+$1$, $\nu=\nu_2$ in slot $2$, and the play leaves the code $I_a$ through
+the $\lambda v$ of step $1$, i.e.\ into an argument of $\nu_1$.  That
+argument contains a variable bound strictly between $n$ and $\nu_1$.  In
+$R_U$ this argument is copied to the position of $\nu$, in slot $2$,
+where that variable is not bound.  So $R_U$ is not a term.
+
+\begin{example}[The variable is bound by an inner call of the same $x$]\label{ex:c3a}
+\[
+X\;\bigl(\lambda y_1y_2.\,y_1(\lambda v.\,y_2(\lambda v'.\,v))\bigr)\;=\;g\,d.
+\]
+Types as in Example~\ref{ex:c2a}.  Solution
+\[
+t=\lambda x.\,x\,\bigl(\lambda z_1.\,\underbrace{x\,(\lambda z_2.\,z_1(z_2\,b))\,(\lambda z_3.\,d)}_{n'}\bigr)\,(\lambda z_0.\,g(z_0\,a)),
+\qquad \nu=z_0\,a .
+\]
+\begin{itemize}
+\item Route: $e_1=y_1(\dots)$ in $I_a$ enters slot $1$ of $n$.  There the
+  inner node $n'$ calls a second code $I_b$ of $w$, whose $y_1$ enters
+  $\lambda z_2.\,z_1(z_2\,b)$ and reaches $\nu_1=z_1(z_2\,b)$, a dependent of
+  $n$.  Its $z$-jump goes back to $I_a$, to $e_2=y_2(\lambda v'.v)$, which
+  enters slot $2$ of $n$; this outputs $g$ and reaches $\nu_2=\nu$.
+\item Failure of (C3): after the $z$-jump at $\nu$ the play is at
+  $\lambda v'.v$ and $v$-jumps through the $\lambda v$ of step $1$ to the
+  argument $z_2\,b$ of $\nu_1$.  The variable $z_2$ is bound by $n'$,
+  strictly between $n$ and $\nu_1$.  The play continues into $I_b$:
+  $y_2$ there enters $\lambda z_3.d$ and outputs $d$.
+\item $R_U=x\,(\lambda q.\,q\,(z_2\,b))\,(\lambda q'.\,q'\,a)$ has $z_2$
+  free at $\nu$, where it is not bound.  The exit value $d$ is computed
+  by the inner call $n'$, which is not visible at $\nu$.
+\end{itemize}
+\end{example}
+
+\begin{example}[The variable is bound by a call of another unknown, which produces output]\label{ex:c3b}
+\[
+X\;\bigl(\lambda y_1y_2.\,y_1(\lambda v.\,y_2(\lambda v'.\,v))\bigr)\;\bigl(\lambda y.\,y(\lambda v.\,f\,v)\bigr)\;=\;g(f\,b).
+\]
+Types: $X:\bigl(((o\to o)\to o)\to((o\to o)\to o)\to o\bigr)\to\bigl(((o\to o)\to o)\to o\bigr)\to o$, so $X$ has two arguments $w_1,w_2$.  Solution
+\[
+t=\lambda x_1x_2.\,x_1\,\bigl(\lambda z_1.\,\underbrace{x_2\,(\lambda z_2.\,z_1(z_2\,b))}_{n'}\bigr)\,(\lambda z_0.\,g(z_0\,a)),
+\qquad \nu=z_0\,a .
+\]
+\begin{itemize}
+\item Route: as in Example~\ref{ex:c3a}, with $n'$ now a call of $x_2$
+  (code of $w_2$): $e_1=y_1$, slot $1$, $\nu_1=z_1(z_2\,b)$; then
+  $e_2=y_2$, slot $2$ (outputs $g$), $\nu_2=\nu$.
+\item Failure of (C3): the exit goes to $z_2\,b$, with $z_2$ bound by $n'$.
+  The play continues into the code of $w_2$, which outputs $f$, and then
+  returns to $b$.
+\item $R_U=x_1\,(\lambda q.\,q\,(z_2\,b))\,(\lambda q'.\,q'\,a)$ has $z_2$
+  free.  Here the blocked part of the route itself produces output ($f$).
+\end{itemize}
+\end{example}
+
+\begin{example}[The variable is bound by the slot of $\nu_1$ itself]\label{ex:c3c}
+\[
+X\;\bigl(\lambda y_1y_2.\,y_1\,(\lambda v.\,y_2(\lambda v'.\,v))\,(\lambda v''.\,d)\bigr)\;=\;g\,d.
+\]
+Types: $y_1:(o\to o)\to(o\to o)\to o$ and $y_2:(o\to o)\to o$, so
+$X:((o\to o)\to(o\to o)\to o)\to((o\to o)\to o)\to o$.  Solution
+\[
+t=\lambda x.\,x\,(\lambda z_1z_1'.\,z_1(z_1'\,c))\,(\lambda z_0.\,g(z_0\,a)),
+\qquad \nu=z_0\,a .
+\]
+\begin{itemize}
+\item Route: $e_1=y_1(\dots)(\dots)$ enters slot $1$ and reaches
+  $\nu_1=z_1(z_1'\,c)$ (index $1$); then $e_2=y_2$, slot $2$ (outputs $g$),
+  $\nu_2=\nu$.
+\item Failure of (C3): the exit goes to the argument $z_1'\,c$ of $\nu_1$.
+  The variable $z_1'$ is bound by $\suc n1$, the slot of $\nu_1$, so it is
+  strictly between $n$ and $\nu_1$.  There is no inner $x$-call.  The play
+  $z_1'$-jumps to the second argument $\lambda v''.d$ of $e_1$ and outputs
+  $d$.
+\item $R_U=x\,(\lambda q\,q'.\,q\,(z_1'\,c))\,(\lambda q''.\,q''\,a)$ has
+  $z_1'$ free at $\nu$, which lies in slot $2$.
+\end{itemize}
+\end{example}
+
+\section*{Summary}
+
+\begin{center}
+\small
+\begin{tabular}{llllll}
+Ex. & Failing & arity of $x$ & route length & $u$ & result of $t[\nu:=R_U]$\\\hline
+\ref{ex:c2a} & (C2$'$) & 2 & 2 & $g(g(g\,a))$ & $g(g\,a)$\\
+\ref{ex:c2b} & (C2$'$) & 1 & 1 & $g(g\,a)$ & $g\,a$\\
+\ref{ex:c2c} & (C2$'$) & 3 & 3 & $g(f(g\,a))$ & $g(f\,a)$\\
+\ref{ex:c3a} & (C3) & 2 & 2 & $g\,d$ & not a term ($z_2$ free; inner $x$)\\
+\ref{ex:c3b} & (C3) & 2 (+ $x_2$) & 2 & $g(f\,b)$ & not a term ($z_2$ free; other unknown)\\
+\ref{ex:c3c} & (C3) & 2 & 2 & $g\,d$ & not a term ($z_1'$ free; same slot)
+\end{tabular}
+\end{center}
+
+In the (C2$'$) examples the lost output always comes from the re-entered
+slot of the route.  So a correct replacement would have to keep that
+slot both as a skeleton and as a copy, which is the notes' description
+of (B2).  In the (C3) examples the exit value is computed by code that is
+bound between $n$ and $\nu_1$ (an inner call or a sibling slot
+variable), which is the notes' (B1).
+
+\end{document}
